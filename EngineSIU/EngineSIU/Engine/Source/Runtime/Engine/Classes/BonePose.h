@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BoneContainer.h"
 #include "Container/Array.h"
 #include "Math/Transform.h"
@@ -219,6 +219,23 @@ struct FBaseCompactPose : public FBasePose
 	{
 		return GetBoneContainer().GetRefPoseTransform(BoneIndex);
 	}
+    FORCEINLINE void SetBoneTransform(const int32 BoneIndex, const FTransform& NewTransform)
+    {
+        if (IsValidIndex(BoneIndex))
+        {
+            Bones[BoneIndex] = NewTransform;
+        }
+    }
+
+    FORCEINLINE FTransform& GetBoneTransform(const int32 BoneIndex)
+    {
+        return Bones[BoneIndex];
+    }
+
+    FORCEINLINE const FTransform& GetBoneTransform(const int32 BoneIndex) const
+    {
+        return Bones[BoneIndex];
+    }
 
 protected:
     

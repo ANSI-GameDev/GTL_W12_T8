@@ -3,6 +3,9 @@
 #include "UnrealEd/EditorViewportClient.h"
 #include <Windows.h> // HWND 정의를 위해 추가
 
+struct FBaseCompactPose;
+struct FTransform;
+struct FReferenceSkeleton;
 class USkeletalMeshComponent;
 struct FRenderTargetRHI;
 struct FDepthStencilRHI;
@@ -21,6 +24,7 @@ private:
     void RenderViewportPanel();
     void RenderPhysicsSettings();
     void RenderInfoPanel();
+    void RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex, FBaseCompactPose& Pose);
 
     void RenderPanelLayout();
     void RenderSkeletonUI();
@@ -30,4 +34,5 @@ private:
 
     std::shared_ptr<FEditorViewportClient> ViewportClient;
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
+    int SelectedBoneIndex = -1;
 };

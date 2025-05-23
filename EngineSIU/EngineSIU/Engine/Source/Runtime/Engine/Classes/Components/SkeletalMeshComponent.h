@@ -116,14 +116,14 @@ public:
     EAnimationMode GetAnimationMode() const { return AnimationMode; }
 
     virtual void InitAnim();
-    
+    //private로 옮겨야 함
+    FPoseContext BonePoseContext;
 protected:
     bool NeedToSpawnAnimScriptInstance() const;
 
     EAnimationMode AnimationMode;
     
 private:
-    FPoseContext BonePoseContext;
 
     USkeletalMesh* SkeletalMeshAsset;
 

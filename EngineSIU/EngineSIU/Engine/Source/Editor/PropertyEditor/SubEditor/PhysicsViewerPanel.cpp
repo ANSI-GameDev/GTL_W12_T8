@@ -79,7 +79,7 @@ void PhysicsViewerPanel::RenderInfoPanel()
     ImGui::Text("Body Count: %d", /* TODO: replace with actual data #1# 0);
     ImGui::Text("Broadphase Type: %s", /* TODO: #1# "AABB Grid");*/
 }
-inline void RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex)
+void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex, FBaseCompactPose& Pose)
 {
     ImGui::PushID(BoneIndex);
     const FName& BoneName = RefSkeleton.GetBoneName(BoneIndex);
@@ -97,13 +97,18 @@ inline void RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 Bon
     ImGuiTreeNodeFlags flags = bHasChildren ? ImGuiTreeNodeFlags_OpenOnArrow : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
     bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
 
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+    {
+        SelectedBoneIndex = BoneIndex;
+    }
+
     if (bOpen && bHasChildren)
     {
         for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
         {
             if (RefSkeleton.GetParentIndex(i) == BoneIndex)
             {
-                RenderBoneRecursive(RefSkeleton, i);
+                RenderBoneRecursive(RefSkeleton, i, Pose);
             }
         }
         ImGui::TreePop();
@@ -111,6 +116,8 @@ inline void RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 Bon
 
     ImGui::PopID();
 }
+
+
 
 inline void PhysicsViewerPanel::RenderSkeletonUI()
 {
@@ -132,16 +139,65 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
 
     if (ImGui::Begin("Skeleton Hierarchy", nullptr, flags))
     {
+        FBaseCompactPose& Pose = SkeletalMeshComponent->BonePoseContext.Pose;
+
         for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
         {
             if (RefSkeleton.GetParentIndex(BoneIndex) == INDEX_NONE)
             {
-                RenderBoneRecursive(RefSkeleton, BoneIndex);
+                RenderBoneRecursive(RefSkeleton, BoneIndex, Pose);
             }
         }
+
+        if (SelectedBoneIndex != INDEX_NONE && Pose.IsValidIndex(SelectedBoneIndex))
+        {
+            ImGui::SeparatorText("Bone Transform");
+
+            // 편집할 Transform 복사
+            FTransform BoneTransform = Pose.GetBoneTransform(SelectedBoneIndex);
+            FVector Translation = BoneTransform.GetTranslation();
+            FQuat RotationQuat = BoneTransform.GetRotation();
+            FRotator Rotator = RotationQuat.Rotator();
+
+            static int32 LastBoneIndex = -1;
+            static float EulerAngles[3] = { 0.f, 0.f, 0.f };
+
+            // 본이 바뀌면 회전값 초기화
+            if (SelectedBoneIndex != LastBoneIndex)
+            {
+                EulerAngles[0] = Rotator.Roll;
+                EulerAngles[1] = Rotator.Pitch;
+                EulerAngles[2] = Rotator.Yaw;
+                LastBoneIndex = SelectedBoneIndex;
+            }
+
+            float pos[3] = { Translation.X, Translation.Y, Translation.Z };
+            bool bChanged = false;
+
+            if (ImGui::DragFloat3("Position", pos, 0.1f))
+            {
+                BoneTransform.SetTranslation(FVector(pos[0], pos[1], pos[2]));
+                bChanged = true;
+            }
+
+            if (ImGui::DragFloat3("Rotation", EulerAngles, 0.5f))
+            {
+                FRotator NewRotator(EulerAngles[1], EulerAngles[2], EulerAngles[0]); // Pitch, Yaw, Roll 순서
+                BoneTransform.SetRotation(FQuat(NewRotator));
+                bChanged = true;
+            }
+
+            if (bChanged)
+            {
+                Pose.SetBoneTransform(SelectedBoneIndex, BoneTransform);
+            }
+        }
+
     }
+
     ImGui::End();
 }
+
 
 inline void PhysicsViewerPanel::RenderPanelLayout()
 {
