@@ -8,6 +8,7 @@
 #include "Stats/GPUTimingManager.h"
 
 
+class UPhysicsSubEngine;
 class FSlateAppMessageHandler;
 class UnrealEd;
 class UImGuiManager;
@@ -34,6 +35,7 @@ public:
     void GetClientSize(uint32& OutWidth, uint32& OutHeight) const;
 
     void OpenParticleSystemViewer();
+    void OpenPhysicsViewer();
     void SubEngineControl();
 private:
     void WindowInit(HINSTANCE hInstance);
@@ -60,6 +62,13 @@ public:
     void CleanupSubWindow();
 
     USubEngine* ParticleSubEngine;
+
+    // EngineLoop.h
+    static FGraphicsDevice PhysicsViewerGD;
+    HWND PhysicsViewerWnd;
+    UPhysicsSubEngine* PhysicsSubEngine;
+    void PhysicsSubWindowInit(HINSTANCE hInstance);
+
 
 private:
     UImGuiManager* UIManager;

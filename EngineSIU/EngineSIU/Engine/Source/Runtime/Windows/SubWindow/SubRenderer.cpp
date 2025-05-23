@@ -14,14 +14,28 @@ void FSubRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* In
 
 void FSubRenderer::PrepareRender(const std::shared_ptr<FEditorViewportClient>& Viewport)
 {
-    ParticleRenderPass->AddParticleComponent(((UParticleSubEngine*)Engine)->GetParticleSystemComponent());
-   
     UpdateViewCamera(Viewport);
     
     FViewportResource* ViewportResource = Viewport->GetViewportResource();
     ViewportResource->ClearDepthStencils(Graphics->DeviceContext);
     ViewportResource->ClearRenderTargets(Graphics->DeviceContext);
+    if (EnabledPasses["Particle"])
+    {
+        auto* ParticleEngine = dynamic_cast<UParticleSubEngine*>(Engine);
+        if (ParticleEngine && ParticleRenderPass)
+        {
+            ParticleRenderPass->AddParticleComponent(ParticleEngine->GetParticleSystemComponent());
+        }
+    }
 
+    if (EnabledPasses["Physics"])
+    {
+        // Physics 디버그 렌더링 등록 등
+    }
+}
+void FSubRenderer::SetEnabledPass(FString PassName, bool bEnabled)
+{
+    EnabledPasses.Add(PassName, bEnabled);
 }
 
 void FSubRenderer::Render(const std::shared_ptr<FEditorViewportClient>& Viewport)
