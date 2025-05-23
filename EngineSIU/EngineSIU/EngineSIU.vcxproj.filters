@@ -1709,6 +1709,8 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorBase.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorOverLife.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleSubUV.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Windows\SubWindow\PhysicsSubEngine.cpp" />
+    <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsViewerPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1823,6 +1825,8 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorOverLife.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleSubUV.h" />
+    <ClInclude Include="Engine\Source\Runtime\Windows\SubWindow\PhysicsSubEngine.h" />
+    <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsViewerPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\CompositingShader.hlsl" />

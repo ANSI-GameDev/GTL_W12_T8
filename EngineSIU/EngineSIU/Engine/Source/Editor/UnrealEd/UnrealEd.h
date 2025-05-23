@@ -18,7 +18,13 @@ public:
     void AddEditorPanel(const FString& PanelId, const std::shared_ptr<UEditorPanel>& EditorPanel);
     std::shared_ptr<UEditorPanel> GetEditorPanel(const FString& PanelId);
     std::shared_ptr<UEditorPanel> GetParticleSubPanel(const FString& PanelId);
+    std::shared_ptr<UEditorPanel> GetPhysicsSubPanel(const FString& PanelId);
+
 private:
     TMap<FString, std::shared_ptr<UEditorPanel>> Panels;
+    //TODO
+    //나중에 SubPanel 통합 관리하도록 리팩토링    
     TMap<FString, std::shared_ptr<UEditorPanel>> ParticleSubPanels;
+    TMap<FString, std::shared_ptr<UEditorPanel>> PhysicsSubPanels;
+
 };

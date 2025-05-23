@@ -2,6 +2,8 @@
 
 #include "ImGuiManager.h"
 #include "ImGuiSubWindow.h"
+#include "ParticleRenderPass.h"
+#include "ParticleSubEngine.h"
 #include "SubRenderer.h"
 #include "UnrealClient.h"
 #include "UnrealEd/EditorViewportClient.h"
@@ -41,6 +43,8 @@ void USubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXDBufferM
     ViewportClient->SetCameraSpeed(5.0f);
 
 }
+
+
 
 void USubEngine::Input(float DeltaTime)
 {

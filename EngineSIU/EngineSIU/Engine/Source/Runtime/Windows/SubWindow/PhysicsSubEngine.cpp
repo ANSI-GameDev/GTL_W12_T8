@@ -1,53 +1,43 @@
-#include "ParticleSubEngine.h"
-#include "ImGuiManager.h"
+// PhysicsSubEngine.cpp
+#include "PhysicsSubEngine.h"
+
 #include "ImGuiSubWindow.h"
 #include "SubRenderer.h"
-#include "UnrealClient.h"
-#include "Actors/Cube.h"
-#include "Animation/Skeleton.h"
-#include "Engine/AssetManager.h"
-#include "PropertyEditor/SubEditor/ParticleViewerPanel.h"
-#include "Particles/ParticleSystem.h"
-#include "Particles/ParticleEmitter.h"
-#include "Particles/ParticleModules/ParticleModuleRequired.h"
-#include "Components/ParticleSystemComponent.h"
-UParticleSubEngine::UParticleSubEngine()
-{
-}
+#include "PropertyEditor/SkeletalMeshViewerPanel.h"
+#include "PropertyEditor/SubEditor/PhysicsViewerPanel.h"
 
-UParticleSubEngine::~UParticleSubEngine()
-{
-}
+UPhysicsSubEngine::UPhysicsSubEngine() {}
+UPhysicsSubEngine::~UPhysicsSubEngine() {}
 
-void UParticleSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXDBufferManager* InBufferManager, UImGuiManager* InSubWindow,
-    UnrealEd* InUnrealEd)
+void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXDBufferManager* InBufferManager, UImGuiManager* InSubWindow, UnrealEd* InUnrealEd)
 {
     Super::Initialize(hWnd, InGraphics, InBufferManager, InSubWindow, InUnrealEd);
 
+    /*ViewportClient->CameraReset();
+    ViewportClient->ViewFOV = 60.f;
+    ViewportClient->SetCameraSpeed(5.0f);*/
     EditorPlayer = FObjectFactory::ConstructObject<AEditorPlayer>(this);
     EditorPlayer->SetCoordMode(CDM_LOCAL);
-
-    ParticleSystemComponent = FObjectFactory::ConstructObject<UParticleSystemComponent>(this);
-    ParticleViewerPanel* particlePanel = reinterpret_cast<ParticleViewerPanel*>(UnrealEditor->GetParticleSubPanel("ParticleViewerPanel").get());
-    particlePanel->SetParticleSystemComponent(ParticleSystemComponent);
+    SkeletalMeshComponent = FObjectFactory::ConstructObject<USkeletalMeshComponent>(this);
+    FName SkeletalMeshName = "Contents/Asset/Human";
+    SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(SkeletalMeshName.ToString()));
+    PhysicsViewerPanel* particlePanel = reinterpret_cast<PhysicsViewerPanel*>(UnrealEditor->GetPhysicsSubPanel("PhysicsViewerPanel").get());
     particlePanel->SetViewportClient(ViewportClient);
-
-    SubRenderer->SetEnabledPass("Particle", true);
-
+    // 필요한 컴포넌트 로딩이나 초기화 등
+    SubRenderer->SetEnabledPass("Skeletal",true);
 }
 
-void UParticleSubEngine::Tick(float DeltaTime)
+void UPhysicsSubEngine::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     ViewportClient->Tick(DeltaTime);
-    if (ParticleSystemComponent->Template)
-    {
-        ParticleSystemComponent->TickComponent(DeltaTime);
-    }
+
+    // 물리 시뮬레이션 처리 (예: PhysicsWorld->StepSimulation(DeltaTime))
+
     Render();
 }
 
-void UParticleSubEngine::Input(float DeltaTime)
+void UPhysicsSubEngine::Input(float DeltaTime)
 {
     if (::GetFocus() != *Wnd)
         return;
@@ -105,40 +95,32 @@ void UParticleSubEngine::Input(float DeltaTime)
     }
 }
 
-void UParticleSubEngine::Render()
+void UPhysicsSubEngine::Render()
 {
     if (Wnd && IsWindowVisible(*Wnd) && Graphics->Device)
     {
         Graphics->Prepare();
-
-        SubRenderer->PrepareRender(ViewportClient);
+        SubRenderer->PrepareRender(ViewportClient);  // Physics 전용 구현 필요
         SubRenderer->Render(ViewportClient);
         SubRenderer->ClearRender();
-        // Sub window rendering
 
         SubUI->BeginFrame();
-
-        //UI를 위한 렌더 타겟 설정
         Graphics->DeviceContext->OMSetRenderTargets(
             1,
             &Graphics->BackBufferRTV,
             Graphics->DeviceDSV
         );
-
-        UnrealEditor->Render(EWindowType::WT_ParticleSubWindow);
+        UnrealEditor->Render(EWindowType::WT_PhysicsSubWindow); // 새 WindowType 추가
         SubUI->EndFrame();
 
-        // Sub swap
         Graphics->SwapBuffer();
     }
 }
-
-void UParticleSubEngine::Release()
+void UPhysicsSubEngine::Release()
 {
-    USubEngine::Release();
+    USubEngine::Release(); // 필요 시 기본 동작 호출
 }
-
-UParticleSystemComponent* UParticleSubEngine::GetParticleSystemComponent() const
+USkeletalMeshComponent* UPhysicsSubEngine::GetSkeletalMeshComponent() const
 {
-    return ParticleSystemComponent;
+    return SkeletalMeshComponent;
 }
