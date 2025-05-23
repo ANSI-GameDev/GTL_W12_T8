@@ -17,6 +17,8 @@
 #include "Classes/Components/TextComponent.h"
 #include "Contents/Actors/Fish.h"
 
+#include <PxPhysicsAPI.h>
+
 class UEditorEngine;
 
 UWorld* UWorld::CreateWorld(UObject* InOuter, const EWorldType InWorldType, const FString& InWorldName)
@@ -37,6 +39,8 @@ void UWorld::InitializeNewWorld()
     //InitializeLightScene(); // 테스트용 LightScene 비활성화
 
     CollisionManager = new FCollisionManager();
+    
+    
 }
 
 void UWorld::InitializeLightScene()
