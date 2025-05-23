@@ -2,6 +2,8 @@
 #include <memory>
 
 #include "Container/Map.h"
+class FShadowManager;
+class FSkeletalMeshRenderPass;
 class FString;
 class FGraphicsDevice;
 class USubEngine;
@@ -23,10 +25,11 @@ public:
 private:
     void UpdateViewCamera(const std::shared_ptr<FEditorViewportClient>& Viewport);
     USubEngine* Engine = nullptr;
-    FGraphicsDevice* Graphics;
-    FDXDBufferManager* BufferManager;
+    FGraphicsDevice* Graphics=nullptr;
+    FDXDBufferManager* BufferManager=nullptr;
+    FShadowManager* ShadowManager = nullptr;
     FParticleRenderPass* ParticleRenderPass = nullptr;
-
+    FSkeletalMeshRenderPass* SkeletalMeshRenderPass = nullptr;
     TMap<FString, bool> EnabledPasses;
 };
 

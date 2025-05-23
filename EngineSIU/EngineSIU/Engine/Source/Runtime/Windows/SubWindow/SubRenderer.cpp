@@ -1,4 +1,8 @@
 #include "SubRenderer.h"
+
+#include "PhysicsSubEngine.h"
+#include "ShadowManager.h"
+#include "SkeletalMeshRenderPass.h"
 #include "UnrealEd/EditorViewportClient.h"
 #include "Engine/UnrealClient.h"
 #include "Renderer/ParticleRenderPass.h"
@@ -8,8 +12,12 @@ void FSubRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* In
     Engine = InEngine;
     Graphics = InGraphics;
     BufferManager = InBufferManager;
-    ParticleRenderPass = new FParticleRenderPass();
+    ShadowManager = new FShadowManager();
+    ShadowManager->Initialize(Graphics, BufferManager);
+    //렌더패스 Init은 SetEnabledPass에서 수행
+    /*ParticleRenderPass = new FParticleRenderPass();
     ParticleRenderPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);
+    SkeletalMeshRenderPass = new FSkeletalMeshRenderPass();*/
 }
 
 void FSubRenderer::PrepareRender(const std::shared_ptr<FEditorViewportClient>& Viewport)
@@ -28,24 +36,64 @@ void FSubRenderer::PrepareRender(const std::shared_ptr<FEditorViewportClient>& V
         }
     }
 
-    if (EnabledPasses["Physics"])
+    if (EnabledPasses["Skeletal"])
     {
-        // Physics 디버그 렌더링 등록 등
+        auto* PhysicsEngine = dynamic_cast<UPhysicsSubEngine*>(Engine);
+        if (PhysicsEngine&&SkeletalMeshRenderPass)
+        {
+            SkeletalMeshRenderPass->AddSkeletalMeshComponent(PhysicsEngine->GetSkeletalMeshComponent());
+        }
     }
 }
-void FSubRenderer::SetEnabledPass(FString PassName, bool bEnabled)
+void FSubRenderer::SetEnabledPass(FString PassName, bool bEnable)
 {
-    EnabledPasses.Add(PassName, bEnabled);
+    if (bEnable)
+    {
+        if (PassName == "Particle" && !ParticleRenderPass)
+        {
+            ParticleRenderPass = new FParticleRenderPass();
+            ParticleRenderPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);
+        }
+        else if (PassName == "Skeletal" && !SkeletalMeshRenderPass)
+        {
+            SkeletalMeshRenderPass = new FSkeletalMeshRenderPass();
+            SkeletalMeshRenderPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);
+            SkeletalMeshRenderPass->InitializeShadowManager(ShadowManager);
+
+        }
+        EnabledPasses.Add(PassName, true);
+    }
+    else
+    {
+        EnabledPasses.Add(PassName, false);
+    }
 }
+
 
 void FSubRenderer::Render(const std::shared_ptr<FEditorViewportClient>& Viewport)
 {
-    ParticleRenderPass->Render(Viewport);
+    if (EnabledPasses["Particle"])
+    {
+        ParticleRenderPass->Render(Viewport);
+    }
+
+    if (EnabledPasses["Skeletal"])
+    {
+        SkeletalMeshRenderPass->Render(Viewport);
+    }
 }
 
 void FSubRenderer::ClearRender()
 {
-    ParticleRenderPass->ClearRenderArr();
+    if (EnabledPasses["Particle"])
+    {
+        ParticleRenderPass->ClearRenderArr();
+    }
+
+    if (EnabledPasses["Skeletal"])
+    {
+        SkeletalMeshRenderPass->ClearRenderArr();
+    }
 }
 
 void FSubRenderer::Release()
@@ -54,6 +102,18 @@ void FSubRenderer::Release()
     {
         delete ParticleRenderPass;
         ParticleRenderPass = nullptr;
+    }
+
+    if (SkeletalMeshRenderPass)
+    {
+        delete SkeletalMeshRenderPass;
+        SkeletalMeshRenderPass = nullptr;
+    }
+
+    if (ShadowManager)
+    {
+        delete ShadowManager;
+        ShadowManager = nullptr;
     }
 }
 

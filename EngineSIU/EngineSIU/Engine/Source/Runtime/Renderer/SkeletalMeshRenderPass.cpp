@@ -171,3 +171,7 @@ void FSkeletalMeshRenderPass::UpdateLitUnlitConstant(int32 IsLit) const
     Data.bIsLit = IsLit;
     BufferManager->UpdateConstantBuffer(TEXT("FLitUnlitConstants"), Data);
 }
+void FSkeletalMeshRenderPass::AddSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
+{
+    SkeletalMeshComponents.Add(InSkeletalMeshComponent);
+}
