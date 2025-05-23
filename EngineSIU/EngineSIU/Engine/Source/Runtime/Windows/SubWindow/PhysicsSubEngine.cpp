@@ -21,6 +21,26 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
     SkeletalMeshComponent = FObjectFactory::ConstructObject<USkeletalMeshComponent>(this);
     FName SkeletalMeshName = "Contents/Asset/Human";
     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(SkeletalMeshName.ToString()));
+
+    //TODO 
+    //Comp 세팅 함수 만들고 옮겨야함
+    const FBoundingBox& Bounds = SkeletalMeshComponent->GetBoundingBox();
+    FVector Center = (Bounds.MaxLocation+Bounds.MinLocation)/2.0f;
+    // 카메라 거리 조절용 상수
+    const float CameraDistance = 200.0f;
+
+    // 중심을 기준으로 뒤쪽에서 바라보는 위치로 설정
+    FVector EyeLocation = Center/* + FVector(-CameraDistance, CameraDistance * 0.5f, CameraDistance * 0.5f)*/;
+    EyeLocation += FVector(CameraDistance, 0, 0);
+    FVector LookAt = Center;
+    FVector Direction = (LookAt - EyeLocation).GetSafeNormal();
+
+    //FRotator ViewRotation = FRotator(Direction);
+
+    ViewportClient->PerspectiveCamera.SetLocation(EyeLocation);
+    ViewportClient->PerspectiveCamera.SetRotation(FVector(180,0,-180));
+
+
     PhysicsViewerPanel* PhysicsPanel = reinterpret_cast<PhysicsViewerPanel*>(UnrealEditor->GetPhysicsSubPanel("PhysicsViewerPanel").get());
     PhysicsPanel->SetViewportClient(ViewportClient);
     PhysicsPanel->SetSkeletalMeshComponent(SkeletalMeshComponent);
@@ -33,7 +53,8 @@ void UPhysicsSubEngine::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     ViewportClient->Tick(DeltaTime);
-
+    FString str = ViewportClient->PerspectiveCamera.GetRotation().ToString();
+    UE_LOG(ELogLevel::Warning, "%s", ViewportClient->PerspectiveCamera.GetRotation().ToString());
     // 물리 시뮬레이션 처리 (예: PhysicsWorld->StepSimulation(DeltaTime))
 
     Render();
