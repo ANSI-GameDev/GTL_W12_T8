@@ -404,8 +404,27 @@ LRESULT CALLBACK FEngineLoop::AppWndProc(HWND hWnd, uint32 Msg, WPARAM wParam, L
         switch (Msg)
         {
         case WM_SIZE:
-            // 윈도우 리사이즈 대응
-            break;
+            if (wParam != SIZE_MINIMIZED)
+            {
+                RECT ClientRect;
+                GetClientRect(hWnd, &ClientRect);
+
+                float FullWidth = static_cast<float>(ClientRect.right - ClientRect.left);
+                float FullHeight = static_cast<float>(ClientRect.bottom - ClientRect.top);
+
+                GEngineLoop.PhysicsViewerGD.Resize(hWnd, FullWidth, FullHeight);
+
+                if (GEngineLoop.GetUnrealEditor())
+                {
+                    GEngineLoop.GetUnrealEditor()->OnResize(hWnd, EWindowType::WT_PhysicsSubWindow);
+                }
+
+                if (GEngineLoop.PhysicsSubEngine->ViewportClient)
+                {
+                    GEngineLoop.PhysicsSubEngine->ViewportClient->AspectRatio = (FullWidth * 0.75f) / FullHeight;
+                }
+            }
+            return 0;
         case WM_CLOSE:
             GEngineLoop.PhysicsSubEngine->RequestShowWindow(false);
             ::ShowWindow(hWnd, SW_HIDE);

@@ -1,6 +1,9 @@
 #include "PhysicsViewerPanel.h"
 
+#include "ReferenceSkeleton.h"
 #include "UnrealClient.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
 
 void PhysicsViewerPanel::Render()
 {
@@ -12,11 +15,15 @@ void PhysicsViewerPanel::Render()
 
     if (ImGui::Begin("PhysicsViewer", nullptr, windowFlags))
     {
+
+        RenderPanelLayout();
+        /*
         RenderViewportPanel();
         ImGui::Separator();
         RenderPhysicsSettings();
         ImGui::Separator();
         RenderInfoPanel();
+        RenderSkeletonUI();*/
         ImGui::End();
     }
 }
@@ -34,6 +41,11 @@ void PhysicsViewerPanel::OnResize(HWND hWnd)
 void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient> InViewportClient)
 {
     ViewportClient = InViewportClient;
+}
+
+void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
+{
+    SkeletalMeshComponent = InSkeletalMeshComponent;
 }
 
 void PhysicsViewerPanel::RenderViewportPanel()
@@ -66,4 +78,90 @@ void PhysicsViewerPanel::RenderInfoPanel()
     /*ImGui::Text("Debug Info:");
     ImGui::Text("Body Count: %d", /* TODO: replace with actual data #1# 0);
     ImGui::Text("Broadphase Type: %s", /* TODO: #1# "AABB Grid");*/
+}
+inline void RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex)
+{
+    ImGui::PushID(BoneIndex);
+    const FName& BoneName = RefSkeleton.GetBoneName(BoneIndex);
+
+    bool bHasChildren = false;
+    for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
+    {
+        if (RefSkeleton.GetParentIndex(i) == BoneIndex)
+        {
+            bHasChildren = true;
+            break;
+        }
+    }
+
+    ImGuiTreeNodeFlags flags = bHasChildren ? ImGuiTreeNodeFlags_OpenOnArrow : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
+
+    if (bOpen && bHasChildren)
+    {
+        for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
+        {
+            if (RefSkeleton.GetParentIndex(i) == BoneIndex)
+            {
+                RenderBoneRecursive(RefSkeleton, i);
+            }
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::PopID();
+}
+
+inline void PhysicsViewerPanel::RenderSkeletonUI()
+{
+    if (!SkeletalMeshComponent || !SkeletalMeshComponent->GetSkeletalMeshAsset())
+        return;
+
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetReferenceSkeleton();
+    if (RefSkeleton.GetRawBoneNum() == 0)
+        return;
+
+    float rightW = Width * 0.25f;
+    float panelX = Width - rightW;
+    float panelY = 0.0f;
+
+    ImGui::SetNextWindowPos(ImVec2(panelX, panelY), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(rightW, Height), ImGuiCond_Always);
+
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse;
+
+    if (ImGui::Begin("Skeleton Hierarchy", nullptr, flags))
+    {
+        for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
+        {
+            if (RefSkeleton.GetParentIndex(BoneIndex) == INDEX_NONE)
+            {
+                RenderBoneRecursive(RefSkeleton, BoneIndex);
+            }
+        }
+    }
+    ImGui::End();
+}
+
+inline void PhysicsViewerPanel::RenderPanelLayout()
+{
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+    float leftW = Width * 0.75f;
+
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(leftW, Height), ImGuiCond_Always);
+
+    ImGuiWindowFlags canvasFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+
+    if (ImGui::Begin("PhysicsCanvas", nullptr, canvasFlags))
+    {
+        RenderViewportPanel();
+        ImGui::Separator();
+        RenderPhysicsSettings();
+        ImGui::Separator();
+        RenderInfoPanel();
+    }
+    ImGui::End();
+
+    RenderSkeletonUI();
 }

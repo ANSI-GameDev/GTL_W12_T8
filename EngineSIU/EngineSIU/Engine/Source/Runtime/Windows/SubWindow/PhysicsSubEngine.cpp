@@ -21,8 +21,10 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
     SkeletalMeshComponent = FObjectFactory::ConstructObject<USkeletalMeshComponent>(this);
     FName SkeletalMeshName = "Contents/Asset/Human";
     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(SkeletalMeshName.ToString()));
-    PhysicsViewerPanel* particlePanel = reinterpret_cast<PhysicsViewerPanel*>(UnrealEditor->GetPhysicsSubPanel("PhysicsViewerPanel").get());
-    particlePanel->SetViewportClient(ViewportClient);
+    PhysicsViewerPanel* PhysicsPanel = reinterpret_cast<PhysicsViewerPanel*>(UnrealEditor->GetPhysicsSubPanel("PhysicsViewerPanel").get());
+    PhysicsPanel->SetViewportClient(ViewportClient);
+    PhysicsPanel->SetSkeletalMeshComponent(SkeletalMeshComponent);
+
     // 필요한 컴포넌트 로딩이나 초기화 등
     SubRenderer->SetEnabledPass("Skeletal",true);
 }
