@@ -94,6 +94,8 @@ public:
     void AddStaticMesh(const FName& Key, UStaticMesh* StaticMesh);
     void AddAnimation(const FName& Key, UAnimationAsset* Animation);
     void AddParticleSystem(const FName& Key, UParticleSystem* ParticleSystem);
+
+    TMap<FName, USkeletalMesh*> GetSkeletalMeshMap() const { return SkeletalMeshMap; }
 private:
     double FbxLoadTime = 0.0;
     double BinaryLoadTime = 0.0;

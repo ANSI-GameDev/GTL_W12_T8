@@ -46,6 +46,7 @@ void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient
 void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
     SkeletalMeshComponent = InSkeletalMeshComponent;
+    SelectedBoneIndex = -1;
 }
 
 void PhysicsViewerPanel::RenderViewportPanel()
@@ -64,7 +65,7 @@ void PhysicsViewerPanel::RenderViewportPanel()
         ImVec2 contentSize = ImGui::GetContentRegionAvail();
         ImGui::Image((ImTextureID)(RenderTarget->SRV), contentSize);
     }
-}
+ }
 
 void PhysicsViewerPanel::RenderPhysicsSettings()
 {
@@ -141,6 +142,26 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
     {
         FBaseCompactPose& Pose = SkeletalMeshComponent->BonePoseContext.Pose;
 
+        const auto& SkeletalMeshes = UAssetManager::Get().GetSkeletalMeshMap();
+        static int CurrentIndex = -1;
+        static TArray<FName> MeshNames;
+        MeshNames.Empty();
+        for (auto& Pair : SkeletalMeshes) MeshNames.Add(Pair.Key);
+
+        if (ImGui::BeginCombo("SkeletalMesh", (CurrentIndex >= 0 && MeshNames.IsValidIndex(CurrentIndex)) ? *MeshNames[CurrentIndex].ToString() : "None"))
+        {
+            for (int i = 0; i < MeshNames.Num(); ++i)
+            {
+                bool bSelected = (i == CurrentIndex);
+                if (ImGui::Selectable(*MeshNames[i].ToString(), bSelected))
+                {
+                    CurrentIndex = i;
+                    SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(MeshNames[i]));
+                }
+                if (bSelected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
         for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
         {
             if (RefSkeleton.GetParentIndex(BoneIndex) == INDEX_NONE)
@@ -166,8 +187,8 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
             if (SelectedBoneIndex != LastBoneIndex)
             {
                 EulerAngles[0] = Rotator.Roll;
-                EulerAngles[1] = Rotator.Pitch;
-                EulerAngles[2] = Rotator.Yaw;
+                EulerAngles[1] = Rotator.Yaw;
+                EulerAngles[2] = Rotator.Pitch;
                 LastBoneIndex = SelectedBoneIndex;
             }
 
@@ -182,7 +203,8 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
 
             if (ImGui::DragFloat3("Rotation", EulerAngles, 0.5f))
             {
-                FRotator NewRotator(EulerAngles[1], EulerAngles[2], EulerAngles[0]); // Pitch, Yaw, Roll 순서
+                FRotator NewRotator(EulerAngles[0], EulerAngles[1], EulerAngles[2]); // Roll, Yaw,Pitch  순서
+
                 BoneTransform.SetRotation(FQuat(NewRotator));
                 bChanged = true;
             }

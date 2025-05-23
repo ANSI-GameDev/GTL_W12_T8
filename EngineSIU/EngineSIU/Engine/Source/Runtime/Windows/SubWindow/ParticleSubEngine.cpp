@@ -33,7 +33,6 @@ void UParticleSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDX
     particlePanel->SetViewportClient(ViewportClient);
 
     SubRenderer->SetEnabledPass("Particle", true);
-
 }
 
 void UParticleSubEngine::Tick(float DeltaTime)

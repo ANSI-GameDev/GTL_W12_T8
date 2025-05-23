@@ -47,6 +47,7 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
 
     // 필요한 컴포넌트 로딩이나 초기화 등
     SubRenderer->SetEnabledPass("Skeletal",true);
+    ViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
 }
 
 void UPhysicsSubEngine::Tick(float DeltaTime)
@@ -93,11 +94,11 @@ void UPhysicsSubEngine::Input(float DeltaTime)
     {
         if (GetAsyncKeyState('A') & 0x8000)
         {
-            ViewportClient->CameraMoveRight(-CameraSpeedMultiplier * DeltaTime);
+            ViewportClient->CameraMoveRight(CameraSpeedMultiplier * DeltaTime);
         }
         if (GetAsyncKeyState('D') & 0x8000)
         {
-            ViewportClient->CameraMoveRight(CameraSpeedMultiplier * DeltaTime);
+            ViewportClient->CameraMoveRight(-CameraSpeedMultiplier * DeltaTime);
         }
         if (GetAsyncKeyState('W') & 0x8000)
         {
