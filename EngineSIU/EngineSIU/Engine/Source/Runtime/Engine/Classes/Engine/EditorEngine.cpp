@@ -63,6 +63,25 @@ void UEditorEngine::Release()
     WorldList.Empty();
 }
 
+void UEditorEngine::PhysicsTick(float DeltaTime)
+{
+    for (FWorldContext* WorldContext : WorldList)
+    {
+        // if (WorldContext->WorldType == EWorldType::PIE || WorldContext->WorldType == EWorldType::PhysicsViewer) //테스트 끝나면 풀기
+        {
+            if (UWorld* World = WorldContext->World())
+            {
+                FPhysScene* PhysScene = World->GetPhysScene();
+
+                if (PhysScene)
+                {
+                    PhysScene->TickPhysScene(DeltaTime);
+                }
+            }
+        } 
+    }
+}
+
 void UEditorEngine::Tick(float DeltaTime)
 {
     for (FWorldContext* WorldContext : WorldList)

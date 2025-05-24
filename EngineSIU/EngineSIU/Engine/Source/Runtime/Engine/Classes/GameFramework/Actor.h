@@ -29,7 +29,7 @@ public:
 
     /** 매 Tick마다 호출됩니다. */
     virtual void Tick(float DeltaTime);
-
+    
     /** Actor가 제거될 때 호출됩니다. */
     virtual void Destroyed();
 

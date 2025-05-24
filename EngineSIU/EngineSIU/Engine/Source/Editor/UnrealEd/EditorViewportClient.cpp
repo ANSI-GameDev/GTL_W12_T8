@@ -60,7 +60,7 @@ void FEditorViewportClient::Tick(const float DeltaTime)
     }
     UpdateViewMatrix();
     UpdateProjectionMatrix();
-    GizmoActor->Tick(DeltaTime);
+    GizmoActor->Tick(DeltaTime); //뷰 업데이트보다 기즈모 틱 돌리는게 늦게하는게 맞는건가?
 }
 
 void FEditorViewportClient::Release() const

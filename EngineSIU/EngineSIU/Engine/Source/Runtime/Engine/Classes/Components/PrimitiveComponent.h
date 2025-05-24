@@ -6,6 +6,8 @@ DECLARE_MULTICAST_DELEGATE_FiveParams(FComponentHitSignature, UPrimitiveComponen
 DECLARE_MULTICAST_DELEGATE_SixParams(FComponentBeginOverlapSignature, UPrimitiveComponent* /* OverlappedComponent */, AActor* /* OtherActor */, UPrimitiveComponent* /* OtherComp */, int32 /* OtherBodyIndex */, bool /* bFromSweep */, const FHitResult& /* Hit */);
 DECLARE_MULTICAST_DELEGATE_FourParams(FComponentEndOverlapSignature, UPrimitiveComponent* /* OverlappedComponent */, AActor* /* OtherActor */, UPrimitiveComponent* /* OtherComp */, int32 /* OtherBodyIndex */);
 
+struct FBodyInstance;
+
 class UPrimitiveComponent : public USceneComponent
 {
     DECLARE_CLASS(UPrimitiveComponent, USceneComponent)
@@ -17,7 +19,8 @@ public:
 
     virtual void InitializeComponent() override;
     virtual void TickComponent(float DeltaTime) override;
-    
+    void SetSimulatePhysics(bool bSimulate);
+
     bool IntersectRayTriangle(
         const FVector& RayOrigin, const FVector& RayDirection,
         const FVector& v0, const FVector& v1, const FVector& v2, float& OutHitDistance
@@ -106,6 +109,8 @@ protected:
 private:
     FString m_Type;
 
+    FBodyInstance* BodyInstance;
+    
 public:
     FString GetType() { return m_Type; }
 

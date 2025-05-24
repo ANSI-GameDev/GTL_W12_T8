@@ -1,6 +1,7 @@
 #pragma once
 #include "SkinnedAsset.h"
 #include "Asset/SkeletalMeshAsset.h" 
+#include "PhysicsEngine/PhysicsAsset.h"
 class USkeleton;
 //struct FSkeletalMeshRenderData;
 
@@ -26,4 +27,6 @@ protected:
     std::unique_ptr<FSkeletalMeshRenderData> RenderData;
 
     USkeleton* Skeleton;
+
+    UPhysicsAsset* PhysicsAsset;
 };

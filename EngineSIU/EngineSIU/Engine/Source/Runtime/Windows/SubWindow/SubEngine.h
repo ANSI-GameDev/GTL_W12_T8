@@ -15,7 +15,8 @@ public:
     ~USubEngine();
 
     virtual void Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXDBufferManager* InBufferManager, UImGuiManager* InSubWindow, UnrealEd* InUnrealEd);
-    virtual void Tick(float DeltaTime);
+    virtual void Tick(float DeltaTime) override;
+    virtual void PhysicsTick(float DeltaTime) override;
     virtual void Input(float DeltaTime);
     virtual void Render();
     virtual void Release();
@@ -40,6 +41,4 @@ public:
 
     AActor* SelectedActor = nullptr;
     USceneComponent* SelectedComponent = nullptr;
-private:
 };
-

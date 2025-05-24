@@ -12,6 +12,8 @@ struct FAnimNotifyEvent;
 class UAnimSequenceBase;
 class UAnimInstance;
 class UAnimSingleNodeInstance;
+struct FBodyInstance;
+struct FConstraintInstance;
 
 enum class EAnimationMode : uint8
 {
@@ -137,6 +139,10 @@ private:
 
 public:
     TSubclassOf<UAnimInstance> AnimClass;
+
+    TArray<FBodyInstance*> Bodies;
+
+    TArray<FConstraintInstance*> Constraints;
     
     UAnimInstance* AnimScriptInstance;
 
@@ -147,4 +153,6 @@ public:
     UClass* GetAnimClass();
     
     void SetAnimInstanceClass(class UClass* NewClass);
+
+    // void InstantiatePhysicsAssetBodies(const UPhysicsAsset& PhysAsset, TArray<FBodyInstance*>& OutBodies, FPhysScene* PhysScene = nullptr, USkeletalMeshComponent* OwningComponent = nullptr, int32 UseRootBodyIndex = INDEX_NONE, const FPhysicsAggregateHandle& UseAggregate = FPhysicsAggregateHandle()) const;
 };

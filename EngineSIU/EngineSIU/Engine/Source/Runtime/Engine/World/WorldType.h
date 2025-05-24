@@ -10,6 +10,7 @@ enum class EWorldType
     GamePreview,
     GameRPC,
     SkeletalViewer,
+    PhysicsViewer,
     Inactive
 };
 

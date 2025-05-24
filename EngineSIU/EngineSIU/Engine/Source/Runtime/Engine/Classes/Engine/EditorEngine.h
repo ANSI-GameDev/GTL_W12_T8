@@ -21,6 +21,8 @@ public:
 
     virtual void Init() override;
     virtual void Tick(float DeltaTime) override;
+    virtual void PhysicsTick(float DeltaTime) override;
+
     void Release() override;
 
     UWorld* PIEWorld = nullptr;

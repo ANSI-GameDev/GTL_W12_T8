@@ -397,6 +397,7 @@ void USceneComponent::SetWorldTransform(const FTransform& InTransform)
 
 void USceneComponent::UpdateOverlaps(const TArray<FOverlapInfo>* PendingOverlaps, bool bDoNotifies, const TArray<const FOverlapInfo>* OverlapsAtEndLocation)
 {
+    //이것도 Overlap Tick 따로 돌리자
     UpdateOverlapsImpl(PendingOverlaps, bDoNotifies, OverlapsAtEndLocation);
 }
 

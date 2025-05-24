@@ -27,7 +27,6 @@ UWorld* UWorld::CreateWorld(UObject* InOuter, const EWorldType InWorldType, cons
     NewWorld->WorldName = InWorldName;
     NewWorld->WorldType = InWorldType;
     NewWorld->InitializeNewWorld();
-
     
     return NewWorld;
 }
@@ -40,6 +39,11 @@ void UWorld::InitializeNewWorld()
 
     CollisionManager = new FCollisionManager();
     
+    PhysScene = new FPhysScene();
+    PhysScene->InitPhysX();
+
+    //여기서 값들 넣어보자
+    UBodySetup* BodySetup = FObjectFactory::ConstructObject<UBodySetup>(this);
     
 }
 

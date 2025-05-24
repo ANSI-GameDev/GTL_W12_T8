@@ -196,8 +196,9 @@ void FEngineLoop::Tick()
         const float DeltaTime = static_cast<float>(ElapsedTime / 1000.f);
 
         GEngine->Tick(DeltaTime);
-        LevelEditor->Tick(DeltaTime);
-
+        GEngine->PhysicsTick(DeltaTime);
+        
+        LevelEditor->Tick(DeltaTime); //ViewUpdate가 여기 있기때문에 렌더 전에 실행돼야할듯
         Render();
 
         UIManager->BeginFrame();
