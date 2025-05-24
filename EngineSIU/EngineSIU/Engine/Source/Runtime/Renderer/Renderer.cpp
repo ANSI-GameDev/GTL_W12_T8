@@ -18,6 +18,7 @@
 #include "SlateRenderPass.h"
 #include "EditorRenderPass.h"
 #include "DepthPrePass.h"
+#include "DoFRenderPass.h"
 #include "TileLightCullingPass.h"
 
 #include "CompositingPass.h"
@@ -58,6 +59,7 @@ void FRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* InBuf
     UpdateLightBufferPass = AddRenderPass<FUpdateLightBufferPass>();
     LineRenderPass = AddRenderPass<FLineRenderPass>();
     FogRenderPass = AddRenderPass<FFogRenderPass>();
+    DoFRenderPass = AddRenderPass<FDoFRenderPass>();
     CameraEffectRenderPass = AddRenderPass<FCameraEffectRenderPass>();
     EditorRenderPass = AddRenderPass<FEditorRenderPass>();
     
@@ -413,6 +415,13 @@ void FRenderer::RenderPostProcess(const std::shared_ptr<FEditorViewportClient>& 
          * TODO: Fog 렌더 작업 해야 함.
          * 여기에서는 씬 렌더가 적용된 뎁스 스텐실 뷰를 SRV로 전달하고, 뎁스 스텐실 뷰를 아래에서 다시 써야함.
          */
+    }
+
+    if (ShowFlag & EEngineShowFlags::SF_DepthOfField)
+    {
+        QUICK_SCOPE_CYCLE_COUNTER(FogPass_CPU)
+        QUICK_GPU_SCOPE_CYCLE_COUNTER(FogPass_GPU, *GPUTimingManager)
+        DoFRenderPass->Render(Viewport);
     }
 
     // TODO: 포스트 프로세스 별로 각자의 렌더 타겟 뷰에 렌더하기

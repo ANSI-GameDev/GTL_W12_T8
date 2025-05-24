@@ -19,7 +19,8 @@ namespace EEngineShowFlags
         SF_Collision = 1ULL << 8,
         SF_CollisionSelectedOnly = 1ULL << 9,
         SF_SkeletalMesh = 1ULL << 10,
-        SF_Particles = 1ULL << 11
+        SF_Particles = 1ULL << 11,
+        SF_DepthOfField = 1ULL << 12,
     };
 }
 

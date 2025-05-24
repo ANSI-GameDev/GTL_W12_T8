@@ -21,6 +21,7 @@ enum class EResourceType : uint8
     ERT_Scene,
     ERT_PP_Fog,
     ERT_PP_CameraEffect,
+    ERT_PP_BlurTemp,
     ERT_Debug,
     ERT_Editor,
     ERT_Gizmo,
