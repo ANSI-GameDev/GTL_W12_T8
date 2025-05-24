@@ -6,7 +6,11 @@ cbuffer DoFBlurConstants : register(b0)
 {
     float2 texelSize;
     float focusDistance;
+    float focusDepth;
     float blurScale;
+    float nearClip;
+    float farClip;
+    float padding;
 };
 
 struct PS_Input
@@ -46,8 +50,9 @@ float4 PS_BlurH(PS_Input Input) : SV_Target
     float GaussianWeights[5] = { 0.227027f, 0.1945946f, 0.1216216f, 0.054054f, 0.016216f };
     float4 color = inputTexture.Sample(samplerState, Input.UV) * GaussianWeights[0];
     float depth = depthTexture.Sample(samplerState, Input.UV).r;
-    float distance = abs(depth - focusDistance);
-    float blurStrength = saturate(distance * blurScale);
+    float linearDepth = nearClip * farClip / (farClip - depth * (farClip - nearClip));
+    float distance = abs(linearDepth - focusDistance) / focusDepth;
+    float blurStrength = saturate(distance) * blurScale;
     
     for (int i = 1; i < 5; ++i)
     {
@@ -64,8 +69,9 @@ float4 PS_BlurV(PS_Input Input) : SV_Target
     float GaussianWeights[5] = { 0.227027f, 0.1945946f, 0.1216216f, 0.054054f, 0.016216f };
     float4 color = inputTexture.Sample(samplerState, Input.UV) * GaussianWeights[0];
     float depth = depthTexture.Sample(samplerState, Input.UV).r;
-    float distance = abs(depth - focusDistance);
-    float blurStrength = saturate(distance * blurScale);
+    float linearDepth = nearClip * farClip / (farClip - depth * (farClip - nearClip));
+    float distance = abs(linearDepth - focusDistance) / focusDepth;
+    float blurStrength = saturate(distance) * blurScale;
 
     for (int i = 1; i < 5; ++i)
     {

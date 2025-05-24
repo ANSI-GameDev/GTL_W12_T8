@@ -325,6 +325,26 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
             GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->SetCameraSpeed(CameraSpeed);
         }
 
+        ImGui::Spacing();
+        
+        ImGui::Text("Focal Distance");
+        float FDistance = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->FDistance;
+        ImGui::SetNextItemWidth(120.0f);
+        if (ImGui::DragFloat("##FDistance", &FDistance, 0.1f, 0.f, 1000.f, "%.1f"))
+        {
+            GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->FDistance = FDistance;
+        }
+        
+        ImGui::Spacing();
+        
+        ImGui::Text("Focal Depth");
+        float FDepth = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->FDepth;
+        ImGui::SetNextItemWidth(120.0f);
+        if (ImGui::DragFloat("##FDepth", &FDepth, 1.f, 1.f, 1000.f, "%.1f"))
+        {
+            GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->FDepth = FDepth;
+        }
+        
         ImGui::Separator();
 
         ImGui::Text("Gamma");

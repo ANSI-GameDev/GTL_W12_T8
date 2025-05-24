@@ -142,6 +142,8 @@ public:
     float AspectRatio;
     float NearClip = 0.1f;
     float FarClip = 1000.0f;
+    float FDistance = 20.0f;
+    float FDepth = 100.0f;
     static FVector Pivot;
     static float OrthoSize;
     ELevelViewportType ViewportType;

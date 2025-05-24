@@ -249,5 +249,9 @@ struct alignas(16) FConstantBufferLetterBox
 struct alignas(16) FDoFBlurConstants {
     FVector2D TexelSize;
     float focusDistance;
+    float focusDepth;
     float blurScale;
+    float nearClip;
+    float farClip;
+    float padding;
 };

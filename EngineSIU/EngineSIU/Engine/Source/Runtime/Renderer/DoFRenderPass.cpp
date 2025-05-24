@@ -4,6 +4,7 @@
 #include "ShaderConstants.h"
 #include "UnrealClient.h"
 #include "D3D11RHI/DXDShaderManager.h"
+#include "LevelEditor/SLevelEditor.h"
 #include "PropertyEditor/ShowFlags.h"
 #include "UnrealEd/EditorViewportClient.h"
 
@@ -40,12 +41,15 @@ void FDoFRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Viewpo
 
     BufferManager->BindConstantBuffer("DofBlurConstants", 0, EShaderStage::Pixel);
     
-    float focusDistance = 10.0f;
+    float focusDistance = Viewport->FDistance;
     FDoFBlurConstants constants;
     constants.TexelSize.X = 1/Viewport->Viewport->GetRect().Width;
     constants.TexelSize.Y = 1/Viewport->Viewport->GetRect().Height;
     constants.blurScale = 1.0f;
-    constants.focusDistance = (focusDistance - Viewport->NearClip) / (Viewport->FarClip - Viewport->NearClip);
+    constants.focusDistance = Viewport->FDistance;
+    constants.focusDepth = Viewport->FDepth;
+    constants.nearClip = Viewport->NearClip;
+    constants.farClip = Viewport->FarClip;
 
     BufferManager->UpdateConstantBuffer<FDoFBlurConstants>("DofBlurConstants", constants);
 
