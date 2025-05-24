@@ -48,17 +48,32 @@ PS_Input mainVS(uint VertexID : SV_VertexID)
 float4 PS_BlurH(PS_Input Input) : SV_Target
 {
     float GaussianWeights[5] = { 0.227027f, 0.1945946f, 0.1216216f, 0.054054f, 0.016216f };
-    float4 color = inputTexture.Sample(samplerState, Input.UV) * GaussianWeights[0];
+    float4 texColor = inputTexture.Sample(samplerState, Input.UV);
+    float4 color = texColor * GaussianWeights[0];
     float depth = depthTexture.Sample(samplerState, Input.UV).r;
     float linearDepth = nearClip * farClip / (farClip - depth * (farClip - nearClip));
     float distance = abs(linearDepth - focusDistance) / focusDepth;
     float blurStrength = saturate(distance) * blurScale;
+    float depthThreshold = 1.f;
     
     for (int i = 1; i < 5; ++i)
     {
         float offset = texelSize.x * i * blurStrength;
-        color += inputTexture.Sample(samplerState, Input.UV + float2(offset, 0)) * GaussianWeights[i];
-        color += inputTexture.Sample(samplerState, Input.UV - float2(offset, 0)) * GaussianWeights[i];
+        float sampleDepth, linearSampleDepth;
+        
+        sampleDepth = depthTexture.Sample(samplerState, Input.UV + float2(offset, 0)).r;
+        linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
+        if (abs(linearSampleDepth - linearDepth) < depthThreshold)
+            color += inputTexture.Sample(samplerState, Input.UV + float2(offset, 0)) * GaussianWeights[i];
+        else
+            color += texColor * GaussianWeights[i];
+        
+        sampleDepth = depthTexture.Sample(samplerState, Input.UV - float2(offset, 0)).r;
+        linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
+        if (abs(linearSampleDepth - linearDepth) < depthThreshold)
+            color += inputTexture.Sample(samplerState, Input.UV - float2(offset, 0)) * GaussianWeights[i];
+        else
+            color += texColor * GaussianWeights[i];
     }
     
     return color;
@@ -67,17 +82,32 @@ float4 PS_BlurH(PS_Input Input) : SV_Target
 float4 PS_BlurV(PS_Input Input) : SV_Target
 {
     float GaussianWeights[5] = { 0.227027f, 0.1945946f, 0.1216216f, 0.054054f, 0.016216f };
-    float4 color = inputTexture.Sample(samplerState, Input.UV) * GaussianWeights[0];
+    float4 texColor = inputTexture.Sample(samplerState, Input.UV);
+    float4 color = texColor * GaussianWeights[0];
     float depth = depthTexture.Sample(samplerState, Input.UV).r;
     float linearDepth = nearClip * farClip / (farClip - depth * (farClip - nearClip));
     float distance = abs(linearDepth - focusDistance) / focusDepth;
     float blurStrength = saturate(distance) * blurScale;
+    float depthThreshold = 1.f;
 
     for (int i = 1; i < 5; ++i)
     {
         float offset = texelSize.y * i * blurStrength;
-        color += inputTexture.Sample(samplerState, Input.UV + float2(0, offset)) * GaussianWeights[i];
-        color += inputTexture.Sample(samplerState, Input.UV - float2(0, offset)) * GaussianWeights[i];
+        float sampleDepth, linearSampleDepth;
+        
+        sampleDepth = depthTexture.Sample(samplerState, Input.UV + float2(0, offset)).r;
+        linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
+        if (abs(linearSampleDepth - linearDepth) < depthThreshold)
+            color += inputTexture.Sample(samplerState, Input.UV + float2(0, offset)) * GaussianWeights[i];
+        else 
+            color += texColor * GaussianWeights[i];
+        
+        sampleDepth = depthTexture.Sample(samplerState, Input.UV - float2(0, offset)).r;
+        linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
+        if (abs(linearSampleDepth - linearDepth) < depthThreshold)
+            color += inputTexture.Sample(samplerState, Input.UV - float2(0, offset)) * GaussianWeights[i];
+        else
+            color += texColor * GaussianWeights[i];
     }
     
     return color;
