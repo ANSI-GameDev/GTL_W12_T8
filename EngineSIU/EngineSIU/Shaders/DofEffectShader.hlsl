@@ -60,7 +60,7 @@ float4 PS_BlurH(PS_Input Input) : SV_Target
             float2 offset = float2(x, y) * texelSize;
             float sampleDepth = depthTexture.Sample(samplerState, Input.UV + offset);
             float linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
-            float sampleCoC = abs(linearSampleDepth - focusDistance) / linearSampleDepth;
+            float sampleCoC = blurScale * abs(linearSampleDepth - focusDistance) / linearSampleDepth;
             if (linearSampleDepth < linearDepth)
                 maxCoC = max(maxCoC, sampleCoC);
         }
@@ -76,7 +76,7 @@ float4 PS_BlurH(PS_Input Input) : SV_Target
             float sampleDepth = depthTexture.Sample(samplerState, Input.UV + float2(offset, 0));
             float linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
             float sampleCoC = abs(linearSampleDepth - focusDistance) / linearSampleDepth;
-            float weight = (blurWidth - offset) / blurWidth * (sampleCoC / maxCoC);
+            float weight = (sampleCoC / maxCoC);
             color += inputTexture.Sample(samplerState, Input.UV + float2(offset, 0)) * weight;
             sampleWeights += weight;
         }
@@ -84,7 +84,7 @@ float4 PS_BlurH(PS_Input Input) : SV_Target
             float sampleDepth = depthTexture.Sample(samplerState, Input.UV - float2(offset, 0));
             float linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
             float sampleCoC = abs(linearSampleDepth - focusDistance) / linearSampleDepth;
-            float weight = (blurWidth - offset) / blurWidth * (sampleCoC / maxCoC);
+            float weight = (sampleCoC / maxCoC);
             color += inputTexture.Sample(samplerState, Input.UV - float2(offset, 0)) * weight;
             sampleWeights += weight;
         }
@@ -108,7 +108,7 @@ float4 PS_BlurV(PS_Input Input) : SV_Target
             float2 offset = float2(x, y) * texelSize;
             float sampleDepth = depthTexture.Sample(samplerState, Input.UV + offset);
             float linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
-            float sampleCoC = abs(linearSampleDepth - focusDistance) / linearSampleDepth;
+            float sampleCoC = blurScale * abs(linearSampleDepth - focusDistance) / linearSampleDepth;
             if (linearSampleDepth < linearDepth)
                 maxCoC = max(maxCoC, sampleCoC);
         }
@@ -124,7 +124,7 @@ float4 PS_BlurV(PS_Input Input) : SV_Target
             float sampleDepth = depthTexture.Sample(samplerState, Input.UV + float2(0, offset));
             float linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
             float sampleCoC = abs(linearSampleDepth - focusDistance) / linearSampleDepth;
-            float weight = (blurWidth - offset) / blurWidth * (sampleCoC / maxCoC);
+            float weight = (sampleCoC / maxCoC);
             color += inputTexture.Sample(samplerState, Input.UV + float2(0, offset)) * weight;
             SampleWeights += weight;
         }
@@ -132,7 +132,7 @@ float4 PS_BlurV(PS_Input Input) : SV_Target
             float sampleDepth = depthTexture.Sample(samplerState, Input.UV - float2(0, offset));
             float linearSampleDepth = nearClip * farClip / (farClip - sampleDepth * (farClip - nearClip));
             float sampleCoC = abs(linearSampleDepth - focusDistance) / linearSampleDepth;
-            float weight = (blurWidth - offset) / blurWidth * (sampleCoC / maxCoC);
+            float weight = (sampleCoC / maxCoC);
             color += inputTexture.Sample(samplerState, Input.UV - float2(0, offset)) * weight;
             SampleWeights += weight;
         }       
