@@ -337,12 +337,12 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
         
         ImGui::Spacing();
         
-        ImGui::Text("Focal Depth");
-        float FDepth = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->FDepth;
+        ImGui::Text("UnFocal Blur Scale");
+        float FDepth = GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->BlurScale;
         ImGui::SetNextItemWidth(120.0f);
-        if (ImGui::DragFloat("##FDepth", &FDepth, 1.f, 1.f, 1000.f, "%.1f"))
+        if (ImGui::DragFloat("##BlurScale", &FDepth, 0.1f, 1.f, 50.f, "%.1f"))
         {
-            GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->FDepth = FDepth;
+            GEngineLoop.GetLevelEditor()->GetActiveViewportClient()->BlurScale = FDepth;
         }
         
         ImGui::Separator();

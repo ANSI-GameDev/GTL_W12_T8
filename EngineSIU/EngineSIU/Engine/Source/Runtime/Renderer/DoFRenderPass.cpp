@@ -45,9 +45,8 @@ void FDoFRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Viewpo
     FDoFBlurConstants constants;
     constants.TexelSize.X = 1/Viewport->Viewport->GetRect().Width;
     constants.TexelSize.Y = 1/Viewport->Viewport->GetRect().Height;
-    constants.blurScale = 5.0f;
+    constants.blurScale = Viewport->BlurScale;
     constants.focusDistance = Viewport->FDistance;
-    constants.focusDepth = Viewport->FDepth;
     constants.nearClip = Viewport->NearClip;
     constants.farClip = Viewport->FarClip;
 
