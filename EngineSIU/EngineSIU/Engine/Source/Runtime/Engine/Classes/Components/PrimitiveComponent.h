@@ -19,6 +19,7 @@ public:
 
     virtual void InitializeComponent() override;
     virtual void TickComponent(float DeltaTime) override;
+    virtual void PhysicsUpdate(float DeltaTime){};
     void SetSimulatePhysics(bool bSimulate);
 
     bool IntersectRayTriangle(
@@ -99,6 +100,9 @@ public:
     /** Returns list of components this component is overlapping. */
     const TArray<FOverlapInfo>& GetOverlapInfos() const;
 
+    FBodyInstance* GetBodyInstance() const { return BodyInstance; }
+    void SetBodyInstance(FBodyInstance* InBodyInstance);
+    
 protected:
     TArray<FOverlapInfo> OverlappingComponents;
 
@@ -106,11 +110,10 @@ protected:
 
     void ClearComponentOverlaps(bool bDoNotifies, bool bSkipNotifySelf);
     
+    FBodyInstance* BodyInstance;
 private:
     FString m_Type;
 
-    FBodyInstance* BodyInstance;
-    
 public:
     FString GetType() { return m_Type; }
 

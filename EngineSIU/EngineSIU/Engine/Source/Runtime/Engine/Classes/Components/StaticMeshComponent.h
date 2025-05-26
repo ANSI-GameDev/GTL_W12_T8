@@ -13,6 +13,7 @@ public:
 
     virtual UObject* Duplicate(UObject* InOuter) override;
 
+    virtual void PhysicsUpdate(float DeltaTime) override;
 
     virtual void GetProperties(TMap<FString, FString>& OutProperties) const override;
 

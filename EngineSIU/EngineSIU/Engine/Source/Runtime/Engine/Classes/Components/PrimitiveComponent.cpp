@@ -463,6 +463,11 @@ const TArray<FOverlapInfo>& UPrimitiveComponent::GetOverlapInfos() const
     return OverlappingComponents;
 }
 
+void UPrimitiveComponent::SetBodyInstance(FBodyInstance* InBodyInstance)
+{
+    BodyInstance = InBodyInstance;
+}
+
 void UPrimitiveComponent::UpdateOverlapsImpl(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<const FOverlapInfo>* OverlapsAtEndLocation)
 {
     const AActor* const MyActor = GetOwner();

@@ -19,6 +19,8 @@
 
 #include <PxPhysicsAPI.h>
 
+#include "Actors/DirectionalLightActor.h"
+
 class UEditorEngine;
 
 UWorld* UWorld::CreateWorld(UObject* InOuter, const EWorldType InWorldType, const FString& InWorldName)
@@ -41,9 +43,8 @@ void UWorld::InitializeNewWorld()
     
     PhysScene = new FPhysScene();
     PhysScene->InitPhysX();
-
-    //여기서 값들 넣어보자
-    UBodySetup* BodySetup = FObjectFactory::ConstructObject<UBodySetup>(this);
+    
+    ADirectionalLight* LightActor = SpawnActor<ADirectionalLight>();
     
 }
 

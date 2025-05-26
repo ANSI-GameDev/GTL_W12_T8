@@ -7,4 +7,6 @@ struct FKAggregateGeom
     TArray<FKSphereElem> SphereElems;
 
     TArray<FKBoxElem> BoxElems;
+
+    TArray<FKSphylElem> CapsuleElems;
 };

@@ -77,8 +77,24 @@ void UEditorEngine::PhysicsTick(float DeltaTime)
                 {
                     PhysScene->TickPhysScene(DeltaTime);
                 }
+
+                PhysicsPostTick(DeltaTime, World);
             }
         } 
+    }
+}
+
+void UEditorEngine::PhysicsPostTick(float DeltaTime, UWorld* InWorld)
+{
+    ULevel* Level = InWorld->GetActiveLevel();
+    TArray CachedActors = Level->Actors;
+
+    for (AActor* Actor : CachedActors)
+    {
+        if (Actor && Actor->IsActorTickInEditor())
+        {
+            Actor->PhysicsUpdate(DeltaTime);
+        }
     }
 }
 

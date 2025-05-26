@@ -24,8 +24,8 @@ class physx::PxFoundation;
 class FPhysScene
 {
 public:
-    TArray<FBodyInstance> BodyInstances;
-    TArray<FConstraintInstance> Constraints;
+    TArray<FBodyInstance*> BodyInstances;
+    TArray<FConstraintInstance*> Constraints;
 
     void SetOwningWorld(UWorld* InOwningWorld);
     UWorld* GetOwningWorld() const;

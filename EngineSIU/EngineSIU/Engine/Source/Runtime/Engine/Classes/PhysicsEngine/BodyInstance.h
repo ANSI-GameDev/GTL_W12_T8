@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include "AggregateGeom.h"
+#include "Math/Matrix.h"
 #include "Math/Transform.h"
 #include "Math/Vector.h"
 #include "PhysicsCore/Public/BodyInstanceCore.h"
@@ -53,11 +55,10 @@ public:
     /** Current scale of physics - used to know when and how physics must be rescaled to match current transform of OwnerComponent. */
     FVector Scale3D;
 
-    physx::PxRigidDynamic* RigidBody;
-    physx::PxShape* Shape; //이거 그때그때 만들어야하는건지는 모르겠음
+    physx::PxRigidDynamic* RigidBody = nullptr;
+    FPhysScene* MyScene = nullptr;
     
     FTransform WorldTransform;
-    // FMatrix WorldMatrix;
     FVector LinearVelocity;
     FVector AngularVelocity;
     
@@ -77,15 +78,16 @@ public:
     /** Collision Profile Name **/
     FName CollisionProfileName;
 
-    FPhysScene* MyScene;
-
 public:
     // void ApplyForce(FVector Force);
     // void ApplyTorque(FVector Torque);
     // void AddImpulse(FVector Impulse);
 
+    void SetTransformRigidBody(FTransform MoveLocation);
+    
     //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
-    void InitBody(UBodySetup* InBodySetup, const FVector& InBodyVec, FPhysScene* InScene);
+    void InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene);
+    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
 
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
@@ -100,7 +102,8 @@ public:
     void SetbEnableGravity(bool b){ bEnableGravity = b; }
     
     void UpdatePhysics();
-    void ConvertPxTransformToFTransform(FTransform& OutTransform, const physx::PxTransform& InTransform);
+    FTransform ConvertPxTransformToFTransform(const physx::PxTransform& InTransform);
+    physx::PxTransform ConvertFTransformToPxTransform(const FTransform& InTransform);
     void ConvertPxMatToFMat(FMatrix& OutFMatrix, physx::PxMat44 InMat);
-    void ConvertFVecToPxVec(physx::PxVec3& OutVec, const FVector& InVec);
+    physx::PxVec3 ConvertFVecToPxVec(const FVector& InVec);
 };

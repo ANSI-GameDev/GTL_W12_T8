@@ -12,6 +12,7 @@ enum Type : int
 {
     Sphere,
     Box,
+    Sphyl,
     Unknown
 };
 }
@@ -86,7 +87,7 @@ struct FKBoxElem : public FKShapeElem
     : FKShapeElem(EAggCollisionShape::Box)
     , Center( FVector::ZeroVector )
     , Rotation( FRotator::ZeroRotator )
-    , X(1), Y(1), Z(1)
+    , Extent(FVector::OneVector)
     {
     }
     
@@ -94,15 +95,15 @@ struct FKBoxElem : public FKShapeElem
     : FKShapeElem(EAggCollisionShape::Box)
     , Center( FVector::ZeroVector )
     , Rotation(FRotator::ZeroRotator)
-    , X(s), Y(s), Z(s)
+    , Extent(FVector(s,s,s))
     {
     }
     
-    FKBoxElem( float InX, float InY, float InZ ) 
+    FKBoxElem( FVector Extent ) 
     : FKShapeElem(EAggCollisionShape::Box)
     , Center( FVector::ZeroVector )
     , Rotation(FRotator::ZeroRotator)
-    , X(InX), Y(InY), Z(InZ)
+    , Extent(Extent)
     {
     }
 
@@ -110,9 +111,9 @@ struct FKBoxElem : public FKShapeElem
     {
         return ( LHS.Center == RHS.Center &&
             LHS.Rotation == RHS.Rotation &&
-            LHS.X == RHS.X &&
-            LHS.Y == RHS.Y &&
-            LHS.Z == RHS.Z );
+            LHS.Extent.X == RHS.Extent.X &&
+            LHS.Extent.Y == RHS.Extent.Y &&
+            LHS.Extent.Z == RHS.Extent.Z );
     }
 
     FTransform GetTransform() const
@@ -128,15 +129,50 @@ struct FKBoxElem : public FKShapeElem
     
     FVector Center;
     FRotator Rotation;
-    float X;
-    float Y;
-    float Z;
-
+    FVector Extent;
 };
 
-#if 0 
-struct FKCapsuleElem: public FKShapeElem
+struct FKSphylElem: public FKShapeElem
 {
+
+    FKSphylElem()
+    : FKShapeElem(EAggCollisionShape::Sphyl)
+    , Center( FVector::ZeroVector )
+    , Rotation(FRotator::ZeroRotator)
+    , Radius(1), Length(1)
+    {
+    }
+
+    FKSphylElem( float InRadius, float InLength )
+    : FKShapeElem(EAggCollisionShape::Sphyl)
+    , Center( FVector::ZeroVector )
+    , Rotation(FRotator::ZeroRotator)
+    , Radius(InRadius), Length(InLength)
+    {
+    }
     
+    friend bool operator==( const FKSphylElem& LHS, const FKSphylElem& RHS )
+    {
+        return ( LHS.Center == RHS.Center &&
+            LHS.Rotation == RHS.Rotation &&
+            LHS.Radius == RHS.Radius &&
+            LHS.Length == RHS.Length );
+    }
+
+    FTransform GetTransform() const
+    {
+        return FTransform(Rotation, Center);
+    }
+
+    void SetTransform(const FTransform& InTransform)
+    {
+        Rotation = InTransform.Rotator();
+        Center = InTransform.GetTranslation();
+    }
+    
+    //Capsule
+    FVector Center;
+    FRotator Rotation;
+    float Radius;
+    float Length;
 };
-#endif

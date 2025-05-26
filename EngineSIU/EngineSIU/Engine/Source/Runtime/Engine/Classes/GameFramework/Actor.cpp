@@ -133,6 +133,17 @@ void AActor::Destroyed()
     }
 }
 
+void AActor::PhysicsUpdate(float DeltaTime)
+{
+    for (UActorComponent* Comp : OwnedComponents)
+    {
+        if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp))
+        {
+            PrimComp->PhysicsUpdate(DeltaTime);
+        }
+    }
+}
+
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     // 본인이 소유하고 있는 모든 컴포넌트의 EndPlay 호출

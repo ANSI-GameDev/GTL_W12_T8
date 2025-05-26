@@ -22,6 +22,7 @@ public:
     virtual void Init() override;
     virtual void Tick(float DeltaTime) override;
     virtual void PhysicsTick(float DeltaTime) override;
+    virtual void PhysicsPostTick(float DeltaTime, UWorld* InWorld) override;
 
     void Release() override;
 
