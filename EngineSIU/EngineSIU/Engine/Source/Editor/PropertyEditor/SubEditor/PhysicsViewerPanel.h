@@ -34,5 +34,5 @@ private:
 
     std::shared_ptr<FEditorViewportClient> ViewportClient;
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
-    int SelectedBoneIndex = -1;
+    //int SelectedBoneIndex = -1;
 };

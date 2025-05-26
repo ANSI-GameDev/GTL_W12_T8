@@ -55,7 +55,7 @@ void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient
 void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
     SkeletalMeshComponent = InSkeletalMeshComponent;
-    SelectedBoneIndex = -1;
+    SkeletalMeshComponent->SetSelectedBone(-1);
 }
 
 void PhysicsViewerPanel::RenderViewportPanel()
@@ -109,7 +109,6 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        SelectedBoneIndex = BoneIndex;
         if (SkeletalMeshComponent)
         {
             SkeletalMeshComponent->SetSelectedBone(BoneIndex);
@@ -170,8 +169,6 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 {
                     CurrentIndex = i;
                     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(MeshNames[i]));
-                    SelectedBoneIndex = -1;
-                    SkeletalMeshComponent->SetSelectedBone(-1);
                 }
                 if (bSelected) ImGui::SetItemDefaultFocus();
             }
@@ -184,7 +181,7 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 RenderBoneRecursive(RefSkeleton, BoneIndex, Pose);
             }
         }
-
+        int SelectedBoneIndex = SkeletalMeshComponent->GetSelectedBone();
         if (SelectedBoneIndex != INDEX_NONE && Pose.IsValidIndex(SelectedBoneIndex))
         {
             ImGui::SeparatorText("Bone Transform");
