@@ -1,5 +1,7 @@
 #include "SubRenderer.h"
 
+#include "CompositingPass.h"
+#include "FSkeletalMeshDebugger.h"
 #include "LineRenderPass.h"
 #include "PhysicsSubEngine.h"
 #include "ShadowManager.h"
@@ -21,6 +23,11 @@ void FSubRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* In
     PrimitiveDrawBatch = new UPrimitiveDrawBatch();
     PrimitiveDrawBatch->Initialize(Graphics);
     LineRenderPass->SetPrimitiveDrawBatch(PrimitiveDrawBatch);
+
+    // SubRenderer.cpp
+    CompositingPass = new FCompositingPass();
+    CompositingPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);
+
     //렌더패스 Init은 SetEnabledPass에서 수행
     /*ParticleRenderPass = new FParticleRenderPass();
     ParticleRenderPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);
@@ -46,10 +53,14 @@ void FSubRenderer::PrepareRender(const std::shared_ptr<FEditorViewportClient>& V
     if (EnabledPasses["Skeletal"])
     {
         auto* PhysicsEngine = dynamic_cast<UPhysicsSubEngine*>(Engine);
+        auto* SkeletalMeshComponent = PhysicsEngine->GetSkeletalMeshComponent();
         if (PhysicsEngine&&SkeletalMeshRenderPass)
         {
-            SkeletalMeshRenderPass->AddSkeletalMeshComponent(PhysicsEngine->GetSkeletalMeshComponent());
+            SkeletalMeshRenderPass->AddSkeletalMeshComponent(SkeletalMeshComponent);
         }
+
+        FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
+        FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch);
     }
 }
 void FSubRenderer::SetEnabledPass(FString PassName, bool bEnable)
@@ -88,6 +99,8 @@ void FSubRenderer::Render(const std::shared_ptr<FEditorViewportClient>& Viewport
     {
         SkeletalMeshRenderPass->Render(Viewport);
     }
+    LineRenderPass->Render(Viewport);
+    CompositingPass->Render(Viewport);
 }
 
 void FSubRenderer::ClearRender()
@@ -101,6 +114,7 @@ void FSubRenderer::ClearRender()
     {
         SkeletalMeshRenderPass->ClearRenderArr();
     }
+    LineRenderPass->ClearRenderArr();
 }
 
 void FSubRenderer::Release()
@@ -121,6 +135,16 @@ void FSubRenderer::Release()
     {
         delete ShadowManager;
         ShadowManager = nullptr;
+    }
+    if (LineRenderPass)
+    {
+        delete LineRenderPass;
+        LineRenderPass = nullptr;
+    }
+    if (CompositingPass)
+    {
+        delete CompositingPass;
+        CompositingPass = nullptr;
     }
 }
 

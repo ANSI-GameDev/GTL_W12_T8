@@ -28,7 +28,7 @@ public:
     class FSubRenderer* SubRenderer;
     UnrealEd* UnrealEditor;
     class FImGuiSubWindow* SubUI;
-
+    
     AEditorPlayer* EditorPlayer;
 
     POINT LastMousePos;

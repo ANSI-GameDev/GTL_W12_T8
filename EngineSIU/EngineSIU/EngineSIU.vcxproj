@@ -370,6 +370,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsAsset.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsConstraintTemplate.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConstraintTypes.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\FSkeletalMeshDebugger.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\ReferenceSkeleton.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\UnrealClient.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\UserInterface\Console.cpp" />
@@ -773,6 +774,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ShapeElem.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\SphereElem.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\SphylElem.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\FSkeletalMeshDebugger.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\ReferenceSkeleton.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UnrealClient.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\UserInterface\Console.h" />

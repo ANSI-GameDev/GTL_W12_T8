@@ -565,3 +565,29 @@ bool FMatrix::Equals(const FMatrix& Other, float Tolerance) const
 
     return true;
 }
+FMatrix FMatrix::MakeLookAtLH(const FVector& Eye, const FVector& Target, const FVector& Up)
+{
+    const FVector Forward = (Target - Eye).GetSafeNormal();  // Z 방향 (앞)
+    const FVector Right = Up.Cross(Forward).GetSafeNormal(); // X 방향 (오른쪽)
+    const FVector UpCorrected = Forward.Cross(Right);        // Y 방향 (위쪽)
+
+    FMatrix Result = FMatrix::Identity;
+
+    Result[0][0] = Right.X;
+    Result[0][1] = Right.Y;
+    Result[0][2] = Right.Z;
+
+    Result[1][0] = UpCorrected.X;
+    Result[1][1] = UpCorrected.Y;
+    Result[1][2] = UpCorrected.Z;
+
+    Result[2][0] = Forward.X;
+    Result[2][1] = Forward.Y;
+    Result[2][2] = Forward.Z;
+
+    Result[3][0] = Eye.X;
+    Result[3][1] = Eye.Y;
+    Result[3][2] = Eye.Z;
+
+    return Result;
+}

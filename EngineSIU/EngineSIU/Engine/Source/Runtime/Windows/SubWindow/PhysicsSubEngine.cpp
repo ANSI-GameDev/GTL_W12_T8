@@ -1,7 +1,9 @@
 // PhysicsSubEngine.cpp
 #include "PhysicsSubEngine.h"
 
+#include "FSkeletalMeshDebugger.h"
 #include "ImGuiSubWindow.h"
+#include "LineRenderPass.h"
 #include "SubRenderer.h"
 #include "PropertyEditor/SkeletalMeshViewerPanel.h"
 #include "PropertyEditor/SubEditor/PhysicsViewerPanel.h"
@@ -47,7 +49,7 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
 
     // 필요한 컴포넌트 로딩이나 초기화 등
     SubRenderer->SetEnabledPass("Skeletal",true);
-    ViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
+    ViewportClient->SetViewMode(EViewModeIndex::VMI_Wireframe);
 }
 
 void UPhysicsSubEngine::Tick(float DeltaTime)

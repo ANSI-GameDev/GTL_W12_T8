@@ -59,7 +59,7 @@ void PhysicsViewerPanel::RenderViewportPanel()
     FViewportResource* Resource = Viewport->GetViewportResource();
     if (!Resource) return;
 
-    FRenderTargetRHI* RenderTarget = Resource->GetRenderTarget(EResourceType::ERT_Scene);
+    FRenderTargetRHI* RenderTarget = Resource->GetRenderTarget(EResourceType::ERT_Compositing);
     if (RenderTarget && RenderTarget->SRV)
     {
         ImVec2 contentSize = ImGui::GetContentRegionAvail();
