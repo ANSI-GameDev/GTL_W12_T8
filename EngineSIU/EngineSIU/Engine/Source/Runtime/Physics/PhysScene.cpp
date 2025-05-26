@@ -1,4 +1,4 @@
-﻿#include "PhysScene.h"
+#include "PhysScene.h"
 
 #include "UObject/Casts.h"
 #include "World/World.h"
@@ -46,6 +46,7 @@ void FPhysScene::InitPhysX()
     SceneDesc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
     SceneDesc.flags |= PxSceneFlag::eENABLE_CCD;
     SceneDesc.flags |= PxSceneFlag::eENABLE_PCM;
+    SceneDesc.flags |= PxSceneFlag::eENABLE_STABILIZATION;
     gScene = gPhysics->createScene(SceneDesc);
 
     /* Visual Debugger 활성화
@@ -60,66 +61,61 @@ void FPhysScene::InitPhysX()
     }
 
 
-    //Body1
-    // PxRigidBody* RBody2= nullptr;
-    //
-    // PxVec3 Pos2 = PxVec3(5, 0, 5);
-    // PxTransform RPos2(Pos2);
-    // RBody2 = gPhysics->createRigidDynamic(RPos2);
-    //
-    // PxShape* RShape2 =gPhysics->createShape(PxSphereGeometry(1.f), *gMaterial);
-    // RBody2->attachShape(*RShape2);
-    
-    //Body2
-    // PxVec3 pos = PxVec3(0, 0, 10);
-    // PxVec3 halfExtents = PxVec3(1, 1, 1);
-    // PxRigidBody* rigidBody = nullptr;
-    // PxTransform pose(pos);
-    // rigidBody = gPhysics->createRigidDynamic(pose);
-    //
-    // PxShape* shape = gPhysics->createShape(PxBoxGeometry(halfExtents), *gMaterial);
-    // PxTransform ShapePose = PxTransform(PxVec3(5, 5, 5));
-    // shape->setLocalPose(ShapePose);
-    // rigidBody->attachShape(*shape);
-    //
-    // PxShape* Shape2 = gPhysics->createShape(PxSphereGeometry(0.5f), *gMaterial);
-    // PxTransform Shape2Pose = PxTransform(PxVec3(0, 0, 0));
-    // Shape2->setLocalPose(Shape2Pose);
-    // rigidBody->attachShape(*Shape2);
-    //
-    // if (!rigidBody->getScene())
-    // {
-    //     gScene->addActor(*rigidBody);
-    // }
-    // if (!RBody2->getScene())
-    // {
-    //     gScene->addActor(*RBody2);
-    // }
+    PxVec3 staticPos(5.0f, 0.0f, 15.0f);
+    PxTransform staticTransform(staticPos);
+    PxRigidStatic* staticActor = gPhysics->createRigidStatic(staticTransform);
 
-    //addActor하고 Joint생성
-       
-    PxRigidStatic* rigidStatic = nullptr;
-    PxPlane plane = PxPlane(0, 0, 1, 0);
-    
-    // PxD6Joint* Joint = PxD6JointCreate(*gPhysics, RBody2, RPos2, rigidBody, pose);
-    // Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE); //회전 고정
-    // Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE); //회전 고정
-    // Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE); //회전 고정
-    // Joint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE); //X축 자유이동
-    // Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(0, 1000, FLT_MAX, true));
-    // Joint->setLinearLimit(PxD6Axis::eX, PxJointLinearLimitPair(0.f, 1.0f, PxSpring(100.0f, 10.0f))); //PxJointLinearLimitPair
-    //attachShape후에 호출 (걍 마지막에 호출
-    // PxRigidBodyExt::updateMassAndInertia(*rigidBody, 10.0f);
-    // obj.UpdateFromPhysics();
+    PxShape* sphereShape = gPhysics->createShape(PxSphereGeometry(1.0f), *gMaterial);
+    staticActor->attachShape(*sphereShape);
+    gScene->addActor(*staticActor);
 
-    
-    rigidStatic = PxCreatePlane(*gPhysics, plane, *gMaterial);
-    gScene->addActor(*rigidStatic);
+    // --- Dynamic Body 생성 (이전 rigidBody 대신) ---
+    PxVec3 dynPos(8.5f, 0.0f, 10.f);
+    PxTransform dynamicTransform(dynPos);
+    PxRigidDynamic* dynamicActor = gPhysics->createRigidDynamic(dynamicTransform);
+
+    // 박스 충돌체
+    PxBoxGeometry boxGeom(PxVec3(1.0f, 1.0f, 1.0f));
+    PxShape* boxShape = gPhysics->createShape(boxGeom, *gMaterial);
+    boxShape->setLocalPose(PxTransform(PxVec3(0.0f)));
+    dynamicActor->attachShape(*boxShape);
+    PxRigidBodyExt::updateMassAndInertia(*dynamicActor, 10.0f);
+    gScene->addActor(*dynamicActor);
+
+    // --- Joint 생성 --- //
+    PxTransform worldJointPose = staticActor->getGlobalPose();
+    PxQuat twistDownQuat = PxQuat(PxPi / 2.0f, PxVec3(1, 0, 0)); // 로컬 X축이 -Z방향
+
+    PxTransform localFrameStatic = PxTransform(PxIdentity) * PxTransform(twistDownQuat);
+    PxTransform localFrameDynamic = dynamicActor->getGlobalPose().getInverse() * worldJointPose * PxTransform(twistDownQuat);
+
+    PxD6Joint* joint = PxD6JointCreate(*gPhysics,staticActor, localFrameStatic,dynamicActor, localFrameDynamic);
+    joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
+
+    // 1) 회전 자유도 설정 (진자 움직임)
+    joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLOCKED);
+    joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
+    joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
+
+    joint->setSwingLimit(PxJointLimitCone(FMath::DegreesToRadians(30.f), FMath::DegreesToRadians(30.f), { 50.f, 7.f }));
+
+    // X축만 리미트 모드로 설정
+    joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);  // X축만 스프링/리미트
+    joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
+    joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
+
+    // 3) SLERP Drive 설정
+    //joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(50.0f, 5.0f, FLT_MAX,true) );
+
+    // --- 바닥용 Plane Actor ---
+    PxPlane plane(0, 0, 1, 0);
+    PxRigidStatic* groundPlane = PxCreatePlane(*gPhysics, plane, *gMaterial);
+    gScene->addActor(*groundPlane);
 }
 
 void FPhysScene::Simulate(float DeltaTime)
 {
-    gScene->simulate(DeltaTime);
+    gScene->simulate(DeltaTime * 2.5f);
     gScene->fetchResults(true);
     for (FBodyInstance* BodyInstance : BodyInstances)
     {

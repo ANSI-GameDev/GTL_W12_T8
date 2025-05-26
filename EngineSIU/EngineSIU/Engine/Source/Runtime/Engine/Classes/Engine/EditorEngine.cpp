@@ -50,7 +50,7 @@ void UEditorEngine::Init()
         AssetManager->InitAssetManager();
     }
     // TODO: 필요할 때 활성화 하기
-    // LoadLevel("Saved/AutoSaves.scene");
+    LoadLevel("Saved/cloudandhuman.scene");
 }
 
 void UEditorEngine::Release()
