@@ -1,4 +1,5 @@
 #pragma once
+#include "Axis.h"
 #include "Quat.h"
 #include "Vector.h"
 #include "Container/String.h"
@@ -37,6 +38,7 @@ struct FTransform
     
     // 위치 관련 함수들
     FVector GetTranslation() const { return Translation; }
+    FVector GetLocation() const;
     void SetTranslation(const FVector& InTranslation) { Translation = InTranslation; }
     void AddToTranslation(const FVector& InTranslation) { Translation += InTranslation; }
     
@@ -111,4 +113,7 @@ struct FTransform
                   << Transform.Rotation
                   << Transform.Scale3D;
     }
+
+    // Unit Axis 함수 관련
+    FVector GetUnitAxis(EAxis::Type InAxis) const;
 };

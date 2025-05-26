@@ -70,9 +70,9 @@ void UMyAnimInstance::NativeUpdateAnimation(float DeltaSeconds, FPoseContext& Ou
     }
     
     // TODO: FPoseContext의 BoneContainer로 바꾸기
-    const FReferenceSkeleton& RefSkeleton = this->GetCurrentSkeleton()->GetReferenceSkeleton();
+    const FReferenceSkeleton& RefSkeleton = this->GetCurrentSkeleton()->GetRefSkeleton();
     
-    if (PrevAnim->GetSkeleton()->GetReferenceSkeleton().GetRawBoneNum()!= RefSkeleton.RawRefBoneInfo.Num() || CurrAnim->GetSkeleton()->GetReferenceSkeleton().GetRawBoneNum() != RefSkeleton.RawRefBoneInfo.Num())
+    if (PrevAnim->GetSkeleton()->GetRefSkeleton().GetRawBoneNum()!= RefSkeleton.RawRefBoneInfo.Num() || CurrAnim->GetSkeleton()->GetRefSkeleton().GetRawBoneNum() != RefSkeleton.RawRefBoneInfo.Num())
     {
         return;
     }

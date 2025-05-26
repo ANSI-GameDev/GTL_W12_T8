@@ -71,6 +71,11 @@ FVector FTransform::InverseTransformDirection(const FVector& V) const
     return Rotation.Inverse().RotateVector(V);
 }
 
+FVector FTransform::GetLocation() const
+{
+    return GetTranslation();
+}
+
 bool FTransform::IsUniform() const
 {
     return FMath::IsNearlyEqual(Scale3D.X, Scale3D.Y)
@@ -397,6 +402,22 @@ void FTransform::AccumulateWithShortestRotation(const FTransform& DeltaAtom, flo
 
     Translation += Atom.Translation;
     Scale3D += Atom.Scale3D;
+}
+
+FVector FTransform::GetUnitAxis(EAxis::Type InAxis) const
+{
+    if (InAxis == EAxis::X)
+    {
+        return Rotation.RotateVector(FVector(1, 0, 0));
+    }
+    else if (InAxis == EAxis::Y)
+    {
+        return Rotation.RotateVector(FVector(0, 1, 0));
+    }
+    else
+    {
+        return Rotation.RotateVector(FVector(0, 0, 1));
+    }
 }
 
 FTransform FTransform::operator*(const FTransform& Other) const 

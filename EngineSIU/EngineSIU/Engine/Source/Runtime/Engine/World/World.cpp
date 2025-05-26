@@ -19,6 +19,8 @@
 
 #include <PxPhysicsAPI.h>
 
+#include "PhysScene.h"
+
 class UEditorEngine;
 
 UWorld* UWorld::CreateWorld(UObject* InOuter, const EWorldType InWorldType, const FString& InWorldName)
@@ -39,8 +41,10 @@ void UWorld::InitializeNewWorld()
     //InitializeLightScene(); // 테스트용 LightScene 비활성화
 
     CollisionManager = new FCollisionManager();
-    
-    
+    PhysicsScene = new FPhysScene();
+
+
+    SetPhysicsScene(PhysicsScene);
 }
 
 void UWorld::InitializeLightScene()
@@ -342,6 +346,22 @@ void UWorld::CheckOverlap(const UPrimitiveComponent* Component, TArray<FOverlapR
     if (CollisionManager)
     {
         CollisionManager->CheckOverlap(this, Component, OutOverlaps);
+    }
+}
+
+void UWorld::SetPhysicsScene(FPhysScene* InScene)
+{
+    if (PhysicsScene != nullptr)
+    {
+        PhysicsScene->SetOwningWorld(nullptr);
+        delete PhysicsScene;
+    }
+
+    PhysicsScene = InScene;
+
+    if (PhysicsScene != nullptr)
+    {
+        PhysicsScene->SetOwningWorld(this);
     }
 }
 

@@ -347,6 +347,36 @@ struct FBoundingBox
 
         return true;
     }
+
+    FORCEINLINE void Init()
+    {
+        MinLocation = MaxLocation = FVector::ZeroVector;
+    }
+
+    bool IsValid() const
+    {
+        return !(MinLocation == FVector::ZeroVector && MaxLocation == FVector::ZeroVector);
+    }
+
+    FORCEINLINE FBoundingBox& operator+=(const FVector& Other)
+    {
+        if (IsValid())
+        {
+            MinLocation.X = FMath::Min(MinLocation.X, Other.X);
+            MinLocation.Y = FMath::Min(MinLocation.Y, Other.Y);
+            MinLocation.Z = FMath::Min(MinLocation.Z, Other.Z);
+
+            MaxLocation.X = FMath::Max(MaxLocation.X, Other.X);
+            MaxLocation.Y = FMath::Max(MaxLocation.Y, Other.Y);
+            MaxLocation.Z = FMath::Max(MaxLocation.Z, Other.Z);
+        }
+        else
+        {
+            MinLocation = MaxLocation = Other;
+        }
+        return *this;
+    }
+
 };
 
 struct FCone

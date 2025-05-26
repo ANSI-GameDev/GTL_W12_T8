@@ -68,7 +68,7 @@ int32 UAnimDataController::AddBoneTrack(FName BoneName)
             {
                 if (const USkeleton* Skeleton = AnimationSequence->GetSkeleton())
                 {
-                    BoneIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(BoneName);
+                    BoneIndex = Skeleton->GetRefSkeleton().FindBoneIndex(BoneName);
                 }
             }
 
@@ -188,7 +188,7 @@ bool UAnimDataController::RemoveBoneTracksMissingFromSkeleton(const USkeleton* S
     {
         TArray<FName> TracksToBeRemoved;
         TArray<FName> TracksUpdated;
-        const FReferenceSkeleton& ReferenceSkeleton = Skeleton->GetReferenceSkeleton();
+        const FReferenceSkeleton& ReferenceSkeleton = Skeleton->GetRefSkeleton();
 
         for (FBoneAnimationTrack& Track : Model->BoneAnimationTracks)
         {

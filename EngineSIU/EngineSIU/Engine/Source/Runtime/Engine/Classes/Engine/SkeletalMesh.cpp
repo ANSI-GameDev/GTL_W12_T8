@@ -25,4 +25,9 @@ void USkeletalMesh::SerializeAsset(FArchive& Ar)
     RenderData->Serialize(Ar);
 }
 
+UPhysicsAsset* USkeletalMesh::GetPhysicsAsset() const
+{
+    return PhysicsAsset;
+}
+
 

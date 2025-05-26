@@ -13,6 +13,7 @@
 #include "Engine/EventManager.h"
 #include "UObject/UObjectIterator.h"
 
+class FPhysScene;
 class UPrimitiveComponent;
 struct FOverlapResult;
 class UCameraComponent;
@@ -82,6 +83,9 @@ public:
     
     void CheckOverlap(const UPrimitiveComponent* Component, TArray<FOverlapResult>& OutOverlaps) const;
 
+    void SetPhysicsScene(FPhysScene* InScene);
+    FPhysScene* GetPhysicsScene() const { return PhysicsScene; }
+
 public:
     double TimeSeconds;
 
@@ -106,6 +110,8 @@ private:
     UTextComponent* MainTextComponent = nullptr;
 
     FCollisionManager* CollisionManager = nullptr;
+
+    FPhysScene* PhysicsScene = nullptr;
 };
 
 

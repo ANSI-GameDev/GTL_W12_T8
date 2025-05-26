@@ -1,4 +1,4 @@
-﻿#include "Vector.h"
+#include "Vector.h"
 
 #include "Vector4.h"
 #include "Misc/Parse.h"
@@ -41,6 +41,12 @@ FVector::FVector(const FVector4& InVector4)
     , Y(InVector4.Y)
     , Z(InVector4.Z)
 {
+}
+
+float FVector::GetAbsMin() const
+{
+    // 절대값의 최소값을 반환합니다.
+    return FMath::Min(FMath::Min(FMath::Abs(X), FMath::Abs(Y)), FMath::Abs(Z));
 }
 
 FString FVector::ToString() const

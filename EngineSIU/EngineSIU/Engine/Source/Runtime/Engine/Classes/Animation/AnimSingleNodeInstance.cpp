@@ -134,7 +134,7 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds, FPoseCon
     
     CurrentKey = CurrentFrame;
     
-    const FReferenceSkeleton& RefSkeleton = GetCurrentSkeleton()->GetReferenceSkeleton();
+    const FReferenceSkeleton& RefSkeleton = GetCurrentSkeleton()->GetRefSkeleton();
 
     // TODO: 인덱스 말고 맵을 통해 FName으로 포즈 계산
     for (int32 BoneIdx = 0; BoneIdx < RefSkeleton.RawRefBoneInfo.Num(); ++BoneIdx)

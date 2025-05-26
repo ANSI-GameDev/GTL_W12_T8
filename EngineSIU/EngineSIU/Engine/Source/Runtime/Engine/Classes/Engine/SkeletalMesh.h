@@ -1,6 +1,7 @@
 #pragma once
 #include "SkinnedAsset.h"
 #include "Asset/SkeletalMeshAsset.h" 
+class UPhysicsAsset;
 class USkeleton;
 //struct FSkeletalMeshRenderData;
 
@@ -22,8 +23,11 @@ public:
 
     virtual void SerializeAsset(FArchive& Ar) override;
 
+    UPhysicsAsset* GetPhysicsAsset() const ;
+
 protected:
     std::unique_ptr<FSkeletalMeshRenderData> RenderData;
 
     USkeleton* Skeleton;
+    UPhysicsAsset* PhysicsAsset;
 };

@@ -13,3 +13,16 @@ namespace EEndPlayReason
         Quit,
     };
 }
+
+namespace ECollisionEnabled
+{
+    enum Type : int
+    {
+        NoCollision,
+        QueryOnly,
+        PhysicsOnly,
+        QueryAndPhysics ,
+        ProbeOnly,
+        QueryAndProbe 
+    };
+}

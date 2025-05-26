@@ -1709,6 +1709,14 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorBase.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorOverLife.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleSubUV.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConstraintInstance.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsAsset.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsConstraintTemplate.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConstraintTypes.cpp" />
+    <ClCompile Include="PhysScene.cpp" />
+    <ClCompile Include="Engine\Source\Developer\PhysicsUtilities\PhysicAssetUtils.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\PhysicsCore\PhysicalMaterials\PhysicalMaterial.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodySetup.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Windows\SubWindow\PhysicsSubEngine.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsViewerPanel.cpp" />
   </ItemGroup>
@@ -1825,6 +1833,25 @@
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorBase.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleColorOverLife.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\Particles\ParticleModules\ParticleModuleSubUV.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\AggregateGeom.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodyInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodySetup.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BoxElem.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConstraintInstance.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConstraintTypes.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsAsset.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsConstraintTemplate.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ShapeElem.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\SphereElem.h" />
+    <ClInclude Include="Engine\Source\Runtime\PhysicsCore\BodyInstanceCore.h" />
+    <ClInclude Include="Engine\Source\Runtime\PhysicsCore\BodySetupCore.h" />
+    <ClInclude Include="Engine\Source\Runtime\PhysicsCore\Chaos\ChaosEngineInterface.h" />
+    <ClInclude Include="PhysScene.h" />
+    <ClInclude Include="Engine\Source\Developer\PhysicsUtilities\PhysicAssetUtils.h" />
+    <ClInclude Include="Engine\Source\Runtime\PhysicsCore\PhysicalMaterials\PhysicalMaterial.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\SphylElem.h" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConvexElem.h" />
+    <ClInclude Include="Engine\Source\Runtime\Core\Misc\EnumClassFlags.h" />
     <ClInclude Include="Engine\Source\Runtime\Windows\SubWindow\PhysicsSubEngine.h" />
     <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsViewerPanel.h" />
   </ItemGroup>

@@ -29,7 +29,7 @@ void ASkeletalMeshActorTest::PostSpawnInitialize()
     
     if (MeshComp->GetSkeletalMeshAsset())
     {
-        const FReferenceSkeleton& RefSkeleton = MeshComp->GetSkeletalMeshAsset()->GetSkeleton()->GetReferenceSkeleton();
+        const FReferenceSkeleton& RefSkeleton = MeshComp->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
         
         for (int32 Idx = 0; Idx < RefSkeleton.RawRefBoneInfo.Num(); ++Idx)
         {

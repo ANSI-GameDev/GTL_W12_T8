@@ -1,12 +1,12 @@
 
 #include "Skeleton.h"
 
-FReferenceSkeleton USkeleton::GetReferenceSkeleton() const
+FReferenceSkeleton USkeleton::GetRefSkeleton() const
 {
     return ReferenceSkeleton;
 }
 
-const FReferenceSkeleton& USkeleton::GetReferenceSkeleton()
+const FReferenceSkeleton& USkeleton::GetRefSkeleton()
 {
     return ReferenceSkeleton;
 }
