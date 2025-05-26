@@ -23,11 +23,12 @@ public:
 
     virtual void SerializeAsset(FArchive& Ar) override;
 
-    UPhysicsAsset* GetPhysicsAsset() const ;
+    UPhysicsAsset* GetPhysicsAsset() const;
+    void SetPhysicsAsset(UPhysicsAsset* InPhysicsAsset) { PhysicsAsset = InPhysicsAsset; }
 
 protected:
     std::unique_ptr<FSkeletalMeshRenderData> RenderData;
 
-    USkeleton* Skeleton;
-    UPhysicsAsset* PhysicsAsset;
+    USkeleton* Skeleton = nullptr;
+    UPhysicsAsset* PhysicsAsset=nullptr;
 };

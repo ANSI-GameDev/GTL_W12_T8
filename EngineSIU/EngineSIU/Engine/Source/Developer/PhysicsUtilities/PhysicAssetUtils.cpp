@@ -56,7 +56,7 @@ namespace FPhysicsAssetUtils
 
                 UPhysicsConstraintTemplate* CS = nullptr;
                 int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, ConstraintName, CS, ParentName, ChildName);
-
+                CS = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
 
 
                 CS->DefaultInstance.SnapTransformsToDefault(EConstraintTransformComponentFlags::All, PhysicsAsset);

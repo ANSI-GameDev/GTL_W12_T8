@@ -5,6 +5,7 @@
 #include "ImGuiSubWindow.h"
 #include "LineRenderPass.h"
 #include "SubRenderer.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 #include "PropertyEditor/SkeletalMeshViewerPanel.h"
 #include "PropertyEditor/SubEditor/PhysicsViewerPanel.h"
 
@@ -57,8 +58,10 @@ void UPhysicsSubEngine::Tick(float DeltaTime)
     Input(DeltaTime);
     ViewportClient->Tick(DeltaTime);
     FString str = ViewportClient->PerspectiveCamera.GetRotation().ToString();
-    UE_LOG(ELogLevel::Warning, "%s", ViewportClient->PerspectiveCamera.GetRotation().ToString());
     // 물리 시뮬레이션 처리 (예: PhysicsWorld->StepSimulation(DeltaTime))
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+    TArray<UBodySetup*> BodySetups = PhysicsAsset->BodySetup;
+    TArray<UPhysicsConstraintTemplate*> ConstraintTemplates = PhysicsAsset->ConstraintSetup;
 
     Render();
 }
