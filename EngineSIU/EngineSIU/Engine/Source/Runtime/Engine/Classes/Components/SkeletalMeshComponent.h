@@ -125,7 +125,7 @@ protected:
 private:
     void CPUSkinning(bool bForceUpdate = false);
 
-    FPoseContext BonePoseContext;
+    //FPoseContext BonePoseContext;
 
     USkeletalMesh* SkeletalMeshAsset;
     std::unique_ptr<FSkeletalMeshRenderData> CPURenderData;

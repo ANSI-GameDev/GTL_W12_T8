@@ -125,7 +125,7 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
     if (!SkeletalMeshComponent || !SkeletalMeshComponent->GetSkeletalMeshAsset())
         return;
 
-    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetReferenceSkeleton();
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
     if (RefSkeleton.GetRawBoneNum() == 0)
         return;
 
