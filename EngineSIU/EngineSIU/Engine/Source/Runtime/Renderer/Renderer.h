@@ -15,6 +15,7 @@
 #include "D3D11RHI/DXDBufferManager.h"
 
 
+class UPrimitiveDrawBatch;
 class FParticleRenderPass;
 class IRenderPass;
 class FSkeletalMeshRenderPass;
@@ -121,6 +122,8 @@ public:
     FSlateRenderPass* SlateRenderPass = nullptr;
 
     FParticleRenderPass* ParticleRenderPass = nullptr;
+
+    UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
 private:
     template <typename RenderPassType>
         requires std::derived_from<RenderPassType, IRenderPass>

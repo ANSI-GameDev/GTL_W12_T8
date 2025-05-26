@@ -12,6 +12,7 @@
 #include "Engine/Asset/SkeletalMeshAsset.h"
 #include "Engine/AssetManager.h"
 #include "RendererHelpers.h"
+#include "SubWindow/PhysicsSubEngine.h"
 
 class UEditorEngine;
 
@@ -144,9 +145,9 @@ void FSkeletalMeshRenderPassBase::RenderAllSkeletalMeshes(const std::shared_ptr<
 
         RenderSkeletalMesh(RenderData);
 
-        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB)&&Comp->GetWorld()==Engine->GetWorld())
+        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB)&&Comp!=GEngineLoop.PhysicsSubEngine->GetSkeletalMeshComponent())
         {
-            FEngineLoop::PrimitiveDrawBatch.AddAABBToBatch(Comp->GetBoundingBox(), Comp->GetComponentLocation(), WorldMatrix);
+            FEngineLoop::Renderer.PrimitiveDrawBatch->AddAABBToBatch(Comp->GetBoundingBox(), Comp->GetComponentLocation(), WorldMatrix);
         }
     }
 }

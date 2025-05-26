@@ -2,6 +2,8 @@
 #include <memory>
 
 #include "Container/Map.h"
+class FLineRenderPass;
+class UPrimitiveDrawBatch;
 class FShadowManager;
 class FSkeletalMeshRenderPass;
 class FString;
@@ -30,6 +32,9 @@ private:
     FShadowManager* ShadowManager = nullptr;
     FParticleRenderPass* ParticleRenderPass = nullptr;
     FSkeletalMeshRenderPass* SkeletalMeshRenderPass = nullptr;
+
+    FLineRenderPass* LineRenderPass = nullptr;
+    UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
     TMap<FString, bool> EnabledPasses;
 };
 

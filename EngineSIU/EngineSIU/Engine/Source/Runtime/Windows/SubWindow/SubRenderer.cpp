@@ -1,5 +1,6 @@
 #include "SubRenderer.h"
 
+#include "LineRenderPass.h"
 #include "PhysicsSubEngine.h"
 #include "ShadowManager.h"
 #include "SkeletalMeshRenderPass.h"
@@ -14,6 +15,12 @@ void FSubRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* In
     BufferManager = InBufferManager;
     ShadowManager = new FShadowManager();
     ShadowManager->Initialize(Graphics, BufferManager);
+
+    LineRenderPass = new FLineRenderPass();
+    LineRenderPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);
+    PrimitiveDrawBatch = new UPrimitiveDrawBatch();
+    PrimitiveDrawBatch->Initialize(Graphics);
+    LineRenderPass->SetPrimitiveDrawBatch(PrimitiveDrawBatch);
     //렌더패스 Init은 SetEnabledPass에서 수행
     /*ParticleRenderPass = new FParticleRenderPass();
     ParticleRenderPass->Initialize(BufferManager, Graphics, FEngineLoop::Renderer.ShaderManager);

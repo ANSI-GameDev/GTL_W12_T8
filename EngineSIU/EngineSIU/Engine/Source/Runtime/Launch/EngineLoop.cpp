@@ -26,7 +26,6 @@ FGraphicsDevice FEngineLoop::ParticleViewerGD;
 FGraphicsDevice FEngineLoop::PhysicsViewerGD;
 
 FRenderer FEngineLoop::Renderer;
-UPrimitiveDrawBatch FEngineLoop::PrimitiveDrawBatch;
 FResourceManager FEngineLoop::ResourceManager;
 uint32 FEngineLoop::TotalAllocationBytes = 0;
 uint32 FEngineLoop::TotalAllocationCount = 0;
@@ -88,7 +87,7 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
 
     BufferManager->Initialize(GraphicDevice.Device, GraphicDevice.DeviceContext);
     Renderer.Initialize(&GraphicDevice, BufferManager, &GPUTimingManager);
-    PrimitiveDrawBatch.Initialize(&GraphicDevice);
+    //PrimitiveDrawBatch.Initialize(&GraphicDevice);
     UIManager->Initialize(AppWnd, GraphicDevice.Device, GraphicDevice.DeviceContext);
     ResourceManager.Initialize(&Renderer, &GraphicDevice);
     
