@@ -1,38 +1,53 @@
 #pragma once
 #include "ShapeElem.h"
-#include "Math/Quat.h"
 
 struct FKBoxElem : public FKShapeElem
 {
     FKBoxElem()
-        : FKShapeElem(EAggCollisionShape::Box)
-        , Orientation_DEPRECATED(FQuat::Identity)
-        , Center(FVector::ZeroVector)
-        , Rotation(FRotator::ZeroRotator)
-        , X(1), Y(1), Z(1)
+    : FKShapeElem(EAggCollisionShape::Box)
+    , Center( FVector::ZeroVector )
+    , Rotation( FRotator::ZeroRotator )
+    , Extent(FVector::OneVector)
     {
+    }
+    
+    FKBoxElem( float s )
+    : FKShapeElem(EAggCollisionShape::Box)
+    , Center( FVector::ZeroVector )
+    , Rotation(FRotator::ZeroRotator)
+    , Extent(FVector(s,s,s))
+    {
+    }
+    
+    FKBoxElem( FVector Extent ) 
+    : FKShapeElem(EAggCollisionShape::Box)
+    , Center( FVector::ZeroVector )
+    , Rotation(FRotator::ZeroRotator)
+    , Extent(Extent)
+    {
+    }
 
+    friend bool operator==( const FKBoxElem& LHS, const FKBoxElem& RHS )
+    {
+        return ( LHS.Center == RHS.Center &&
+            LHS.Rotation == RHS.Rotation &&
+            LHS.Extent.X == RHS.Extent.X &&
+            LHS.Extent.Y == RHS.Extent.Y &&
+            LHS.Extent.Z == RHS.Extent.Z );
     }
 
     FTransform GetTransform() const
     {
         return FTransform(Rotation, Center);
-    };
-
+    }
 
     void SetTransform(const FTransform& InTransform)
     {
         Rotation = InTransform.Rotator();
         Center = InTransform.GetTranslation();
     }
-
-    FQuat Orientation_DEPRECATED;
-
+    
     FVector Center;
     FRotator Rotation;
-
-    /* Box Extent - axis aligned */
-    float X;
-    float Y;
-    float Z;
+    FVector Extent;
 };

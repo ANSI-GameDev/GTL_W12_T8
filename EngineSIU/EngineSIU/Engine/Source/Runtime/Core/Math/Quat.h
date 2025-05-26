@@ -9,6 +9,11 @@ struct FMatrix;
 /**
  * 4차원 복소수(quaternion)를 표현하는 구조체입니다. 회전 변환에 주로 사용됩니다.
  */
+namespace physx
+{
+class PxQuat;
+}
+
 struct alignas(16) FQuat
 {
 public:
@@ -153,6 +158,10 @@ public:
     FString ToString() const;
 
     bool IsIdentity() const;
+
+    //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
+    FQuat(const physx::PxQuat& InQuat);
+    physx::PxQuat ToPxQuat();
 };
 
 inline FArchive& operator<<(FArchive& Ar, FQuat& Q)

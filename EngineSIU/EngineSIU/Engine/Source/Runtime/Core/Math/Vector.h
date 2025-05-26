@@ -1,6 +1,7 @@
-#pragma once
+﻿#pragma once
 #include <cassert>
 #include <compare>
+
 #include "MathUtility.h"
 #include "Serialization/Archive.h"
 
@@ -89,6 +90,8 @@ public:
         return FMath::Abs(X - Other.X) <= Tolerance && FMath::Abs(Y - Other.Y) <= Tolerance;
     }
 };
+
+namespace physx{ class PxVec3; }
 
 // 3D 벡터
 struct FVector
@@ -227,6 +230,10 @@ public:
 
     FString ToString() const;
     bool InitFromString(const FString& InSourceString);
+    
+    //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
+    physx::PxVec3 ToPxVec3() const;
+    FVector(const physx::PxVec3& InVec);
 };
 
 inline FVector::FVector(const FRotator& InRotator)

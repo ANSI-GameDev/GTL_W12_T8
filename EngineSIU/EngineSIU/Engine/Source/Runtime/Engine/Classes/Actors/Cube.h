@@ -8,10 +8,9 @@ class ACube : public AStaticMeshActor
 
 public:
     ACube();
+    
+    void InitCube();
 
     virtual void Tick(float DeltaTime) override;
-
-    
-
 };
 

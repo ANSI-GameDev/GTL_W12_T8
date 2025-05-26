@@ -190,9 +190,9 @@ namespace FPhysicsAssetUtils
             BoxElem.SetTransform(ElementTransform);
             BoxElem.Center = BoxCenter;
 
-            BoxElem.X = BoxExtent.X * 2.0f * 1.01f; // Graphics Glitch 방지용으로 1% 추가
-            BoxElem.Y = BoxExtent.Y * 2.0f * 1.01f;
-            BoxElem.Z = BoxExtent.Z * 2.0f * 1.01f;
+            BoxElem.Extent = FVector(BoxExtent.X * 2.0f * 1.01f,
+            BoxExtent.Y * 2.0f * 1.01f,
+            BoxExtent.Z * 2.0f * 1.01f); // Graphics Glitch 방지용으로 1% 추가
 
             bs->AggGeom.BoxElems.Add(BoxElem);
         }

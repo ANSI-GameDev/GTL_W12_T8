@@ -14,6 +14,7 @@
 #include "Components/Light/DirectionalLightComponent.h"
 #include "LevelEditor/SLevelEditor.h"
 #include "Editor/UnrealEd/EditorViewportClient.h"
+#include "Physics/PhysScene.h"
 
 extern FEngineLoop GEngineLoop;
 
@@ -61,6 +62,41 @@ void UEditorEngine::Release()
         WorldContext->World()->Release();
     }
     WorldList.Empty();
+}
+
+void UEditorEngine::PhysicsTick(float DeltaTime)
+{
+    for (FWorldContext* WorldContext : WorldList)
+    {
+        // if (WorldContext->WorldType == EWorldType::PIE || WorldContext->WorldType == EWorldType::PhysicsViewer) //테스트 끝나면 풀기
+        {
+            if (UWorld* World = WorldContext->World())
+            {
+                FPhysScene* PhysScene = World->GetPhysicsScene();
+
+                if (PhysScene)
+                {
+                    PhysScene->TickPhysScene(DeltaTime);
+                }
+
+                PhysicsPostTick(DeltaTime, World);
+            }
+        } 
+    }
+}
+
+void UEditorEngine::PhysicsPostTick(float DeltaTime, UWorld* InWorld)
+{
+    ULevel* Level = InWorld->GetActiveLevel();
+    TArray CachedActors = Level->Actors;
+
+    for (AActor* Actor : CachedActors)
+    {
+        if (Actor && Actor->IsActorTickInEditor())
+        {
+            Actor->PhysicsUpdate(DeltaTime);
+        }
+    }
 }
 
 void UEditorEngine::Tick(float DeltaTime)

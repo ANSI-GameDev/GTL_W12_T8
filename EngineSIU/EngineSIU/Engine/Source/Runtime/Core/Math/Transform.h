@@ -5,6 +5,11 @@
 #include "Container/String.h"
 #include "Serialization/Archive.h"
 
+namespace physx
+{
+class PxTransform;
+}
+
 struct FTransform
 {
     // 기존 멤버 변수
@@ -116,4 +121,8 @@ struct FTransform
 
     // Unit Axis 함수 관련
     FVector GetUnitAxis(EAxis::Type InAxis) const;
+
+    //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
+    FTransform(const physx::PxTransform& InTransform);
+    physx::PxTransform ToPxTransform();
 };

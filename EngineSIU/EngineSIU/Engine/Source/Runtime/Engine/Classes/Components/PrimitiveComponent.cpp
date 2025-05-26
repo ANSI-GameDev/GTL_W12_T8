@@ -183,6 +183,11 @@ void UPrimitiveComponent::TickComponent(float DeltaTime)
     Super::TickComponent(DeltaTime);
 }
 
+void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
+{
+    
+}
+
 bool UPrimitiveComponent::IntersectRayTriangle(const FVector& RayOrigin, const FVector& RayDirection, const FVector& v0, const FVector& v1, const FVector& v2, float& OutHitDistance) const
 {
     const FVector Edge1 = v1 - v0;
@@ -456,6 +461,11 @@ void UPrimitiveComponent::GetOverlappingComponents(TSet<UPrimitiveComponent*>& O
 const TArray<FOverlapInfo>& UPrimitiveComponent::GetOverlapInfos() const
 {
     return OverlappingComponents;
+}
+
+void UPrimitiveComponent::SetBodyInstance(FBodyInstance* InBodyInstance)
+{
+    BodyInstance = InBodyInstance;
 }
 
 void UPrimitiveComponent::UpdateOverlapsImpl(const TArray<FOverlapInfo>* NewPendingOverlaps, bool bDoNotifies, const TArray<const FOverlapInfo>* OverlapsAtEndLocation)
