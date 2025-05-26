@@ -2,6 +2,9 @@
 #include <memory>
 
 #include "Container/Map.h"
+class FCompositingPass;
+class FLineRenderPass;
+class UPrimitiveDrawBatch;
 class FShadowManager;
 class FSkeletalMeshRenderPass;
 class FString;
@@ -22,6 +25,9 @@ public:
 
 
     void SetEnabledPass(FString PassName, bool bEnabled);
+
+    FLineRenderPass* GetLineRenderPass() const { return LineRenderPass; }
+    UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
 private:
     void UpdateViewCamera(const std::shared_ptr<FEditorViewportClient>& Viewport);
     USubEngine* Engine = nullptr;
@@ -30,6 +36,11 @@ private:
     FShadowManager* ShadowManager = nullptr;
     FParticleRenderPass* ParticleRenderPass = nullptr;
     FSkeletalMeshRenderPass* SkeletalMeshRenderPass = nullptr;
+
+    FLineRenderPass* LineRenderPass = nullptr;
+    FCompositingPass* CompositingPass = nullptr;
+
+    //Line, Compositing의 경우 공통으로 사용되므로 제외
     TMap<FString, bool> EnabledPasses;
 };
 

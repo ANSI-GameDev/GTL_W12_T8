@@ -69,7 +69,7 @@ void FLineRenderPass::PrepareLineShader() const
     Graphics->DeviceContext->IASetInputLayout(nullptr);
     Graphics->DeviceContext->PSSetShader(PixelLineShader, nullptr, 0);
 
-    FEngineLoop::PrimitiveDrawBatch.PrepareLineResources();
+    PrimitiveDrawBatch->PrepareLineResources();
 }
 
 void FLineRenderPass::DrawLineBatch(const FLinePrimitiveBatchArgs& BatchArgs) const
@@ -109,9 +109,9 @@ void FLineRenderPass::ProcessLineRendering(const std::shared_ptr<FEditorViewport
     UpdateObjectConstant(FMatrix::Identity, FVector4(0, 0, 0, 0), false);
 
     FLinePrimitiveBatchArgs BatchArgs;
-    FEngineLoop::PrimitiveDrawBatch.PrepareBatch(BatchArgs);
+    PrimitiveDrawBatch->PrepareBatch(BatchArgs);
     DrawLineBatch(BatchArgs);
-    FEngineLoop::PrimitiveDrawBatch.RemoveArr();
+    PrimitiveDrawBatch->RemoveArr();
 }
 
 void FLineRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Viewport)
@@ -120,7 +120,8 @@ void FLineRenderPass::Render(const std::shared_ptr<FEditorViewportClient>& Viewp
 
     FViewportResource* ViewportResource = Viewport->GetViewportResource();
     FRenderTargetRHI* RenderTargetRHI = ViewportResource->GetRenderTarget(ResourceType);
-    FDepthStencilRHI* DepthStencilRHI = ViewportResource->GetDepthStencil(EResourceType::ERT_Scene);
+    //FDepthStencilRHI* DepthStencilRHI = ViewportResource->GetDepthStencil(EResourceType::ERT_Scene);
+    FDepthStencilRHI* DepthStencilRHI = ViewportResource->GetDepthStencil(EResourceType::ERT_Editor); // DepthStencilRHI는 현재 사용하지 않음
     Graphics->DeviceContext->OMSetRenderTargets(1, &RenderTargetRHI->RTV, DepthStencilRHI->DSV);
 
     ProcessLineRendering(Viewport);

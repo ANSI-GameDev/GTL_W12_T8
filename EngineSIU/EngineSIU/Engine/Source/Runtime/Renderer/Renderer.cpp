@@ -56,7 +56,12 @@ void FRenderer::Initialize(FGraphicsDevice* InGraphics, FDXDBufferManager* InBuf
     EditorBillboardRenderPass = AddRenderPass<FEditorBillboardRenderPass>();
     GizmoRenderPass = AddRenderPass<FGizmoRenderPass>();
     UpdateLightBufferPass = AddRenderPass<FUpdateLightBufferPass>();
+
     LineRenderPass = AddRenderPass<FLineRenderPass>();
+    PrimitiveDrawBatch = new UPrimitiveDrawBatch();
+    PrimitiveDrawBatch->Initialize(Graphics);
+    LineRenderPass->SetPrimitiveDrawBatch(PrimitiveDrawBatch);
+
     FogRenderPass = AddRenderPass<FFogRenderPass>();
     CameraEffectRenderPass = AddRenderPass<FCameraEffectRenderPass>();
     EditorRenderPass = AddRenderPass<FEditorRenderPass>();

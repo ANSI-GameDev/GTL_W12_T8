@@ -4,6 +4,9 @@
 #include "UnrealClient.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Misc/EnumClassFlags.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
 void PhysicsViewerPanel::Render()
 {
@@ -37,6 +40,15 @@ void PhysicsViewerPanel::OnResize(HWND hWnd)
         Width = static_cast<float>(clientRect.right - clientRect.left);
         Height = static_cast<float>(clientRect.bottom - clientRect.top);
     }
+    if (ViewportClient)
+    {
+        FViewport* Viewport = ViewportClient->GetViewport();
+        if (Viewport)
+        {
+            FRect NewRect(0,0,Width,Height);
+            Viewport->ResizeViewport(NewRect);
+        }
+    }
 }
 void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient> InViewportClient)
 {
@@ -46,7 +58,7 @@ void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient
 void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
     SkeletalMeshComponent = InSkeletalMeshComponent;
-    SelectedBoneIndex = -1;
+    SkeletalMeshComponent->SetSelectedBone(-1);
 }
 
 void PhysicsViewerPanel::RenderViewportPanel()
@@ -59,7 +71,7 @@ void PhysicsViewerPanel::RenderViewportPanel()
     FViewportResource* Resource = Viewport->GetViewportResource();
     if (!Resource) return;
 
-    FRenderTargetRHI* RenderTarget = Resource->GetRenderTarget(EResourceType::ERT_Scene);
+    FRenderTargetRHI* RenderTarget = Resource->GetRenderTarget(EResourceType::ERT_Compositing);
     if (RenderTarget && RenderTarget->SRV)
     {
         ImVec2 contentSize = ImGui::GetContentRegionAvail();
@@ -96,11 +108,38 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
     }
 
     ImGuiTreeNodeFlags flags = bHasChildren ? ImGuiTreeNodeFlags_OpenOnArrow : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-    bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
+    //bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
+    FString Label = BoneName.ToString();
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body))
+    {
+        if (PhysicsAsset->FindBodyIndex(BoneName) != INDEX_NONE)
+        {
+            Label += " [Body]";
+        }
+    }
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint))
+    {
+        // Constraint가 현재 Bone에 붙어있는지 검사
+        for (const auto* ConstraintSetup : PhysicsAsset->ConstraintSetup)
+        {
+            if (ConstraintSetup &&
+                (ConstraintSetup->DefaultInstance.ConstraintBone1 == BoneName ||
+                    ConstraintSetup->DefaultInstance.ConstraintBone2 == BoneName))
+            {
+                Label += " [Constraint]";
+                break;
+            }
+        }
+    }
 
+    bool bOpen = ImGui::TreeNodeEx(*Label, flags);
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
-        SelectedBoneIndex = BoneIndex;
+        if (SkeletalMeshComponent)
+        {
+            SkeletalMeshComponent->SetSelectedBone(BoneIndex);
+        }
     }
 
     if (bOpen && bHasChildren)
@@ -169,7 +208,7 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 RenderBoneRecursive(RefSkeleton, BoneIndex, Pose);
             }
         }
-
+        int SelectedBoneIndex = SkeletalMeshComponent->GetSelectedBone();
         if (SelectedBoneIndex != INDEX_NONE && Pose.IsValidIndex(SelectedBoneIndex))
         {
             ImGui::SeparatorText("Bone Transform");

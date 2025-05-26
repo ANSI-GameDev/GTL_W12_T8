@@ -46,7 +46,6 @@ private:
 public:
     static FGraphicsDevice GraphicDevice;
     static FRenderer Renderer;
-    static UPrimitiveDrawBatch PrimitiveDrawBatch;
     static FResourceManager ResourceManager;
     static uint32 TotalAllocationBytes;
     static uint32 TotalAllocationCount;

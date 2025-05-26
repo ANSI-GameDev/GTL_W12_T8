@@ -293,7 +293,20 @@ void UPrimitiveDrawBatch::AddConeToBatch(const FVector& Center, float Radius, fl
     Cone.ConeSegmentCount = ConeSegmentCount;
     Cones.Add(Cone);
 }
+void UPrimitiveDrawBatch::AddConeToBatch(const FVector& Start, const FVector& End, float Radius, int Segments, const FVector4& Color)
+{
+    ConeSegmentCount = Segments;
 
+    FCone Cone;
+    Cone.ConeApex = Start;
+    Cone.ConeBaseCenter = End;
+    Cone.ConeRadius = Radius;
+    Cone.ConeHeight = (End - Start).Length() / 1000.0f; // 단위 보정
+    Cone.Color = Color;
+    Cone.ConeSegmentCount = ConeSegmentCount;
+
+    Cones.Add(Cone);
+}
 // 7. 버퍼 생성 함수들
 void UPrimitiveDrawBatch::CreatePrimitiveBuffers()
 {

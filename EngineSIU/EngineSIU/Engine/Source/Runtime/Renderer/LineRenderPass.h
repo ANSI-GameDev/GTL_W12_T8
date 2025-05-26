@@ -4,6 +4,7 @@
 #include "Container/Set.h"
 #include "Define.h"
 
+class UPrimitiveDrawBatch;
 class FDXDBufferManager;
 class FGraphicsDevice;
 class FDXDShaderManager;
@@ -31,6 +32,12 @@ public:
     void ProcessLineRendering(const std::shared_ptr<FEditorViewportClient>& Viewport);
     void DrawLineBatch(const FLinePrimitiveBatchArgs& BatchArgs) const;
 
+    void SetPrimitiveDrawBatch(UPrimitiveDrawBatch* InBatch)
+    {
+        PrimitiveDrawBatch = InBatch;
+    }
+    UPrimitiveDrawBatch* GetPrimitiveDrawBatch() const { return PrimitiveDrawBatch; }
+
 private:
     FDXDBufferManager* BufferManager;
     FGraphicsDevice* Graphics;
@@ -39,4 +46,6 @@ private:
     // 라인 셰이더 관련 멤버
     ID3D11VertexShader* VertexLineShader;
     ID3D11PixelShader* PixelLineShader;
+
+    UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
 };
