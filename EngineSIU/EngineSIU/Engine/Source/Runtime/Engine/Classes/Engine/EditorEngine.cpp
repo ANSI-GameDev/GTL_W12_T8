@@ -14,6 +14,7 @@
 #include "Components/Light/DirectionalLightComponent.h"
 #include "LevelEditor/SLevelEditor.h"
 #include "Editor/UnrealEd/EditorViewportClient.h"
+#include "Physics/PhysScene.h"
 
 extern FEngineLoop GEngineLoop;
 
@@ -71,7 +72,7 @@ void UEditorEngine::PhysicsTick(float DeltaTime)
         {
             if (UWorld* World = WorldContext->World())
             {
-                FPhysScene* PhysScene = World->GetPhysScene();
+                FPhysScene* PhysScene = World->GetPhysicsScene();
 
                 if (PhysScene)
                 {

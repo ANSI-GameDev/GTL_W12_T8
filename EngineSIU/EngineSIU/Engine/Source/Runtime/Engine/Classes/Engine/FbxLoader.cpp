@@ -1289,7 +1289,7 @@ USkeleton* FFbxLoader::FindAssociatedSkeleton(FbxNode* MeshNode, const TArray<US
         int32 SharedBones = 0;
         
         // 현재 스켈레톤의 모든 본 이름 확인
-        const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+        const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
         for (FbxNode* BoneNode : BoneNodes)
         {
             FName BoneName(BoneNode->GetName());
@@ -1363,7 +1363,7 @@ void FFbxLoader::ProcessAnimations(TArray<UAnimationAsset*>& OutAnimations, cons
         Controller.SetNumberOfFrames(NumFrames);
         
         // 스켈레톤에 속한 본들에 대해 애니메이션 추출
-        const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetReferenceSkeleton();
+        const FReferenceSkeleton& RefSkeleton = TargetSkeleton->GetRefSkeleton();
         const TArray<FTransform>& RefBoneTransforms = RefSkeleton.GetRawRefBonePose();
         
         FbxNode* RootNode = Scene->GetRootNode();
@@ -1506,7 +1506,7 @@ USkeleton* FFbxLoader::FindSkeletonForAnimation(FbxAnimStack* AnimStack, FbxAnim
         int32 SharedBones = 0;
         
         // 현재 스켈레톤의 모든 본 이름 확인
-        const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
+        const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
         for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
         {
             FName BoneName = RefSkeleton.GetBoneName(BoneIndex);

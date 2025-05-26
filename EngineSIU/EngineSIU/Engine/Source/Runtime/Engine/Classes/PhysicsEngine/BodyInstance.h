@@ -1,9 +1,9 @@
-﻿#pragma once
+#pragma once
+#include "Engine/EngineTypes.h"
 #include "AggregateGeom.h"
-#include "Math/Matrix.h"
 #include "Math/Transform.h"
 #include "Math/Vector.h"
-#include "PhysicsCore/Public/BodyInstanceCore.h"
+#include "PhysicsCore/BodyInstanceCore.h"
 #include "UObject/NameTypes.h"
 
 class FPhysScene;
@@ -23,34 +23,26 @@ namespace EDOFMode
 {
     enum Type : int
     {
-        /*Inherits the degrees of freedom from the project settings.*/
         Default,
-        /*Specifies which axis to freeze rotation and movement along.*/
         SixDOF,
-        /*Allows 2D movement along the Y-Z plane.*/
         YZPlane,
-        /*Allows 2D movement along the X-Z plane.*/
         XZPlane,
-        /*Allows 2D movement along the X-Y plane.*/
         XYPlane,
-        /*Allows 2D movement along the plane of a given normal*/
         CustomPlane,
-        /*No constraints.*/
         None
     };
 }
 
+struct FConstraintInstance;
 struct FBodyInstance : public FBodyInstanceCore
 {
-public:
-    /** 
-     *	Index of this BodyInstance within the SkeletalMeshComponent/PhysicsAsset. 
-     *	Is INDEX_NONE if a single body component
+    /* SkeletalMeshComponent / PhysicAsset 내부의 BodyInstance 인덱스
+     * 단일 Body 컴포넌트인 경우 INDEX_NONE입니다.
      */
     int32 InstanceBodyIndex;
-
-    /** When we are a body within a SkeletalMeshComponent, we cache the index of the bone we represent, to speed up sync'ing physics to anim. */
     int16 InstanceBoneIndex;
+
+    ECollisionEnabled::Type CollisionEnabled;
     
     /** Current scale of physics - used to know when and how physics must be rescaled to match current transform of OwnerComponent. */
     FVector Scale3D;
@@ -59,25 +51,25 @@ public:
     FPhysScene* MyScene = nullptr;
     
     FTransform WorldTransform;
+
+// linear, angularvel, massscale TO CHECK
     FVector LinearVelocity;
     FVector AngularVelocity;
-    
-    float Mass = 1.0f;
-    float InverseMass = 1.0f;
+// 이거 뭐임
+    FVector COMNudge;
 
     bool bSimulatePhysics = true;
     bool bEnableGravity = true;
     bool bIsKinematic = false;
     
-    /** When per-shape collision responses are changed at runtime, state is stored in an optional array of per-shape
-    *	collision response settings. If bShapeCollisionResponsesIsSet is false, the base body instance's CollisionResponses member is used for all shapes. */
-    // TArray<TPair<int32, FCollisionResponse>> ShapeCollisionResponses;
+    float LinearDamping;
+    float AngularDamping;
+    float MassScale;
 
     /** [Physx Only] Locks physical movement along specified axis.*/
     EDOFMode::Type DOFMode;
-    /** Collision Profile Name **/
-    FName CollisionProfileName;
-
+    /** [Physx Only] Constraint used to allow for easy DOF setup per bodyinstance */
+    FConstraintInstance* DOFConstraint;
 public:
     // void ApplyForce(FVector Force);
     // void ApplyTorque(FVector Torque);
@@ -92,9 +84,20 @@ public:
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
 
-    // void SetWorldMatrix(const FMatrix& InMatrix){WorldMatrix = InMatrix;}
-    // FMatrix GetWorldMatrix(){return WorldMatrix;}
+    uint8 bUseCCD : 1;
 
+    uint8 bLockTranslation : 1;
+    uint8 bLockXTranslation : 1;
+    uint8 bLockYTranslation : 1;
+    uint8 bLockZTranslation : 1;
+
+    uint8 bLockRotation : 1;
+    uint8 bLockXRotation : 1;
+    uint8 bLockYRotation : 1;
+    uint8 bLockZRotation : 1;
+
+    uint8 bOverrideMaxAngularVelocity : 1;
+ 
     void SetLinearVelocity(FVector V) {LinearVelocity = V;}
     void SetAngularVelocity(FVector AV) {AngularVelocity = AV;}
 
@@ -104,6 +107,5 @@ public:
     void UpdatePhysics();
     FTransform ConvertPxTransformToFTransform(const physx::PxTransform& InTransform);
     physx::PxTransform ConvertFTransformToPxTransform(const FTransform& InTransform);
-    void ConvertPxMatToFMat(FMatrix& OutFMatrix, physx::PxMat44 InMat);
     physx::PxVec3 ConvertFVecToPxVec(const FVector& InVec);
 };

@@ -6,6 +6,7 @@
 #include "PropertyEditor/PropertyEditorPanel.h"
 #include "PropertyEditor/SkeletalMeshViewerPanel.h"
 #include "PropertyEditor/SubEditor/ParticleViewerPanel.h"
+#include "PropertyEditor/SubEditor/PhysicsViewerPanel.h"
 #include "World/World.h"
 void UnrealEd::Initialize()
 {
@@ -25,6 +26,10 @@ void UnrealEd::Initialize()
     auto ParticlePanel = std::make_shared<ParticleViewerPanel>();
     ParticlePanel->WindowType = WT_ParticleSubWindow;
     ParticleSubPanels["ParticleViewerPanel"] = ParticlePanel;
+
+    auto PhysicsPanel = std::make_shared<PhysicsViewerPanel>();
+    PhysicsPanel->WindowType = WT_PhysicsSubWindow;
+    PhysicsSubPanels["PhysicsViewerPanel"] = PhysicsPanel;
 }
 
 void UnrealEd::Render(EWindowType WindowType) const
@@ -82,6 +87,17 @@ void UnrealEd::Render(EWindowType WindowType) const
         }
         return;
     }
+    else if (WindowType == EWindowType::WT_PhysicsSubWindow)
+    {
+        for (const auto& Panel : PhysicsSubPanels)
+        {
+            if (Panel.Value)
+            {
+                Panel.Value->Render();
+            }
+        }
+        return;
+    }
 }
 
 void UnrealEd::AddEditorPanel(const FString& PanelId, const std::shared_ptr<UEditorPanel>& EditorPanel)
@@ -111,6 +127,16 @@ void UnrealEd::OnResize(HWND hWnd, EWindowType WindowType) const
             }
         }
     }
+    else if (WindowType == EWindowType::WT_PhysicsSubWindow)
+    {
+        for (auto& Panel : PhysicsSubPanels)
+        {
+            if (Panel.Value)
+            {
+                Panel.Value->OnResize(hWnd);
+            }
+        }
+    }
 }
 
 std::shared_ptr<UEditorPanel> UnrealEd::GetEditorPanel(const FString& PanelId)
@@ -121,4 +147,8 @@ std::shared_ptr<UEditorPanel> UnrealEd::GetEditorPanel(const FString& PanelId)
 std::shared_ptr<UEditorPanel> UnrealEd::GetParticleSubPanel(const FString& PanelId)
 {
     return ParticleSubPanels[PanelId];
+}
+std::shared_ptr<UEditorPanel> UnrealEd::GetPhysicsSubPanel(const FString& PanelId)
+{
+    return PhysicsSubPanels[PanelId];
 }

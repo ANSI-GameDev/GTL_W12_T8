@@ -12,7 +12,8 @@
 enum EWindowType : uint8
 {
     WT_Main,
-    WT_ParticleSubWindow
+    WT_ParticleSubWindow,
+    WT_PhysicsSubWindow
 };
 
 class UEditorPanel

@@ -1,7 +1,21 @@
-﻿#pragma once
-#include "BodySetupEnums.h"
+#pragma once
+#include "UObject/Object.h"
 #include "UObject/ObjectMacros.h"
 
+enum PhysicsType : int
+{
+    /** Follow owner. */
+    PhysType_Default,
+    /** Do not follow owner, but make kinematic. */
+    PhysType_Kinematic,		
+    /** Do not follow owner, but simulate. */
+    PhysType_Simulated,
+};
+
+
+/* 충돌 형상 정의하는 최소한의 데이터 정의
+ *
+ */
 class UBodySetupCore : public UObject
 {
     DECLARE_CLASS(UBodySetupCore, UObject)

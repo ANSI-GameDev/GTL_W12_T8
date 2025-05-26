@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <cassert>
 #include <compare>
 #include "MathUtility.h"
@@ -159,6 +159,7 @@ public:
     /** Dot Product */
     float operator|(const FVector& Other) const;
     float Dot(const FVector& Other) const;
+    float GetAbsMin() const;
     static float DotProduct(const FVector& A, const FVector& B);
     bool ContainsNaN() const;
 

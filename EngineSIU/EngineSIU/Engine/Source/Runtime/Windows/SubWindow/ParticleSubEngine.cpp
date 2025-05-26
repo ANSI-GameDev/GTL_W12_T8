@@ -31,6 +31,8 @@ void UParticleSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDX
     ParticleViewerPanel* particlePanel = reinterpret_cast<ParticleViewerPanel*>(UnrealEditor->GetParticleSubPanel("ParticleViewerPanel").get());
     particlePanel->SetParticleSystemComponent(ParticleSystemComponent);
     particlePanel->SetViewportClient(ViewportClient);
+
+    SubRenderer->SetEnabledPass("Particle", true);
 }
 
 void UParticleSubEngine::Tick(float DeltaTime)

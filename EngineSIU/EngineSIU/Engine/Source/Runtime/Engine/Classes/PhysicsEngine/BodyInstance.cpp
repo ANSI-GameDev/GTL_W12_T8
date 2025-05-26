@@ -10,7 +10,7 @@
 #include "BodySetup.h"
 #include "Components/SceneComponent.h"
 #include "Math/JungleMath.h"
-#include "PhysicsCore/Public/Physics/PhysScene.h"
+#include "Physics/PhysScene.h"
 
 using namespace physx;
 
@@ -78,7 +78,7 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         Shape->release();
     }
 
-    for (FKSphylElem CapsuleGeom : InAggregateGeom.CapsuleElems)
+    for (FKSphylElem CapsuleGeom : InAggregateGeom.SphylElems)
     {
         PxReal Radius = CapsuleGeom.Radius;
         PxReal HalfLength = CapsuleGeom.Length/2;
@@ -112,20 +112,6 @@ PxTransform FBodyInstance::ConvertFTransformToPxTransform(const FTransform& InTr
     OutTransform.p = PxVec3(InTransform.Translation.X, InTransform.Translation.Y, InTransform.Translation.Z);
     OutTransform.q = PxQuat(InTransform.Rotation.X, InTransform.Rotation.Y, InTransform.Rotation.Z, InTransform.Rotation.W);
     return OutTransform;
-}
-
-void FBodyInstance::ConvertPxMatToFMat(FMatrix& OutFMatrix, physx::PxMat44 InMat)
-{
-    for (int i=0;i<4;i++)
-    {
-        for (int j=0;j<4;j++)
-        {
-            //PxMat는 열우선이고, FMatrix는 행우선임
-            //InMat(row, col) return (*this)[col][row]
-            //위 함수를 보면 전치해서 반환하기 때문에 그대로 i,j를 삽입하면 됨
-            OutFMatrix.M[i][j] = InMat(i, j);
-        }
-    }
 }
 
 PxVec3 FBodyInstance::ConvertFVecToPxVec(const FVector& InVec)

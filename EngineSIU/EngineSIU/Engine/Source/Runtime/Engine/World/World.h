@@ -11,9 +11,9 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Engine/Engine.h"
 #include "Engine/EventManager.h"
-#include "PhysicsCore/Public/Physics/PhysScene.h"
 #include "UObject/UObjectIterator.h"
 
+class FPhysScene;
 class UPrimitiveComponent;
 struct FOverlapResult;
 class UCameraComponent;
@@ -83,7 +83,9 @@ public:
     
     void CheckOverlap(const UPrimitiveComponent* Component, TArray<FOverlapResult>& OutOverlaps) const;
 
-    FPhysScene* GetPhysScene() const { return PhysScene; }
+    FPhysScene* GetPhysicsScene() const { return PhysicsScene; }
+    void SetPhysicsScene(FPhysScene* InScene);
+
 public:
     double TimeSeconds;
 
@@ -94,7 +96,6 @@ protected:
 private:
     AGameMode* GameMode = nullptr;
 
-    FPhysScene* PhysScene = nullptr;
 
     ULevel* ActiveLevel;
 
@@ -109,6 +110,8 @@ private:
     UTextComponent* MainTextComponent = nullptr;
 
     FCollisionManager* CollisionManager = nullptr;
+
+    FPhysScene* PhysicsScene = nullptr;
 };
 
 

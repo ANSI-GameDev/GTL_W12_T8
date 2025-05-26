@@ -147,7 +147,7 @@ FString SkeletalMeshViewerPanel::GetSelectedBoneName() const
 {
     if (SelectedBoneIndex == INDEX_NONE || !SkeletalMesh)
         return TEXT("");
-    const auto& RefSkel = SkeletalMesh->GetSkeleton()->GetReferenceSkeleton();
+    const auto& RefSkel = SkeletalMesh->GetSkeleton()->GetRefSkeleton();
     return RefSkel.RawRefBoneInfo[SelectedBoneIndex].Name.ToString();
 }
 
@@ -179,7 +179,7 @@ void SkeletalMeshViewerPanel::CopyRefSkeleton()
     UEditorEngine* Engine = Cast<UEditorEngine>(GEngine);
     const FReferenceSkeleton& OrigRef = Engine->SkeletalMeshViewerWorld
         ->GetSkeletalMeshComponent()->GetSkeletalMeshAsset()
-        ->GetSkeleton()->GetReferenceSkeleton();
+        ->GetSkeleton()->GetRefSkeleton();
 
     CopiedRefSkeleton = new FReferenceSkeleton();
     CopiedRefSkeleton->RawRefBoneInfo = OrigRef.RawRefBoneInfo;

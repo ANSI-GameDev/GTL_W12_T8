@@ -12,9 +12,9 @@ public:
     USkeleton() = default;
     virtual ~USkeleton() override = default;
 
-    FReferenceSkeleton GetReferenceSkeleton() const;
+    FReferenceSkeleton GetRefSkeleton() const;
 
-    const FReferenceSkeleton& GetReferenceSkeleton();
+    const FReferenceSkeleton& GetRefSkeleton();
 
     const TArray<FTransform>& GetReferencePose() const;
 

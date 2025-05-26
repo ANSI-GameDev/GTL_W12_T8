@@ -17,11 +17,14 @@
 #include "SubWindow/ParticleSubEngine.h"
 #include "SubWindow/ImGuiSubWindow.h"
 #include "SoundManager.h"
+#include "SubWindow/PhysicsSubEngine.h"
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
 FGraphicsDevice FEngineLoop::GraphicDevice;
 FGraphicsDevice FEngineLoop::ParticleViewerGD;
+FGraphicsDevice FEngineLoop::PhysicsViewerGD;
+
 FRenderer FEngineLoop::Renderer;
 UPrimitiveDrawBatch FEngineLoop::PrimitiveDrawBatch;
 FResourceManager FEngineLoop::ResourceManager;
@@ -109,7 +112,19 @@ int32 FEngineLoop::Init(HINSTANCE hInstance)
 
     ParticleSubEngine = FObjectFactory::ConstructObject<UParticleSubEngine>(nullptr);
     ParticleSubEngine->Initialize(ParticleViewerWnd, &ParticleViewerGD, BufferManager, UIManager, UnrealEditor);
-    
+
+    PhysicsSubWindowInit(hInstance);
+    if (PhysicsViewerWnd)
+    {
+        PhysicsViewerGD.Initialize(PhysicsViewerWnd, GraphicDevice.Device);
+        PhysicsViewerGD.ClearColor[0] = 0.03f;
+        PhysicsViewerGD.ClearColor[1] = 0.03f;
+        PhysicsViewerGD.ClearColor[2] = 0.03f;
+    }
+
+    PhysicsSubEngine = FObjectFactory::ConstructObject<UPhysicsSubEngine>(nullptr);
+    PhysicsSubEngine->Initialize(PhysicsViewerWnd, &PhysicsViewerGD, BufferManager, UIManager, UnrealEditor);
+
     FSoundManager::GetInstance().Initialize();
     FSoundManager::GetInstance().LoadSound("fishdream", "Contents/Sounds/fishdream.mp3");
     FSoundManager::GetInstance().LoadSound("sizzle", "Contents/Sounds/sizzle.mp3");
@@ -190,6 +205,16 @@ void FEngineLoop::Tick()
                 DispatchMessage(&Msg);
             }
         }
+        if (!bIsExit && PhysicsViewerWnd && IsWindowVisible(PhysicsViewerWnd))
+        {
+            while (PeekMessage(&Msg, PhysicsViewerWnd, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&Msg);
+                DispatchMessage(&Msg);
+            }
+        }
+
+
         // Engine loop Break
         if (bIsExit) break;
 
@@ -212,6 +237,8 @@ void FEngineLoop::Tick()
         if (ParticleSubEngine->bIsShowing)
             ParticleSubEngine->Tick(DeltaTime);
 
+        if (PhysicsSubEngine->bIsShowing)
+            PhysicsSubEngine->Tick(DeltaTime);
         if (CurrentImGuiContext != nullptr)
         {
             ImGui::SetCurrentContext(CurrentImGuiContext);
@@ -258,11 +285,22 @@ void FEngineLoop::OpenParticleSystemViewer()
         ParticleSubEngine->bIsShowSubWindow = false;
     }
 }
+void FEngineLoop::OpenPhysicsViewer()
+{
+    if (PhysicsSubEngine->bIsShowSubWindow)
+    {
+        if (PhysicsViewerWnd)
+        {
+            ::ShowWindow(PhysicsViewerWnd, SW_SHOW);
+        }
+        PhysicsSubEngine->bIsShowSubWindow = false;
+    }
+}
 
 void FEngineLoop::SubEngineControl()
 {
     OpenParticleSystemViewer();
-
+    OpenPhysicsViewer();;
 }
 
 void FEngineLoop::Exit()
@@ -355,6 +393,47 @@ LRESULT CALLBACK FEngineLoop::AppWndProc(HWND hWnd, uint32 Msg, WPARAM wParam, L
         case WM_RBUTTONDOWN:
             ::SetFocus(hWnd);
             break;
+        default:
+            return DefWindowProc(hWnd, Msg, wParam, lParam);
+        }
+    }
+    else if (hWnd == GEngineLoop.PhysicsViewerWnd)
+    {
+        ImGui::SetCurrentContext(GEngineLoop.PhysicsSubEngine->SubUI->Context);
+        if (ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam)) return true;
+
+        switch (Msg)
+        {
+        case WM_SIZE:
+            if (wParam != SIZE_MINIMIZED)
+            {
+                RECT ClientRect;
+                GetClientRect(hWnd, &ClientRect);
+
+                float FullWidth = static_cast<float>(ClientRect.right - ClientRect.left);
+                float FullHeight = static_cast<float>(ClientRect.bottom - ClientRect.top);
+
+                GEngineLoop.PhysicsViewerGD.Resize(hWnd, FullWidth, FullHeight);
+
+                if (GEngineLoop.GetUnrealEditor())
+                {
+                    GEngineLoop.GetUnrealEditor()->OnResize(hWnd, EWindowType::WT_PhysicsSubWindow);
+                }
+
+                if (GEngineLoop.PhysicsSubEngine->ViewportClient)
+                {
+                    GEngineLoop.PhysicsSubEngine->ViewportClient->AspectRatio = (FullWidth * 0.75f) / FullHeight;
+                }
+            }
+            return 0;
+        case WM_CLOSE:
+            GEngineLoop.PhysicsSubEngine->RequestShowWindow(false);
+            ::ShowWindow(hWnd, SW_HIDE);
+            return 0;
+        case WM_ACTIVATE:
+            ImGui::SetCurrentContext(GEngineLoop.PhysicsSubEngine->SubUI->Context);
+            GEngineLoop.CurrentImGuiContext = ImGui::GetCurrentContext();
+            return 0;
         default:
             return DefWindowProc(hWnd, Msg, wParam, lParam);
         }
@@ -462,6 +541,21 @@ void FEngineLoop::ParticleSubWindowInit(HINSTANCE hInstance)
     {
 
     }
+}
+void FEngineLoop::PhysicsSubWindowInit(HINSTANCE hInstance)
+{
+    WCHAR SubWindowClass[] = L"PhysicsWindowClass";
+    WCHAR SubTitle[] = L"Physics Viewer";
+
+    WNDCLASSEXW wcexSub = {};
+    wcexSub.cbSize = sizeof(WNDCLASSEX);
+    wcexSub.lpfnWndProc = AppWndProc;
+    wcexSub.hInstance = hInstance;
+    wcexSub.lpszClassName = SubWindowClass;
+    RegisterClassExW(&wcexSub);
+
+    PhysicsViewerWnd = CreateWindowExW(0, SubWindowClass, SubTitle, WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, hInstance, nullptr);
 }
 
 void FEngineLoop::CleanupSubWindow()

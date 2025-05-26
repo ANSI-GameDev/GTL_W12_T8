@@ -198,7 +198,7 @@ void AEditorPlayer::PickActor(const FVector& PickPosition)
             }
         }
     }
-    if (Possible)
+    if (Possible&&Possible->GetOwner())
     {
         Cast<UEditorEngine>(GEngine)->SelectActor(Possible->GetOwner());
         Cast<UEditorEngine>(GEngine)->SelectComponent(Possible);

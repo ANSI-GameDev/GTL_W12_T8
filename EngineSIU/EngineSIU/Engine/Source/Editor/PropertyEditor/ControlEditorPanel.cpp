@@ -57,6 +57,9 @@
 #include "SubWindow/ParticleSubEngine.h"
 #include <Particles/ParticleModules/ParticleModuleSize.h>
 #include <Particles/ParticleModules/ParticleModuleVelocity.h>
+
+#include "SubWindow/PhysicsSubEngine.h"
+
 ControlEditorPanel::ControlEditorPanel()
 {
     SetSupportedWorldTypes(EWorldTypeBitFlag::Editor | EWorldTypeBitFlag::PIE | EWorldTypeBitFlag::SkeletalViewer);
@@ -119,6 +122,10 @@ void ControlEditorPanel::Render()
             if (ImGui::MenuItem("Particle Viewer"))
             {
                 GEngineLoop.ParticleSubEngine->RequestShowWindow(true);
+            }
+            if (ImGui::MenuItem("Physics Viewer"))
+            {
+                GEngineLoop.PhysicsSubEngine->RequestShowWindow(true);
             }
             ImGui::EndMenu();
         }

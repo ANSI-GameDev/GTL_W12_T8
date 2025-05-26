@@ -558,119 +558,165 @@ void FShadowManager::ReleaseDirectionalShadowResources()
 }
 
 void FShadowManager::UpdateCascadeMatrices(const std::shared_ptr<FEditorViewportClient>& Viewport, UDirectionalLightComponent* DirectionalLight)
-{    
-    FMatrix InvViewProj = FMatrix::Inverse(Viewport->GetViewMatrix()*Viewport->GetProjectionMatrix());
+{
+    if (!Viewport || !DirectionalLight || NumCascades == 0)
+    {
+        UE_LOG(ELogLevel::Warning, TEXT("UpdateCascadeMatrices: Invalid input or NumCascades is zero."));
+        return;
+    }
 
-    CascadesViewProjMatrices.Empty();
-    CascadesInvProjMatrices.Empty();
     const FMatrix CamView = Viewport->GetViewMatrix();
     const float NearClip = Viewport->GetCameraNearClip();
-    const float FarClip = Viewport->GetCameraFarClip();
-    const float FOV = Viewport->GetCameraFOV();          // Degrees
+    const float FarClip = Viewport->GetCameraFarClip(); // 또는 CSM 최대 거리
+    const float FOV = Viewport->GetCameraFOV();         // Degrees
     const float AspectRatio = Viewport->AspectRatio;
 
-    const float HalfHFOV = FMath::DegreesToRadians(FOV) * 0.5f;
-    const float TanHFOV = FMath::Tan(HalfHFOV);
-    const float TanVFOV = TanHFOV / AspectRatio;
-    const FMatrix InvView = FMatrix::Inverse(CamView);
-
-    //CascadeSplits.Empty();
-    CascadeSplits.SetNum(NumCascades + 1);
-    CascadeSplits[0] = NearClip;
-    CascadeSplits[NumCascades] = FarClip;
-    for (uint32 Idx = 1; Idx < NumCascades; ++Idx)
+    // 캐스케이드 분할 거리 계산 (월드 단위)
+    // CascadeSplits[0]는 카메라 Near, CascadeSplits[NumCascades]는 카메라 Far (또는 CSM 최대 거리)
+    if (CascadeSplits.Num() != NumCascades + 1) // 크기 변경 시 재할당
     {
-        const float P = static_cast<float>(Idx) / static_cast<float>(NumCascades);
-        const float LogSplit = NearClip * powf(FarClip / NearClip, P);      // 로그 분포
-        const float UniSplit = NearClip + (FarClip - NearClip) * P;         // 균등 분포
-        CascadeSplits[Idx] = 0.7f * LogSplit + 0.3f * UniSplit;         // 혼합 (0.5:0.5)
+        CascadeSplits.SetNum(NumCascades + 1);
+    }
+    CascadeSplits[0] = NearClip;
+    float EffectiveFarClip = FarClip; // 필요시 이 값을 CSM 전용 최대 그림자 거리로 설정
+
+    CascadeSplits[NumCascades] = EffectiveFarClip;
+    for (uint32 i = 1; i < NumCascades; ++i)
+    {
+        float p = (float)i / (float)NumCascades;
+        float logSplit = NearClip * powf(EffectiveFarClip / NearClip, p);
+        float uniSplit = NearClip + (EffectiveFarClip - NearClip) * p;
+        CascadeSplits[i] = 0.7f * logSplit + 0.3f * uniSplit; // 혼합 비율은 조정 가능
     }
 
-    // 4) LightDir, Up
+    const FMatrix InvCamView = FMatrix::Inverse(CamView);
     const FVector LightDir = DirectionalLight->GetDirection().GetSafeNormal();
-    FVector Up = FVector::UpVector;
+    FVector LightUp = FVector::UpVector;
     if (FMath::Abs(FVector::DotProduct(LightDir, FVector::UpVector)) > 0.99f)
     {
-        Up = FVector::ForwardVector;
+        LightUp = FVector::RightVector; // 또는 ForwardVector (X축)
     }
 
+    // 배열 비우기 (Add 하기 전)
     CascadesViewProjMatrices.Empty();
+    CascadesInvProjMatrices.Empty();
 
-    for (uint32 c = 0; c< NumCascades; ++c)
+    for (uint32 c = 0; c < NumCascades; ++c)
     {
-    	// i 단계의 Near / Far (월드 단위) 계산
-		float splitN = CascadeSplits[c];
-		float splitF = CascadeSplits[c + 1];
-		float zn = (splitN - NearClip) / (FarClip - NearClip);
-        float zf = (splitF - NearClip) / (FarClip - NearClip);
+        // 1. 현재 캐스케이드의 절두체 조각(frustum slice)의 8개 꼭짓점 계산 (View Space)
+        float sliceNear = CascadeSplits[c];
+        float sliceFar = CascadeSplits[c + 1];
 
-		// 뷰 공간 평면상의 X,Y 절댓값
-		float nx = TanHFOV * splitN;
-		float ny = TanVFOV * splitN;
-		float fx = TanHFOV * splitF;
-		float fy = TanVFOV * splitF;
+        FVector frustumCornersVS[8];
+        float nearHeight = 2.0f * sliceNear * FMath::Tan(FMath::DegreesToRadians(FOV * 0.5f));
+        float nearWidth = nearHeight * AspectRatio;
+        frustumCornersVS[0] = FVector(-nearWidth * 0.5f, nearHeight * 0.5f, sliceNear);
+        frustumCornersVS[1] = FVector(nearWidth * 0.5f, nearHeight * 0.5f, sliceNear);
+        frustumCornersVS[2] = FVector(nearWidth * 0.5f, -nearHeight * 0.5f, sliceNear);
+        frustumCornersVS[3] = FVector(-nearWidth * 0.5f, -nearHeight * 0.5f, sliceNear);
 
-		// 뷰 공간 8개 코너
-		const FVector ViewCorners[8] = {
-			{ -nx,  ny, splitN },
-			{  nx,  ny, splitN },
-			{  nx, -ny, splitN },
-			{ -nx, -ny, splitN },
-			{ -fx,  fy, splitF },
-			{  fx,  fy, splitF },
-			{  fx, -fy, splitF },
-			{ -fx, -fy, splitF }
-		};
+        float farHeight = 2.0f * sliceFar * FMath::Tan(FMath::DegreesToRadians(FOV * 0.5f));
+        float farWidth = farHeight * AspectRatio;
+        frustumCornersVS[4] = FVector(-farWidth * 0.5f, farHeight * 0.5f, sliceFar);
+        frustumCornersVS[5] = FVector(farWidth * 0.5f, farHeight * 0.5f, sliceFar);
+        frustumCornersVS[6] = FVector(farWidth * 0.5f, -farHeight * 0.5f, sliceFar);
+        frustumCornersVS[7] = FVector(-farWidth * 0.5f, -farHeight * 0.5f, sliceFar);
 
-		// 월드 공간으로 변환
-		FVector WorldCorners[8];
-		for (int Idx = 0; Idx < 8; ++Idx)
-		{
-			// TransformPosition 은 w=1 가정 + divide 처리
-			WorldCorners[Idx] = InvView.TransformPosition(ViewCorners[Idx]);
-		}
+        // 월드 공간으로 변환
+        FVector frustumCornersWS[8];
+        for (int i = 0; i < 8; ++i)
+        {
+            frustumCornersWS[i] = InvCamView.TransformPosition(frustumCornersVS[i]);
+        }
 
-        // Light Space AABB
-        FMatrix LightView = DirectionalLight->GetViewMatrix();
-		LightView.M[3][0] = LightView.M[3][1] = LightView.M[3][2] = 0; // translation 제거 - Rot만 필요
+        // 2. Frustum slice의 경계 구(bounding sphere) 중심 계산 (더 안정적인 기준점)
+        FVector sphereCenterWS(0.0f);
+        for (int i = 0; i < 8; ++i)
+        {
+            sphereCenterWS += frustumCornersWS[i];
+        }
+        sphereCenterWS /= 8.0f;
 
-        FVector Min(FLT_MAX), Max(-FLT_MAX);
-		for (const auto& World : WorldCorners) {
-			Min.X = FMath::Min(Min.X, World.X);  Max.X = FMath::Max(Max.X, World.X);
-			Min.Y = FMath::Min(Min.Y, World.Y);  Max.Y = FMath::Max(Max.Y, World.Y);
-			Min.Z = FMath::Min(Min.Z, World.Z);  Max.Z = FMath::Max(Max.Z, World.Z);
-		}
-		FVector CenterWS = (Min + Max) * 0.5f;
-		const float Radius = FMath::Max3(Max.X - Min.X, Max.Y - Min.Y, Max.Z - Min.Z) * 0.5f;
+        // (선택적) 경계 구 반지름 계산 - 빛의 위치를 정하거나 Z범위 설정에 사용 가능
+        float sphereRadius = 0.0f;
+        for (int i = 0; i < 8; ++i) {
+            sphereRadius = FMath::Max(sphereRadius, FVector::Distance(sphereCenterWS, frustumCornersWS[i]));
+        }
 
-		// 3. Light View 생성
-		const FVector Eye = CenterWS - LightDir * Radius;
-		LightView = JungleMath::CreateViewMatrix(Eye, CenterWS, Up);
 
-		// 4. 모든 WorldCorners를 LightView로 변환, LightSpace에서의 Min/Max 구함
-		FVector MinLS(FLT_MAX), MaxLS(-FLT_MAX);
-		for (auto& World : WorldCorners) {
-			const FVector LS = LightView.TransformPosition(World);
-			MinLS.X = FMath::Min(MinLS.X, LS.X);  MaxLS.X = FMath::Max(MaxLS.X, LS.X);
-			MinLS.Y = FMath::Min(MinLS.Y, LS.Y);  MaxLS.Y = FMath::Max(MaxLS.Y, LS.Y);
-			MinLS.Z = FMath::Min(MinLS.Z, LS.Z);  MaxLS.Z = FMath::Max(MaxLS.Z, LS.Z);
-		}
-		const float Zm = (MaxLS.Z - MinLS.Z) * 0.1f;
-        MinLS.X -= Zm; MinLS.Y -= Zm; MinLS.Z -= Zm;
-        MaxLS.X -= Zm; MaxLS.Y -= Zm; MaxLS.Z -= Zm;
+        // 3. Light View Matrix 생성
+        // 빛의 위치: 구의 중심에서 빛 방향 반대로 "충분히" 멀리 이동.
+        // 이 거리는 그림자를 드리울 수 있는 가장 먼 물체까지 포함해야 하고, 여기선 SphereRadius를 사용
+        // 현재 코드의 Radius는 Frustum Slice AABB 기반이므로, sphereRadius로 대체하는 것이 좋음.
+        FVector lightEye = sphereCenterWS - LightDir * (sphereRadius + NearClip); // NearClip만큼 더 뒤로 물러나 Near Plane 공간 확보
+        FMatrix lightViewMatrix = JungleMath::CreateViewMatrix(lightEye, sphereCenterWS, LightUp);
 
-		// 5. LightSpace에서 Ortho 행렬 생성
-		FMatrix LightProj = JungleMath::CreateOrthoProjectionMatrix(
-            MaxLS.X- MinLS.X,
-            MaxLS.Y - MinLS.Y,
-			MinLS.Z, MaxLS.Z
-		);
+        // 4. 모든 FrustumCorners를 LightView로 변환, LightSpace에서의 Min/Max 구함
+        FVector lsMin(FLT_MAX, FLT_MAX, FLT_MAX);
+        FVector lsMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        for (int i = 0; i < 8; ++i) {
+            FVector pLightSpace = lightViewMatrix.TransformPosition(frustumCornersWS[i]);
+            lsMin.X = FMath::Min(lsMin.X, pLightSpace.X); lsMax.X = FMath::Max(lsMax.X, pLightSpace.X);
+            lsMin.Y = FMath::Min(lsMin.Y, pLightSpace.Y); lsMax.Y = FMath::Max(lsMax.Y, pLightSpace.Y);
+            lsMin.Z = FMath::Min(lsMin.Z, pLightSpace.Z); lsMax.Z = FMath::Max(lsMax.Z, pLightSpace.Z);
+        }
 
-		// 6. 최종 ViewProj 행렬
-		CascadesViewProjMatrices.Add(LightView * LightProj);
-        CascadesInvProjMatrices.Add(FMatrix::Inverse(LightProj));
+        // Texel Snapping (안정성 향상을 위한 조정)
+        // Ortho Projection의 크기를 그림자 맵 텍셀의 배수로 맞춤
+        // 이를 위해서는 JungleMath::CreateOrthographicOffCenter 사용이 더 적합할 수 있음
+        // 여기서는 단순화된 형태로 lsMin/lsMax를 조정
+        if (DirectionalShadowCascadeDepthRHI && DirectionalShadowCascadeDepthRHI->ShadowMapResolution > 0)
+        {
+            float shadowMapRes = (float)DirectionalShadowCascadeDepthRHI->ShadowMapResolution;
+            float worldUnitsPerTexelX = (lsMax.X - lsMin.X) / shadowMapRes;
+            float worldUnitsPerTexelY = (lsMax.Y - lsMin.Y) / shadowMapRes;
+
+            // Min/Max를 텍셀 경계에 맞춤
+            lsMin.X = floorf(lsMin.X / worldUnitsPerTexelX) * worldUnitsPerTexelX;
+            lsMax.X = ceilf(lsMax.X / worldUnitsPerTexelX) * worldUnitsPerTexelX; // Max는 ceil로 하여 범위를 포함
+            lsMin.Y = floorf(lsMin.Y / worldUnitsPerTexelY) * worldUnitsPerTexelY;
+            lsMax.Y = ceilf(lsMax.Y / worldUnitsPerTexelY) * worldUnitsPerTexelY;
+        }
+        // lsMin.Z는 빛 공간에서 frustum 조각의 가장 가까운 Z값
+        // 이 값보다 "더 앞(빛 쪽으로)"으로 Near Plane을 설정해야 가까운 물체가 안 잘림
+        // lsMax.Z는 frustum 조각의 가장 먼 Z값. 이 값보다 "더 뒤"로 Far Plane을 설정하여
+        // frustum 조각 너머에 있지만 그림자를 드리울 수 있는 물체를 포함
+
+        float zNearOffset = sphereRadius * 1.5f; // 1.5배 정도 여유를 두어 여유를 둠
+        float zFarExtension = sphereRadius * 1.0f;
+
+        // lightEye를 (sphereRadius + NearClip) 만큼 뒤로 뺐으므로,
+        // frustumCornersWS를 빛 공간으로 변환했을 때 lsMin.Z는 대략 NearClip이 됨
+        // zNearOffset만큼 더 빛 쪽으로 (작은 Z값) 이동
+        float orthoNear = lsMin.Z - zNearOffset;
+        float orthoFar = lsMax.Z + zFarExtension;
+
+        orthoNear = FMath::Max(0.01f, orthoNear); // 안전장치
+        FMatrix lightProjMatrix;
+        if (true) // Center 안정적인 것으로 가정 
+        {
+            lightProjMatrix = JungleMath::CreateOrthographicOffCenter(
+                lsMin.X, lsMax.X,
+                lsMin.Y, lsMax.Y,
+                orthoNear,
+                orthoFar
+            );
+        }
+        else // 기존 CreateOrthoProjectionMatrix 사용 (중심이 0,0 가정)
+        {
+            // 이 경우, lightViewMatrix의 translation을 조정하여 lsMin/lsMax의 중심이 (0,0)이 되도록 해야 함.
+            // 또는 아래처럼 width/height만 사용.
+            lightProjMatrix = JungleMath::CreateOrthoProjectionMatrix(
+                lsMax.X - lsMin.X,
+                lsMax.Y - lsMin.Y,
+                orthoNear,
+                orthoFar
+            );
+        }
+
+        CascadesViewProjMatrices.Add(lightViewMatrix * lightProjMatrix);
+        CascadesInvProjMatrices.Add(FMatrix::Inverse(lightProjMatrix)); // Inverse Projection
     }
-
 }
 
 bool FShadowManager::CreateSamplers()

@@ -20,6 +20,7 @@
 #include <PxPhysicsAPI.h>
 
 #include "Actors/DirectionalLightActor.h"
+#include "Physics/PhysScene.h"
 
 class UEditorEngine;
 
@@ -41,8 +42,9 @@ void UWorld::InitializeNewWorld()
 
     CollisionManager = new FCollisionManager();
     
-    PhysScene = new FPhysScene();
-    PhysScene->InitPhysX();
+    FPhysScene* NewPhysScene = new FPhysScene();
+    NewPhysScene->InitPhysX();
+    SetPhysicsScene(NewPhysScene);
     
     ADirectionalLight* LightActor = SpawnActor<ADirectionalLight>();
     
@@ -347,6 +349,22 @@ void UWorld::CheckOverlap(const UPrimitiveComponent* Component, TArray<FOverlapR
     if (CollisionManager)
     {
         CollisionManager->CheckOverlap(this, Component, OutOverlaps);
+    }
+}
+
+void UWorld::SetPhysicsScene(FPhysScene* InScene)
+{
+    if (PhysicsScene != nullptr)
+    {
+        PhysicsScene->SetOwningWorld(nullptr);
+        delete PhysicsScene;
+    }
+
+    PhysicsScene = InScene;
+
+    if (PhysicsScene != nullptr)
+    {
+        PhysicsScene->SetOwningWorld(this);
     }
 }
 

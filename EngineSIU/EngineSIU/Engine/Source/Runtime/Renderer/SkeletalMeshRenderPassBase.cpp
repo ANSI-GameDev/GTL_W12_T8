@@ -144,7 +144,7 @@ void FSkeletalMeshRenderPassBase::RenderAllSkeletalMeshes(const std::shared_ptr<
 
         RenderSkeletalMesh(RenderData);
 
-        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB))
+        if (Viewport->GetShowFlag() & static_cast<uint64>(EEngineShowFlags::SF_AABB)&&Comp->GetWorld()==Engine->GetWorld())
         {
             FEngineLoop::PrimitiveDrawBatch.AddAABBToBatch(Comp->GetBoundingBox(), Comp->GetComponentLocation(), WorldMatrix);
         }
@@ -229,7 +229,7 @@ void FSkeletalMeshRenderPassBase::UpdateBone(const USkeletalMeshComponent* Skele
 
     // Skeleton 정보 가져오기
     const USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->GetSkeletalMeshAsset();
-    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->GetSkeleton()->GetReferenceSkeleton();
+    const FReferenceSkeleton& RefSkeleton = SkeletalMesh->GetSkeleton()->GetRefSkeleton();
     const int32 BoneNum = RefSkeleton.RawRefBoneInfo.Num();
 
     // 현재 애니메이션 본 행렬 계산

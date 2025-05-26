@@ -33,7 +33,7 @@ void ACube::InitCube()
     UWorld* world = GetWorld();
     
     FBodyInstance* CubeBody = new FBodyInstance();
-    CubeBody->InitBody(BodySetup, StaticMeshComponent->GetComponentTransform().Translation, world->GetPhysScene());
+    CubeBody->InitBody(BodySetup, StaticMeshComponent->GetComponentTransform().Translation, world->GetPhysicsScene());
     StaticMeshComponent->SetBodyInstance(CubeBody);
     
 }

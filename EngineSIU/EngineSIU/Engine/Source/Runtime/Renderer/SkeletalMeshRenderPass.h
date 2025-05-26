@@ -5,6 +5,8 @@ enum class EViewModeIndex : uint8;
 
 class FSkeletalMeshRenderPass : public FSkeletalMeshRenderPassBase
 {
+public: 
+    void AddSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent);
 protected:
     virtual void CreateResource();
 
