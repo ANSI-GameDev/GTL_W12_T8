@@ -254,6 +254,48 @@ FQuat FQuat::Slerp_NotNormalized(const FQuat& Quat1, const FQuat& Quat2, float S
     };
 }
 
+FQuat FQuat::FindBetweenNormals(const FVector& A, const FVector& B)
+{
+    // 입력 벡터가 정규화되었다고 가정하지 않음
+    const FVector NormA = A.GetSafeNormal();
+    const FVector NormB = B.GetSafeNormal();
+
+    const float Dot = FVector::DotProduct(NormA, NormB);
+
+    // Case 1: 벡터가 거의 같은 방향 (각도가 매우 작음)
+    if (Dot > 1.0f - KINDA_SMALL_NUMBER) // 예: 0.999999f
+    {
+        return FQuat::Identity;
+    }
+    // Case 2: 벡터가 거의 반대 방향 (180도 회전)
+    else if (Dot < -1.0f + KINDA_SMALL_NUMBER) // 예: -0.999999f
+    {
+        // A에 수직인 임의의 축을 찾아 180도 회전
+        FVector Axis = FVector::CrossProduct(FVector::XAxisVector, NormA);
+        if (Axis.SizeSquared() < KINDA_SMALL_NUMBER) // NormA가 X축과 평행하면 Y축 사용
+        {
+            Axis = FVector::CrossProduct(FVector::YAxisVector, NormA);
+        }
+        Axis.Normalize(); // 회전축 정규화
+        return FQuat(Axis, PI); // PI 라디안 (180도) 회전
+    }
+    // Case 3: 일반적인 경우
+    else
+    {
+        const FVector Cross = FVector::CrossProduct(NormA, NormB);
+        // 쿼터니언 (v*sin(theta/2), cos(theta/2))
+        // W = cos(theta/2) = sqrt((1+cos(theta))/2) = sqrt((1+Dot)/2)
+        // XYZ = v*sin(theta/2) = Cross_normalized * sqrt((1-cos(theta))/2)
+        // 또는 더 간단하게 (하지만 정규화 필요):
+        FQuat Result;
+        Result.X = Cross.X;
+        Result.Y = Cross.Y;
+        Result.Z = Cross.Z;
+        Result.W = 1.0f + Dot; // 이 값은 cos(theta/2)와 직접 관련 없음, 정규화 후 올바른 값 가짐
+        Result.Normalize();
+        return Result;
+    }
+}
 FQuat FQuat::FromAxisAngle(const FVector& Axis, float AngleRad)
 {
     const float HalfAngle = AngleRad * 0.5f;

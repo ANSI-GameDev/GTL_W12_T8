@@ -141,6 +141,8 @@ public:
         return Slerp_NotNormalized(Quat1, Quat2, Slerp).GetNormalized();
     }
 
+    static FQuat FindBetweenNormals(const FVector& A, const FVector& B);
+
     // 회전 각도와 축으로부터 쿼터니언 생성 (axis-angle 방식)
     static FQuat FromAxisAngle(const FVector& Axis, float AngleRad);
 

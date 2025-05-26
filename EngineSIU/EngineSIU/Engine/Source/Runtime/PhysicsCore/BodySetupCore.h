@@ -4,11 +4,11 @@
 
 enum PhysicsType : int
 {
-    /** Follow owner. */
+    /** Transform을 따라가며 시뮬레이션 없음 (Static처럼 작동) */
     PhysType_Default,
-    /** Do not follow owner, but make kinematic. */
+    /** 위치는 외부 제어 (애니메이션 등), 물리 연산은 안함 */
     PhysType_Kinematic,		
-    /** Do not follow owner, but simulate. */
+    /** 물리엔진 완전 위임, 중력/힘/충돌 적용됨 */
     PhysType_Simulated,
 };
 
