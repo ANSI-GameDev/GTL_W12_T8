@@ -70,7 +70,7 @@ void FPhysScene::InitPhysX()
     gScene->addActor(*staticActor);
 
     // --- Dynamic Body 생성 (이전 rigidBody 대신) ---
-    PxVec3 dynPos(8.5f, 0.0f, 10.f);
+    PxVec3 dynPos(6.5f, 0.0f, 10.f);
     PxTransform dynamicTransform(dynPos);
     PxRigidDynamic* dynamicActor = gPhysics->createRigidDynamic(dynamicTransform);
 
@@ -84,10 +84,11 @@ void FPhysScene::InitPhysX()
 
     // --- Joint 생성 --- //
     PxTransform worldJointPose = staticActor->getGlobalPose();
-    PxQuat twistDownQuat = PxQuat(PxPi / 2.0f, PxVec3(1, 0, 0)); // 로컬 X축이 -Z방향
+    PxVec3 jointDir = (dynPos - staticPos).getNormalized();
+    PxQuat alignToX = PxShortestRotation(PxVec3(1, 0, 0), jointDir); // 이 벡터가 로컬 X축이 되도록 회전 만들기
 
-    PxTransform localFrameStatic = PxTransform(PxIdentity) * PxTransform(twistDownQuat);
-    PxTransform localFrameDynamic = dynamicActor->getGlobalPose().getInverse() * worldJointPose * PxTransform(twistDownQuat);
+    PxTransform localFrameStatic = PxTransform(PxIdentity) * PxTransform(alignToX);
+    PxTransform localFrameDynamic = dynamicActor->getGlobalPose().getInverse() * worldJointPose * PxTransform(alignToX);
 
     PxD6Joint* joint = PxD6JointCreate(*gPhysics,staticActor, localFrameStatic,dynamicActor, localFrameDynamic);
     joint->setConstraintFlag(PxConstraintFlag::eVISUALIZATION, true);
@@ -97,7 +98,7 @@ void FPhysScene::InitPhysX()
     joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
     joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
 
-    joint->setSwingLimit(PxJointLimitCone(FMath::DegreesToRadians(30.f), FMath::DegreesToRadians(30.f), { 50.f, 7.f }));
+    joint->setSwingLimit(PxJointLimitCone(FMath::DegreesToRadians(60.f), FMath::DegreesToRadians(60.f), { 50.f, 7.f }));
 
     // X축만 리미트 모드로 설정
     joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);  // X축만 스프링/리미트
