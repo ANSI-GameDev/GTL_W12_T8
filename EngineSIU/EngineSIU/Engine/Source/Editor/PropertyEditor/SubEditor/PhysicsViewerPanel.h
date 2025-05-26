@@ -11,6 +11,14 @@ struct FRenderTargetRHI;
 struct FDepthStencilRHI;
 
 class FEditorViewportClient;
+enum class EPhysicsDebugDisplay : uint8
+{
+    None = 0,
+    Bone = 1 << 0,
+    Body = 1 << 1,
+    Constraint = 1 << 2,
+    All = Bone | Body | Constraint
+};
 
 class PhysicsViewerPanel : public UEditorPanel
 {
@@ -31,7 +39,7 @@ private:
 private:
     float Width = 800.0f;
     float Height = 600.0f;
-
+    EPhysicsDebugDisplay DebugDisplayFlags = EPhysicsDebugDisplay::All;
     std::shared_ptr<FEditorViewportClient> ViewportClient;
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
     //int SelectedBoneIndex = -1;

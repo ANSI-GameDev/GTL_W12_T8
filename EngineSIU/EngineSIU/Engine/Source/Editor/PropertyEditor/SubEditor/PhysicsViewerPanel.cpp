@@ -4,6 +4,9 @@
 #include "UnrealClient.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Misc/EnumClassFlags.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
 void PhysicsViewerPanel::Render()
 {
@@ -105,8 +108,32 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
     }
 
     ImGuiTreeNodeFlags flags = bHasChildren ? ImGuiTreeNodeFlags_OpenOnArrow : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-    bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
+    //bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
+    FString Label = BoneName.ToString();
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body))
+    {
+        if (PhysicsAsset->FindBodyIndex(BoneName) != INDEX_NONE)
+        {
+            Label += " [Body]";
+        }
+    }
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint))
+    {
+        // Constraint가 현재 Bone에 붙어있는지 검사
+        for (const auto* ConstraintSetup : PhysicsAsset->ConstraintSetup)
+        {
+            if (ConstraintSetup &&
+                (ConstraintSetup->DefaultInstance.ConstraintBone1 == BoneName ||
+                    ConstraintSetup->DefaultInstance.ConstraintBone2 == BoneName))
+            {
+                Label += " [Constraint]";
+                break;
+            }
+        }
+    }
 
+    bool bOpen = ImGui::TreeNodeEx(*Label, flags);
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
         if (SkeletalMeshComponent)
