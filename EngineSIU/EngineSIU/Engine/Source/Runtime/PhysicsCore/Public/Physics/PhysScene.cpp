@@ -30,6 +30,7 @@ void FPhysScene::InitPhysX()
     }
 
     gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
+    PxInitExtensions(*gPhysics, gPvd);
     
     gDispatcher = PxDefaultCpuDispatcherCreate(2);
     
