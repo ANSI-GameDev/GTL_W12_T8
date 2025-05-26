@@ -49,7 +49,7 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
 
     // 필요한 컴포넌트 로딩이나 초기화 등
     SubRenderer->SetEnabledPass("Skeletal",true);
-    ViewportClient->SetViewMode(EViewModeIndex::VMI_Wireframe);
+    ViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
 }
 
 void UPhysicsSubEngine::Tick(float DeltaTime)

@@ -161,6 +161,8 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 {
                     CurrentIndex = i;
                     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(MeshNames[i]));
+                    SelectedBoneIndex = -1;
+                    SkeletalMeshComponent->SetSelectedBone(-1);
                 }
                 if (bSelected) ImGui::SetItemDefaultFocus();
             }

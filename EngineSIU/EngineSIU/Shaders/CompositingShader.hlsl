@@ -82,6 +82,5 @@ float4 mainPS(PS_Input Input) : SV_TARGET
         FinalColor = lerp(FinalColor, CameraEffect, CameraEffect.a);
         // FinalColor = CameraEffect;
     }
-
     return FinalColor;
 }
