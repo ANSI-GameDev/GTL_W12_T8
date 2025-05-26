@@ -37,6 +37,15 @@ void PhysicsViewerPanel::OnResize(HWND hWnd)
         Width = static_cast<float>(clientRect.right - clientRect.left);
         Height = static_cast<float>(clientRect.bottom - clientRect.top);
     }
+    if (ViewportClient)
+    {
+        FViewport* Viewport = ViewportClient->GetViewport();
+        if (Viewport)
+        {
+            FRect NewRect(0,0,Width,Height);
+            Viewport->ResizeViewport(NewRect);
+        }
+    }
 }
 void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient> InViewportClient)
 {
