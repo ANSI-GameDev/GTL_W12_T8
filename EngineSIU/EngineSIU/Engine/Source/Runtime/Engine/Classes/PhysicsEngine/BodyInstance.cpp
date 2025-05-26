@@ -4,13 +4,11 @@
 #include <PxRigidDynamic.h>
 #include <PxScene.h>
 #include <extensions/PxRigidBodyExt.h>
-#include <foundation/PxMat44.h>
 
 #include "AggregateGeom.h"
 #include "BodySetup.h"
-#include "Components/SceneComponent.h"
-#include "Math/JungleMath.h"
 #include "Physics/PhysScene.h"
+#include "Developer/PhysicsUtilities/PxConvertHelper.inl"
 
 using namespace physx;
 
@@ -19,7 +17,7 @@ using namespace physx;
 void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
 {
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-    RigidBody->setKinematicTarget(ConvertFTransformToPxTransform(MoveLocation));
+    RigidBody->setKinematicTarget(MoveLocation.ToPxTransform());
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
 }
 
@@ -44,7 +42,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     }
     
     //Instance의 위치주기
-    PxTransform pose = PxTransform(ConvertFVecToPxVec(InBodyWorldPosition));
+    PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
 
     AttachShapes(InBodySetup->AggGeom, InScene);
@@ -60,8 +58,8 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
     for (FKBoxElem BoxGeom : InAggregateGeom.BoxElems)
     {
         FVector FVecHalfExt = BoxGeom.Extent/2;
-        PxVec3 halfExtent = ConvertFVecToPxVec(FVecHalfExt);
-        PxTransform ShapePose = PxTransform(ConvertFVecToPxVec(BoxGeom.Center));
+        PxVec3 halfExtent = FVecHalfExt.ToPxVec3();
+        PxTransform ShapePose = PxTransform(BoxGeom.Center.ToPxVec3());
         PxShape* Shape = InScene->gPhysics->createShape(PxBoxGeometry(halfExtent), *InScene->gMaterial);
         Shape->setLocalPose(ShapePose);
         RigidBody->attachShape(*Shape);
@@ -71,7 +69,7 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
     for (FKSphereElem SphereGeom : InAggregateGeom.SphereElems)
     {
         PxReal Radius = SphereGeom.Radius;
-        PxTransform ShapePose = PxTransform(ConvertFVecToPxVec(SphereGeom.Center));
+        PxTransform ShapePose = PxTransform(SphereGeom.Center.ToPxVec3());
         PxShape* Shape = InScene->gPhysics->createShape(PxSphereGeometry(Radius), *InScene->gMaterial);
         Shape->setLocalPose(ShapePose);
         RigidBody->attachShape(*Shape);
@@ -82,7 +80,7 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
     {
         PxReal Radius = CapsuleGeom.Radius;
         PxReal HalfLength = CapsuleGeom.Length/2;
-        PxTransform ShapePose = PxTransform(ConvertFVecToPxVec(CapsuleGeom.Center));
+        PxTransform ShapePose = PxTransform(CapsuleGeom.Center.ToPxVec3());
         PxShape* Shape = InScene->gPhysics->createShape(PxCapsuleGeometry(Radius, HalfLength), *InScene->gMaterial);
         Shape->setLocalPose(ShapePose);
         RigidBody->attachShape(*Shape);
@@ -94,27 +92,5 @@ void FBodyInstance::UpdatePhysics()
 {
     PxTransform t = RigidBody->getGlobalPose();
     
-    WorldTransform = ConvertPxTransformToFTransform(t);
-}
-
-FTransform FBodyInstance::ConvertPxTransformToFTransform(const PxTransform& InTransform)
-{
-    FTransform OutTransform;
-    OutTransform.Translation = FVector(InTransform.p.x, InTransform.p.y, InTransform.p.z);
-    OutTransform.Rotation = FQuat(InTransform.q.x, InTransform.q.y, InTransform.q.z, InTransform.q.w);
-    OutTransform.Scale3D = FVector::OneVector;
-    return OutTransform;
-}
-
-PxTransform FBodyInstance::ConvertFTransformToPxTransform(const FTransform& InTransform)
-{
-    PxTransform OutTransform;
-    OutTransform.p = PxVec3(InTransform.Translation.X, InTransform.Translation.Y, InTransform.Translation.Z);
-    OutTransform.q = PxQuat(InTransform.Rotation.X, InTransform.Rotation.Y, InTransform.Rotation.Z, InTransform.Rotation.W);
-    return OutTransform;
-}
-
-PxVec3 FBodyInstance::ConvertFVecToPxVec(const FVector& InVec)
-{
-    return PxVec3(InVec.X, InVec.Y, InVec.Z);
+    WorldTransform = FTransform(t);
 }

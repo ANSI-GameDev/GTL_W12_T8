@@ -1,10 +1,7 @@
 #pragma once
 #include "Engine/EngineTypes.h"
 #include "AggregateGeom.h"
-#include "Math/Transform.h"
-#include "Math/Vector.h"
 #include "PhysicsCore/BodyInstanceCore.h"
-#include "UObject/NameTypes.h"
 
 class FPhysScene;
 class UBodySetup;
@@ -105,7 +102,4 @@ public:
     void SetbEnableGravity(bool b){ bEnableGravity = b; }
     
     void UpdatePhysics();
-    FTransform ConvertPxTransformToFTransform(const physx::PxTransform& InTransform);
-    physx::PxTransform ConvertFTransformToPxTransform(const FTransform& InTransform);
-    physx::PxVec3 ConvertFVecToPxVec(const FVector& InVec);
 };
