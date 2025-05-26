@@ -101,6 +101,10 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
         SelectedBoneIndex = BoneIndex;
+        if (SkeletalMeshComponent)
+        {
+            SkeletalMeshComponent->SetSelectedBone(BoneIndex);
+        }
     }
 
     if (bOpen && bHasChildren)

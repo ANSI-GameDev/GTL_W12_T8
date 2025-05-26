@@ -19,7 +19,11 @@ void FSkeletalMeshDebugger::DrawSkeleton(const USkeletalMeshComponent* SkelComp,
 
     constexpr int32 ConeSegment = 12;
     constexpr float ConeThicknessRatio = 0.1f;
-    const FVector4 ConeColor(0.2f, 1.f, 0.2f, 1.f);
+
+    const FVector4 DefaultConeColor(0.2f, 1.f, 0.2f, 1.f);     // 연녹색
+    const FVector4 SelectedConeColor(1.f, 0.1f, 0.1f, 1.f);    // 빨강색
+
+    const int32 SelectedBoneIndex = SkelComp->GetSelectedBone();
 
     for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
     {
@@ -33,10 +37,12 @@ void FSkeletalMeshDebugger::DrawSkeleton(const USkeletalMeshComponent* SkelComp,
         float Length = (PosParent - PosChild).Length();
         float Radius = Length * ConeThicknessRatio;
 
-        // 수정된 함수 사용 (LookMatrix 제거됨)
-        DrawBatch->AddConeToBatch(PosChild, PosParent, Radius, ConeSegment, ConeColor);
+        const FVector4 Color = (BoneIndex == SelectedBoneIndex) ? SelectedConeColor : DefaultConeColor;
+
+        DrawBatch->AddConeToBatch(PosChild, PosParent, Radius, ConeSegment, Color);
     }
 }
+
 
 void FSkeletalMeshDebugger::DrawSkeletonAABBs(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch)
 {

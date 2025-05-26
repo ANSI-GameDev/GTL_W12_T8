@@ -152,4 +152,10 @@ public:
     void SetAnimInstanceClass(class UClass* NewClass);
     UClass* GetAnimClass();    
     UAnimSingleNodeInstance* GetSingleNodeInstance() const;
+
+private:
+    int32 SelectedBoneIndex = INDEX_NONE;
+public:
+    void SetSelectedBone(int32 BoneIndex) { SelectedBoneIndex = BoneIndex; }
+    int32 GetSelectedBone() const { return SelectedBoneIndex; }
 };
