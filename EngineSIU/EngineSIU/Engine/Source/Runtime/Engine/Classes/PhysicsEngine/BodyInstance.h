@@ -4,6 +4,10 @@
 #include "PhysicsCore/BodyInstanceCore.h"
 #include "UObject/NameTypes.h"
 
+class FPhysScene;
+struct FTransform;
+class UPrimitiveComponent;
+
 namespace EDOFMode
 {
     enum Type : int
@@ -21,9 +25,17 @@ namespace EDOFMode
 struct FConstraintInstance;
 struct FBodyInstance : public FBodyInstanceCore
 {
+    FBodyInstance();
+    ~FBodyInstance();
+    void InitBody(class UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, UObject* InSourceObject, FPhysScene* InRBScene);
+
+
+    /* 소유 컴포넌트 및 소유 액터 */
+    UPrimitiveComponent* OwnerComponent;
+    UObject* SourceObject;
+
     /* SkeletalMeshComponent / PhysicAsset 내부의 BodyInstance 인덱스
-     * 단일 Body 컴포넌트인 경우 INDEX_NONE입니다.
-     */
+     * 단일 Body 컴포넌트인 경우 INDEX_NONE입니다. */
     int32 InstanceBodyIndex;
     int16 InstanceBoneIndex;
 

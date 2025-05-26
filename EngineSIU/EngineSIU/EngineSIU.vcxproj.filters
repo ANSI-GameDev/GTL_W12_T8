@@ -1717,6 +1717,7 @@
     <ClCompile Include="Engine\Source\Developer\PhysicsUtilities\PhysicAssetUtils.cpp" />
     <ClCompile Include="Engine\Source\Runtime\PhysicsCore\PhysicalMaterials\PhysicalMaterial.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodySetup.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodyInstance.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
