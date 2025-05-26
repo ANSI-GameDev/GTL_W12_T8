@@ -171,6 +171,8 @@ void USkeletalMeshComponent::SetSkeletalMeshAsset(USkeletalMesh* InSkeletalMeshA
     CPURenderData->Indices = InSkeletalMeshAsset->GetRenderData()->Indices;
     CPURenderData->ObjectName = InSkeletalMeshAsset->GetRenderData()->ObjectName;
     CPURenderData->MaterialSubsets = InSkeletalMeshAsset->GetRenderData()->MaterialSubsets;
+    SetSelectedBone(-1);
+
 }
 
 FTransform USkeletalMeshComponent::GetSocketTransform(FName SocketName) const
