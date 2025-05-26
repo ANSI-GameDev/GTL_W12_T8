@@ -97,43 +97,10 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
     ImGui::PushID(BoneIndex);
     const FName& BoneName = RefSkeleton.GetBoneName(BoneIndex);
 
-    bool bHasChildren = false;
-    for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
-    {
-        if (RefSkeleton.GetParentIndex(i) == BoneIndex)
-        {
-            bHasChildren = true;
-            break;
-        }
-    }
+    // 현재 Bone의 트리 노드 생성
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+    bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
 
-    ImGuiTreeNodeFlags flags = bHasChildren ? ImGuiTreeNodeFlags_OpenOnArrow : (ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
-    //bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
-    FString Label = BoneName.ToString();
-    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
-    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body))
-    {
-        if (PhysicsAsset->FindBodyIndex(BoneName) != INDEX_NONE)
-        {
-            Label += " [Body]";
-        }
-    }
-    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint))
-    {
-        // Constraint가 현재 Bone에 붙어있는지 검사
-        for (const auto* ConstraintSetup : PhysicsAsset->ConstraintSetup)
-        {
-            if (ConstraintSetup &&
-                (ConstraintSetup->DefaultInstance.ConstraintBone1 == BoneName ||
-                    ConstraintSetup->DefaultInstance.ConstraintBone2 == BoneName))
-            {
-                Label += " [Constraint]";
-                break;
-            }
-        }
-    }
-
-    bool bOpen = ImGui::TreeNodeEx(*Label, flags);
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
         if (SkeletalMeshComponent)
@@ -142,8 +109,9 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
         }
     }
 
-    if (bOpen && bHasChildren)
+    if (bOpen)
     {
+        // [1] 자식 Bone 재귀 호출
         for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
         {
             if (RefSkeleton.GetParentIndex(i) == BoneIndex)
@@ -151,6 +119,40 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
                 RenderBoneRecursive(RefSkeleton, i, Pose);
             }
         }
+
+        UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+
+        if (PhysicsAsset)
+        {
+            // [2] 현재 Bone에 연결된 Constraint들 출력
+            if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint))
+            {
+                for (int32 i = 0; i < PhysicsAsset->ConstraintSetup.Num(); ++i)
+                {
+                    const UPhysicsConstraintTemplate* Constraint = PhysicsAsset->ConstraintSetup[i];
+                    if (!Constraint) continue;
+
+                    const FConstraintInstance& Inst = Constraint->DefaultInstance;
+
+                    if (Inst.ConstraintBone1 == BoneName/* || Inst.ConstraintBone2 == BoneName*/)
+                    {
+                        FString CName = Inst.JointName.ToString() + TEXT(" [Constraint]");
+                        ImGui::TreeNodeEx(*CName, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                    }
+                }
+            }
+
+            // [3] 현재 Bone이 Body를 가지는 경우 출력
+            if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body))
+            {
+                if (PhysicsAsset->FindBodyIndex(BoneName) != INDEX_NONE)
+                {
+                    FString BodyLabel = BoneName.ToString() + TEXT(" [Body]");
+                    ImGui::TreeNodeEx(*BodyLabel, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                }
+            }
+        }
+
         ImGui::TreePop();
     }
 
