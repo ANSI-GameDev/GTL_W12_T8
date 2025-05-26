@@ -1,5 +1,4 @@
 #pragma once
-#include "PhysScene.h"
 #include "SkinnedMeshComponent.h"
 #include "Actors/Player.h"
 #include "Engine/AssetManager.h"
@@ -7,6 +6,7 @@
 #include "Template/SubclassOf.h"
 #include "Animation/AnimNodeBase.h"
 
+class FPhysScene;
 struct FConstraintInstance;
 struct FBodyInstance;
 class UPhysicsAsset;
@@ -125,7 +125,6 @@ protected:
 private:
     void CPUSkinning(bool bForceUpdate = false);
 
-    FPoseContext BonePoseContext;
     USkeletalMesh* SkeletalMeshAsset;
     std::unique_ptr<FSkeletalMeshRenderData> CPURenderData;
 

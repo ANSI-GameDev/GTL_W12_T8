@@ -1,7 +1,6 @@
-#pragma once
+﻿#pragma once
 #include "BodyInstance.h"
 #include "ConstraintTypes.h"
-#include "PhysScene.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "HAL/PlatformType.h"
 #include "Math/Vector.h"

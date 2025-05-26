@@ -402,6 +402,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 {
                     // TODO: 다른 부분들 전부 Actor만 소환하도록 하고, Component 생성은 Actor가 자체적으로 하도록 변경.
                     ACube* CubeActor = World->SpawnActor<ACube>();
+                    CubeActor->InitCube();
                     CubeActor->SetActorLabel(TEXT("OBJ_CUBE"));
                     break;
                 }

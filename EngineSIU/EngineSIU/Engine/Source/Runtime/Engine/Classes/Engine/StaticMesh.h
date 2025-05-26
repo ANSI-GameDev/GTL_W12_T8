@@ -3,6 +3,7 @@
 #include "UObject/ObjectMacros.h"
 #include "Components/Material/Material.h"
 #include "Define.h"
+#include "PhysicsEngine/BodySetup.h"
 
 struct FStaticMeshRenderData;
 
@@ -30,4 +31,6 @@ public:
 private:
     FStaticMeshRenderData* RenderData = nullptr;
     TArray<FStaticMaterial*> Materials;
+
+    UBodySetup* BodySetup;
 };

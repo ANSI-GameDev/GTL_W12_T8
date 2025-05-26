@@ -1,8 +1,20 @@
 #pragma once
 #include "Engine/EngineTypes.h"
-#include "Math/Vector.h"
+#include "AggregateGeom.h"
 #include "PhysicsCore/BodyInstanceCore.h"
-#include "UObject/NameTypes.h"
+
+class FPhysScene;
+class UBodySetup;
+
+namespace physx
+{
+class PxShape;
+class PxRigidDynamic;
+class PxVec3;
+class PxMat44;
+class PxTransform;
+class PxRigidActor;
+}
 
 namespace EDOFMode
 {
@@ -28,30 +40,66 @@ struct FBodyInstance : public FBodyInstanceCore
     int16 InstanceBoneIndex;
 
     ECollisionEnabled::Type CollisionEnabled;
-    EDOFMode::Type DOFMode;
-
-    FName CollisionProfileName;
+    
+    /** Current scale of physics - used to know when and how physics must be rescaled to match current transform of OwnerComponent. */
     FVector Scale3D;
 
+    physx::PxRigidDynamic* RigidBody = nullptr;
+    FPhysScene* MyScene = nullptr;
+    
+    FTransform WorldTransform;
+
+// linear, angularvel, massscale TO CHECK
+    FVector LinearVelocity;
+    FVector AngularVelocity;
+// 이거 뭐임
+    FVector COMNudge;
+
+    bool bSimulatePhysics = true;
+    bool bEnableGravity = true;
+    bool bIsKinematic = false;
+    
     float LinearDamping;
     float AngularDamping;
-    FVector COMNudge;
     float MassScale;
 
+    /** [Physx Only] Locks physical movement along specified axis.*/
+    EDOFMode::Type DOFMode;
     /** [Physx Only] Constraint used to allow for easy DOF setup per bodyinstance */
     FConstraintInstance* DOFConstraint;
+public:
+    // void ApplyForce(FVector Force);
+    // void ApplyTorque(FVector Torque);
+    // void AddImpulse(FVector Impulse);
+
+    void SetTransformRigidBody(FTransform MoveLocation);
+    
+    //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
+    void InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene);
+    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
+
+    void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
+    FTransform GetWorldTransform() const { return WorldTransform; }
 
     uint8 bUseCCD : 1;
 
     uint8 bLockTranslation : 1;
-    uint8 bLockRotation : 1;
     uint8 bLockXTranslation : 1;
     uint8 bLockYTranslation : 1;
     uint8 bLockZTranslation : 1;
 
+    uint8 bLockRotation : 1;
     uint8 bLockXRotation : 1;
     uint8 bLockYRotation : 1;
     uint8 bLockZRotation : 1;
 
     uint8 bOverrideMaxAngularVelocity : 1;
+ 
+    void SetLinearVelocity(FVector V) {LinearVelocity = V;}
+    void SetAngularVelocity(FVector AV) {AngularVelocity = AV;}
+
+    void SetbSimulatePhysics(bool b){ bSimulatePhysics = b; }
+    void SetbEnableGravity(bool b){ bEnableGravity = b; }
+    
+    void UpdatePhysics();
 };

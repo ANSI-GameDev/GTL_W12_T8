@@ -55,6 +55,10 @@ void USubEngine::Tick(float DeltaTime)
 {
 }
 
+void USubEngine::PhysicsTick(float DeltaTime)
+{
+}
+
 void USubEngine::Render()
 {
 

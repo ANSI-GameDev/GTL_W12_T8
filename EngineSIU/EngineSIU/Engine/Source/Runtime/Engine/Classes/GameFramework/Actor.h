@@ -29,10 +29,12 @@ public:
 
     /** 매 Tick마다 호출됩니다. */
     virtual void Tick(float DeltaTime);
-
+    
     /** Actor가 제거될 때 호출됩니다. */
     virtual void Destroyed();
 
+    virtual void PhysicsUpdate(float DeltaTime);
+    
     /**
      * 액터가 게임 플레이를 종료할 때 호출되는 함수입니다.
      *

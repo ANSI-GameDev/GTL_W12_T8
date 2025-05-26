@@ -19,7 +19,8 @@
 
 #include <PxPhysicsAPI.h>
 
-#include "PhysScene.h"
+#include "Actors/DirectionalLightActor.h"
+#include "Physics/PhysScene.h"
 
 class UEditorEngine;
 
@@ -29,7 +30,6 @@ UWorld* UWorld::CreateWorld(UObject* InOuter, const EWorldType InWorldType, cons
     NewWorld->WorldName = InWorldName;
     NewWorld->WorldType = InWorldType;
     NewWorld->InitializeNewWorld();
-
     
     return NewWorld;
 }
@@ -41,10 +41,13 @@ void UWorld::InitializeNewWorld()
     //InitializeLightScene(); // 테스트용 LightScene 비활성화
 
     CollisionManager = new FCollisionManager();
-    PhysicsScene = new FPhysScene();
-
-
-    SetPhysicsScene(PhysicsScene);
+    
+    FPhysScene* NewPhysScene = new FPhysScene();
+    NewPhysScene->InitPhysX();
+    SetPhysicsScene(NewPhysScene);
+    
+    ADirectionalLight* LightActor = SpawnActor<ADirectionalLight>();
+    
 }
 
 void UWorld::InitializeLightScene()

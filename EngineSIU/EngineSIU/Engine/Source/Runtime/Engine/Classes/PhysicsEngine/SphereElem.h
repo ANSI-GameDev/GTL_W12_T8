@@ -5,32 +5,38 @@
 
 struct FKSphereElem : public FKShapeElem
 {
-    FKSphereElem()
+    FKSphereElem() 
+    : FKShapeElem(EAggCollisionShape::Sphere)
+    , Center( FVector::ZeroVector )
+    , Radius(1){}
+
+    FKSphereElem(float InRadius)
         : FKShapeElem(EAggCollisionShape::Sphere)
-        , Radius(0.0f)
-        , Center(FVector::ZeroVector)
-    {
-    }
+    ,Center(FVector::ZeroVector)
+    ,Radius(InRadius){}
 
-    virtual ~FKSphereElem();
+    ~FKSphereElem();
+    
+    FVector Center;
+    float Radius;
 
-    friend bool operator==(const FKSphereElem& LHS, const FKSphereElem& RHS)
+    friend bool operator==( const FKSphereElem& LHS, const FKSphereElem& RHS )
     {
-        return (LHS.Center == RHS.Center && LHS.Radius == RHS.Radius);
+        return ( LHS.Center == RHS.Center &&
+            LHS.Radius == RHS.Radius );
     }
 
     FTransform GetTransform() const
     {
-        return FTransform(Center);
-    };
+        return FTransform( Center );
+    }
 
     void SetTransform(const FTransform& InTransform)
     {
         Center = InTransform.GetTranslation();
     }
-
-public:
-
-    FVector Center;
-    float Radius;
+    
+    // FBoundingBox CalcAABB(const FTransform& BoneTM, float Scale) const;
+    // float GetShortestDistanceToPoint(const FVector& WorldPosition, const FTransform& BodyToWorldTM) const;
+    // float GetClosestPointAndNormal(const FVector& WorldPosition, const FTransform& BodyToWorldTM, FVector& ClosestWorldPosition, FVector& Normal) const;
 };

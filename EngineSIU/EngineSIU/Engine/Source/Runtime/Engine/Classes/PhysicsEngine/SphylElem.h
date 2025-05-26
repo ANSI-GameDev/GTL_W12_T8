@@ -6,36 +6,42 @@
 
 struct FKSphylElem : public FKShapeElem
 {
-
     FKSphylElem()
-        : FKShapeElem(EAggCollisionShape::Sphyl)
-        , Center(FVector::ZeroVector)
-        , Rotation(FRotator::ZeroRotator)
-        , Radius(1), Length(1)
+    : FKShapeElem(EAggCollisionShape::Sphyl)
+    , Center( FVector::ZeroVector )
+    , Rotation(FRotator::ZeroRotator)
+    , Radius(1), Length(1)
     {
-
     }
 
-    friend bool operator==(const FKSphylElem& LHS, const FKSphylElem& RHS)
+    FKSphylElem( float InRadius, float InLength )
+    : FKShapeElem(EAggCollisionShape::Sphyl)
+    , Center( FVector::ZeroVector )
+    , Rotation(FRotator::ZeroRotator)
+    , Radius(InRadius), Length(InLength)
     {
-        return (LHS.Center == RHS.Center &&
+    }
+    
+    friend bool operator==( const FKSphylElem& LHS, const FKSphylElem& RHS )
+    {
+        return ( LHS.Center == RHS.Center &&
             LHS.Rotation == RHS.Rotation &&
             LHS.Radius == RHS.Radius &&
-            LHS.Length == RHS.Length);
-    };
-
+            LHS.Length == RHS.Length );
+    }
 
     FTransform GetTransform() const
     {
         return FTransform(Rotation, Center);
-    };
+    }
 
     void SetTransform(const FTransform& InTransform)
     {
         Rotation = InTransform.Rotator();
         Center = InTransform.GetTranslation();
     }
-
+    
+    //Capsule
     FVector Center;
     FRotator Rotation;
     float Radius;

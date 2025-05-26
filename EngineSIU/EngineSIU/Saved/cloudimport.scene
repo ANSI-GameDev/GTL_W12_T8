@@ -1,0 +1,163 @@
+{
+    "Actors": [
+        {
+            "ActorClass": "ADirectionalLight",
+            "ActorID": "ADirectionalLight_59",
+            "ActorLabel": "ADirectionalLight59",
+            "ActorTickInEditor": "false",
+            "Components": [
+                {
+                    "ComponentClass": "UDirectionalLightComponent",
+                    "ComponentID": "UDirectionalLightComponent_0",
+                    "Properties": {
+                        "AABB_Max": "X=1.000 Y=1.000 Z=0.100",
+                        "AABB_Min": "X=-1.000 Y=-1.000 Z=-0.100",
+                        "AttachParentID": "UBillboardComponent_0",
+                        "ComponentClass": "UDirectionalLightComponent",
+                        "ComponentName": "UDirectionalLightComponent_0",
+                        "ComponentOwner": "ADirectionalLight_59",
+                        "ComponentOwnerClass": "ADirectionalLight",
+                        "Direction": "X=-1.000 Y=-0.000 Z=-0.000",
+                        "Intensity": "10.000000",
+                        "LightColor": "R=1.000 G=1.000 B=1.000 A=1.000",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=0.000",
+                        "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=-0.000",
+                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true"
+                    }
+                },
+                {
+                    "ComponentClass": "UBillboardComponent",
+                    "ComponentID": "UBillboardComponent_0",
+                    "Properties": {
+                        "AABB_max": "X=0.000 Y=0.000 Z=0.000",
+                        "AABB_min": "X=0.000 Y=0.000 Z=0.000",
+                        "AttachParentID": "nullptr",
+                        "BufferKey": "Assets/Editor/Icon/S_LightDirectional.PNG",
+                        "ComponentClass": "UBillboardComponent",
+                        "ComponentName": "UBillboardComponent_0",
+                        "ComponentOwner": "ADirectionalLight_59",
+                        "ComponentOwnerClass": "ADirectionalLight",
+                        "FinalIndexU": "0.000000",
+                        "FinalIndexV": "0.000000",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=3.000",
+                        "RelativeRotation": "Pitch=39.404 Yaw=152.749 Roll=-175.142",
+                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true",
+                        "m_Type": "UBillboardComponent"
+                    }
+                }
+            ],
+            "RootComponentID": "UBillboardComponent_0"
+        },
+        {
+            "ActorClass": "AActor",
+            "ActorID": "AActor_259",
+            "ActorLabel": "OBJ_SKELETALMESH_259",
+            "ActorTickInEditor": "true",
+            "Components": [
+                {
+                    "ComponentClass": "USceneComponent",
+                    "ComponentID": "USceneComponent_263",
+                    "Properties": {
+                        "AttachParentID": "USkeletalMeshComponent_261",
+                        "ComponentClass": "USceneComponent",
+                        "ComponentName": "USceneComponent_263",
+                        "ComponentOwner": "AActor_259",
+                        "ComponentOwnerClass": "AActor",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=0.000",
+                        "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=0.000",
+                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true"
+                    }
+                },
+                {
+                    "ComponentClass": "USceneComponent",
+                    "ComponentID": "USceneComponent_260",
+                    "Properties": {
+                        "AttachParentID": "USkeletalMeshComponent_261",
+                        "ComponentClass": "USceneComponent",
+                        "ComponentName": "USceneComponent_260",
+                        "ComponentOwner": "AActor_259",
+                        "ComponentOwnerClass": "AActor",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=0.000",
+                        "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=-0.000",
+                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true"
+                    }
+                },
+                {
+                    "ComponentClass": "USkeletalMeshComponent",
+                    "ComponentID": "USkeletalMeshComponent_261",
+                    "Properties": {
+                        "AABB_max": "X=125.000 Y=22.949 Z=88.120",
+                        "AABB_min": "X=-125.000 Y=-22.949 Z=-88.120",
+                        "AttachParentID": "nullptr",
+                        "ComponentClass": "USkeletalMeshComponent",
+                        "ComponentName": "USkeletalMeshComponent_261",
+                        "ComponentOwner": "AActor_259",
+                        "ComponentOwnerClass": "AActor",
+                        "RelativeLocation": "X=2.415 Y=-1.881 Z=0.569",
+                        "RelativeRotation": "Pitch=-90.000 Yaw=180.000 Roll=-40.998",
+                        "RelativeScale3D": "X=0.010 Y=0.010 Z=0.010",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true",
+                        "m_Type": ""
+                    }
+                }
+            ],
+            "RootComponentID": "USkeletalMeshComponent_261"
+        },
+        {
+            "ActorClass": "AActor",
+            "ActorID": "AActor_333",
+            "ActorLabel": "OBJ_SPHERE_333",
+            "ActorTickInEditor": "false",
+            "Components": [
+                {
+                    "ComponentClass": "USceneComponent",
+                    "ComponentID": "USceneComponent_334",
+                    "Properties": {
+                        "AttachParentID": "nullptr",
+                        "ComponentClass": "USceneComponent",
+                        "ComponentName": "USceneComponent_334",
+                        "ComponentOwner": "AActor_333",
+                        "ComponentOwnerClass": "AActor",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=0.000",
+                        "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=-0.000",
+                        "RelativeScale3D": "X=1.000 Y=1.000 Z=1.000",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true"
+                    }
+                },
+                {
+                    "ComponentClass": "USphereComp",
+                    "ComponentID": "USphereComp_335",
+                    "Properties": {
+                        "AABB_max": "X=1.000 Y=-0.000 Z=1.000",
+                        "AABB_min": "X=0.000 Y=-1.000 Z=0.000",
+                        "AttachParentID": "nullptr",
+                        "ComponentClass": "USphereComp",
+                        "ComponentName": "USphereComp_335",
+                        "ComponentOwner": "AActor_333",
+                        "ComponentOwnerClass": "AActor",
+                        "RelativeLocation": "X=0.000 Y=0.000 Z=-1.698",
+                        "RelativeRotation": "Pitch=0.000 Yaw=0.000 Roll=-0.000",
+                        "RelativeScale3D": "X=100.000 Y=100.000 Z=1.000",
+                        "StaticMeshPath": "Contents/Cube/cube-tex.obj",
+                        "bAutoActivate": "true",
+                        "bIsActive": "true",
+                        "m_Type": "USphereComp"
+                    }
+                }
+            ],
+            "RootComponentID": "USceneComponent_334"
+        }
+    ],
+    "NextUUID": 0,
+    "Version": 1
+}
