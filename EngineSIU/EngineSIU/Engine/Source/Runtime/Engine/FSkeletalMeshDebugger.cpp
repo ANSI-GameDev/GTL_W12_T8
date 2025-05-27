@@ -169,10 +169,10 @@ void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* Sk
         if (!Constraint) continue;
         const FConstraintInstance& Inst = Constraint->DefaultInstance;
 
-        if (Inst.JointName != SelectedConstraintName)
-            continue;
 
         const FName& BoneName = Inst.ConstraintBone1;
+        if (Inst.JointName != SelectedConstraintName&&BoneName!=SelectedConstraintName)
+            continue;
         int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
         if (!RefSkeleton.IsValidRawIndex(BoneIndex)) continue;
 

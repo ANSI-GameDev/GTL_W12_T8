@@ -35,10 +35,9 @@ void PhysicsViewerPanel::Render()
     //추후 ViewerPanel에서 선택된 Bone를 가져오는 것도 좋을듯
     FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
     FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch);
-    if (SelectedType == EPhysicsSelectionType::Constraint)
-    {
+    //if (SelectedType == EPhysicsSelectionType::Constraint)
         FSkeletalMeshDebugger::DrawConeConstraints(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName);
-    }
+    
     FSkeletalMeshDebugger::DrawCapsuleOBBs(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName);
 
 }
