@@ -365,7 +365,80 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
         if (ImGui::DragFloat3("Local Rotation", EulerAngles, 0.5f))
         {
-            BoneTransform.SetRotation(FQuat(FRotator(EulerAngles[0], EulerAngles[1], EulerAngles[2])));
+            FRotator NewRotator(EulerAngles[0], EulerAngles[1], EulerAngles[2]);
+            FQuat NewQuat = FQuat(NewRotator);
+
+            for (UPhysicsConstraintTemplate* Constraint : PhysicsAsset->ConstraintSetup)
+            {
+                if (Constraint && Constraint->DefaultInstance.ConstraintBone1 == SelectedName)
+                {
+                    const FConstraintInstance& Inst = Constraint->DefaultInstance;
+
+                    // Ref 기준 회전
+                    FQuat RefQuat = RefSkeleton.GetRefWorldTransform(BoneIndex).GetRotation();
+                    FQuat DeltaQuat = RefQuat.Inverse() * NewQuat;
+
+                    // Swing-Twist 분해 (Twist = Z)
+                    const FVector TwistAxis = RefQuat.GetUnitAxis(EAxis::Z);
+                    FVector RotationAxis;
+                    float AngleRad;
+                    DeltaQuat.ToAxisAndAngle(RotationAxis, AngleRad);
+                    RotationAxis.Normalize();
+
+                    FVector TwistDir = TwistAxis * FVector::DotProduct(RotationAxis, TwistAxis);
+                    FQuat TwistQuat = FQuat(TwistDir, AngleRad).GetNormalized();
+                    FQuat SwingQuat = (DeltaQuat * TwistQuat.Inverse()).GetNormalized();
+
+                    float SwingAngleRad;
+                    FVector SwingAxis;
+                    SwingQuat.ToAxisAndAngle(SwingAxis, SwingAngleRad);
+                    SwingAngleRad = FMath::Clamp(SwingAngleRad, 0.f, PI);
+
+                    FVector LocalSwingAxis = RefQuat.Inverse().RotateVector(SwingAxis);
+                    float SwingX = FMath::RadiansToDegrees(LocalSwingAxis.X * SwingAngleRad);
+                    float SwingY = FMath::RadiansToDegrees(LocalSwingAxis.Y * SwingAngleRad);
+                    float SwingZ = FMath::RadiansToDegrees(LocalSwingAxis.Z * SwingAngleRad);
+
+                    float MaxSwing1 = Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees; // Y축
+                    float MaxSwing2 = Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees; // X축
+
+                    SwingX = FMath::Clamp(SwingX, -MaxSwing2, MaxSwing2);
+                    SwingY = FMath::Clamp(SwingY, -MaxSwing1, MaxSwing1);
+
+                    FQuat RollQuat = FQuat(FVector::XAxisVector, FMath::DegreesToRadians(SwingX));
+                    FQuat PitchQuat = FQuat(FVector::YAxisVector, FMath::DegreesToRadians(SwingY));
+                    SwingQuat = PitchQuat * RollQuat;
+
+                    float MaxTwist = Inst.ProfileInstance.TwistLimit.TwistLimitDegrees;
+                    {
+                        FVector Axis = TwistAxis;
+                        FQuat Delta = RefQuat.Inverse() * NewQuat;
+
+                        FVector RotAxis;
+                        float TwistAngleRad;
+                        Delta.ToAxisAndAngle(RotAxis, TwistAngleRad);
+                        RotAxis.Normalize();
+
+                        FVector Projected = Axis * FVector::DotProduct(RotAxis, Axis);
+                        FQuat TwistDelta = FQuat(Projected, TwistAngleRad).GetNormalized();
+
+                        FVector OutTwistAxis;
+                        float OutTwistRad;
+                        TwistDelta.ToAxisAndAngle(OutTwistAxis, OutTwistRad);
+
+                        float OutTwistDeg = FMath::RadiansToDegrees(OutTwistRad);
+                        if (FVector::DotProduct(OutTwistAxis, Axis) < 0)
+                            OutTwistDeg = -OutTwistDeg;
+
+                        float ClampedTwistDeg = FMath::Clamp(OutTwistDeg, -MaxTwist, MaxTwist);
+                        TwistQuat = FQuat(Axis, FMath::DegreesToRadians(ClampedTwistDeg));
+                    }
+
+                    NewQuat = RefQuat * SwingQuat * TwistQuat;
+                }
+            }
+
+            BoneTransform.SetRotation(NewQuat);
             bChanged = true;
         }
 
