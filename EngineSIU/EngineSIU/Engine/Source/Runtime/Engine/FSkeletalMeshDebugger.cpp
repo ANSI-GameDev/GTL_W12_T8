@@ -233,16 +233,21 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
         for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
             const FTransform LocalTransform = Sphyl.GetTransform();
-            //const FTransform WorldTransform = LocalTransform * FTransform(BoneMatrix);
+
+            // 캡슐이 Y축 방향으로 눕도록 보정 (Z->Y)
+            const FQuat ZtoYQuat = FQuat(FVector::RightVector, -PI * 0.5f);
+            const FQuat FinalRot = ZtoYQuat * LocalTransform.GetRotation();
+            const FMatrix RotationMatrix = FinalRot.ToMatrix();
 
             const float HalfLength = Sphyl.Length * 0.5f;
-            const FVector BoxExtent(Sphyl.Radius, Sphyl.Radius, HalfLength);
+            const FVector BoxExtent(Sphyl.Radius, HalfLength, Sphyl.Radius); // X=Radius, Y=Length, Z=Radius
 
             FBoundingBox LocalBox;
             LocalBox.MinLocation = -BoxExtent;
             LocalBox.MaxLocation = BoxExtent;
-            DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, LocalTransform.Rotation.ToMatrix(), Color);
-            //DrawBatch->AddOBBToBatch(LocalBox, WorldTransform.GetTranslation(), WorldTransform.ToMatrixNoScale(), Color);
+
+            DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, RotationMatrix, Color);
         }
+
     }
 }

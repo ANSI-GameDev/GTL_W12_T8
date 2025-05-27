@@ -116,8 +116,6 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
     // 현재 Bone의 트리 노드 생성
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
     bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
-
-    bool bOpen = ImGui::TreeNodeEx(*Label, flags);
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
         if (SkeletalMeshComponent)
