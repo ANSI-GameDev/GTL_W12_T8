@@ -147,6 +147,9 @@ void FSkeletalMeshDebugger::DrawSkeletonAABBs(const USkeletalMeshComponent* Skel
         DrawBatch->AddAABBToBatch(Box, Pos, FMatrix::Identity);
     }
 }
+//TODO
+//위치는 RefSkel 기준이 아닌 현재 Bone 위치 기준으로 할지 결정
+//Rot는 RefSkel로 하는게 맞음
 void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedConstraintName)
 {
     if (!SkelComp || !DrawBatch) return;
@@ -157,54 +160,47 @@ void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* Sk
     const USkeleton* Skeleton = SkelComp->GetSkeletalMeshAsset()->GetSkeleton();
     const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
 
-    TArray<FMatrix> BoneWorldMatrices;
-    SkelComp->GetCurrentGlobalBoneMatrices(BoneWorldMatrices);
-
     constexpr int32 ConeSegments = 16;
     const FVector4 ConeColor(1.f, 1.f, 0.f, 1.f); // 노란색
 
+    // [1] Constraint 기준으로 원뿔 렌더링
     for (UPhysicsConstraintTemplate* Constraint : PhysAsset->ConstraintSetup)
     {
         if (!Constraint) continue;
-
         const FConstraintInstance& Inst = Constraint->DefaultInstance;
 
-        // 🔍 선택된 Constraint만 렌더링
         if (Inst.JointName != SelectedConstraintName)
             continue;
 
-        const FName& BoneName = Inst.ConstraintBone1; // 자식 본
+        const FName& BoneName = Inst.ConstraintBone1;
         int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
-
-        if (!BoneWorldMatrices.IsValidIndex(BoneIndex)) continue;
+        if (!RefSkeleton.IsValidRawIndex(BoneIndex)) continue;
 
         // ConstraintBone1의 자식 중 하나를 찾음
-        int32 ChildOfTarget = INDEX_NONE;
+        int32 ChildIndex = INDEX_NONE;
         for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
         {
             if (RefSkeleton.GetParentIndex(i) == BoneIndex)
             {
-                ChildOfTarget = i;
+                ChildIndex = i;
                 break;
             }
         }
+        if (!RefSkeleton.IsValidRawIndex(ChildIndex)) continue;
 
-        // 자식이 없으면 시각화 생략
-        if (!BoneWorldMatrices.IsValidIndex(ChildOfTarget)) continue;
+        const FVector Start = RefSkeleton.GetRefWorldTransform(BoneIndex).GetTranslation();
+        const FVector End = RefSkeleton.GetRefWorldTransform(ChildIndex).GetTranslation();
 
-        FVector Start = BoneWorldMatrices[BoneIndex].GetOrigin();       // ConstraintBone1 위치
-        FVector End = BoneWorldMatrices[ChildOfTarget].GetOrigin();     // 그 자식 Bone 위치
-
-        FVector Axis = End - Start;
-        float Length = Axis.Length();
+        const float Length = (End - Start).Length();
         if (Length < KINDA_SMALL_NUMBER) continue;
 
-        float AvgSwing = (Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees + Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees) * 0.5f;
-        float Radius = FMath::Tan(FMath::DegreesToRadians(AvgSwing)) * Length;
+        const float AvgSwing = (Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees + Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees) * 0.5f;
+        const float Radius = FMath::Tan(FMath::DegreesToRadians(AvgSwing)) * Length;
 
         DrawBatch->AddConeToBatch(Start, End, Radius, ConeSegments, ConeColor);
     }
 }
+
 void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedBodyName)
 {
     if (!SkelComp || !DrawBatch || !SkelComp->GetSkeletalMeshAsset()) return;

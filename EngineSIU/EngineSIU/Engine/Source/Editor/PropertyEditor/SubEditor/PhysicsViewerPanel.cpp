@@ -336,9 +336,9 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
     //Bone 관련 정보 표시
     if (BoneIndex != INDEX_NONE && Pose.IsValidIndex(BoneIndex))
     {
-        ImGui::SeparatorText("Bone Transform");
+        ImGui::SeparatorText("Bone Transform (Editable)");
 
-        // Local
+        // Editable CompactPose Transform (Current Pose)
         FTransform BoneTransform = Pose.GetBoneTransform(BoneIndex);
         FVector Translation = BoneTransform.GetTranslation();
         FRotator Rotator = BoneTransform.GetRotation().Rotator();
@@ -357,8 +357,6 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         float pos[3] = { Translation.X, Translation.Y, Translation.Z };
         bool bChanged = false;
 
-        //if (SelectedType == EPhysicsSelectionType::Bone)
-        //{
         if (ImGui::DragFloat3("Local Position", pos, 0.1f))
         {
             BoneTransform.SetTranslation(FVector(pos[0], pos[1], pos[2]));
@@ -375,8 +373,8 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         {
             Pose.SetBoneTransform(BoneIndex, BoneTransform);
         }
-        //}
-        // World Transform
+
+        // World Position (Current Pose)
         TArray<FMatrix> GlobalMatrices;
         SkeletalMeshComponent->GetCurrentGlobalBoneMatrices(GlobalMatrices);
         if (GlobalMatrices.IsValidIndex(BoneIndex))
@@ -384,24 +382,25 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
             FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
             FVector WorldPos = BoneMatrix.GetOrigin();
             FRotator WorldRot = BoneMatrix.ToQuat().Rotator();
-            ImGui::SeparatorText("World Transform");
+            ImGui::SeparatorText("World Transform (Current)");
             ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
             ImGui::Text("World Rotation: (%.1f, %.1f, %.1f)", WorldRot.Roll, WorldRot.Yaw, WorldRot.Pitch);
         }
-        /*// 항상 표시되는 World Pos/Rot
-        FMatrix BoneMatrix;
-        TArray<FMatrix> GlobalMatrices;
-        SkeletalMeshComponent->GetCurrentGlobalBoneMatrices(GlobalMatrices);
-        if (GlobalMatrices.IsValidIndex(BoneIndex))
+
+        const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
+        if (RefSkeleton.IsValidRawIndex(BoneIndex))
         {
-            BoneMatrix = GlobalMatrices[BoneIndex];
-            FVector WorldPos = BoneMatrix.GetOrigin();
-            FVector WorldEuler = FRotator(BoneMatrix.ToQuat()).ToVector();
+            ImGui::SeparatorText("RefSkeleton Transform");
 
+            // World
+            const FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
+            const FVector RefWorldPos = RefWorld.GetTranslation();
+            const FRotator RefWorldRot = RefWorld.GetRotation().Rotator();
 
-            ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
-            ImGui::Text("World Rotation: (%.1f, %.1f, %.1f)", WorldEuler.X, WorldEuler.Y, WorldEuler.Z);
-        }*/
+            ImGui::Text("Ref World Pos: (%.2f, %.2f, %.2f)", RefWorldPos.X, RefWorldPos.Y, RefWorldPos.Z);
+            ImGui::Text("Ref World Rot: (%.1f, %.1f, %.1f)", RefWorldRot.Roll, RefWorldRot.Yaw, RefWorldRot.Pitch);
+        }
+
     }
 
     // === 기존 Body 처리 영역 ===
