@@ -19,7 +19,13 @@ enum class EPhysicsDebugDisplay : uint8
     Constraint = 1 << 2,
     All = Bone | Body | Constraint
 };
-
+enum class EPhysicsSelectionType : uint8
+{
+    None,
+    Bone,
+    Body,
+    Constraint
+};
 class PhysicsViewerPanel : public UEditorPanel
 {
 public:
@@ -33,6 +39,7 @@ private:
     void RenderPhysicsSettings();
     void RenderInfoPanel();
     void RenderBoneRecursive(const FReferenceSkeleton& RefSkeleton, int32 BoneIndex, FBaseCompactPose& Pose);
+    void RenderSelectedProperty(FBaseCompactPose& Pose);
 
     void RenderPanelLayout();
     void RenderSkeletonUI();
@@ -42,5 +49,8 @@ private:
     EPhysicsDebugDisplay DebugDisplayFlags = EPhysicsDebugDisplay::All;
     std::shared_ptr<FEditorViewportClient> ViewportClient;
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
+
+    EPhysicsSelectionType SelectedType = EPhysicsSelectionType::None;
+    FName SelectedName;
     //int SelectedBoneIndex = -1;
 };

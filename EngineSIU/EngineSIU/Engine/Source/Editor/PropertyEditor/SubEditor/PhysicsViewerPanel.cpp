@@ -106,6 +106,8 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
         if (SkeletalMeshComponent)
         {
             SkeletalMeshComponent->SetSelectedBone(BoneIndex);
+            SelectedType = EPhysicsSelectionType::Bone;
+            SelectedName = BoneName;
         }
     }
 
@@ -137,7 +139,12 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
                     if (Inst.ConstraintBone1 == BoneName/* || Inst.ConstraintBone2 == BoneName*/)
                     {
                         FString CName = Inst.JointName.ToString() + TEXT(" [Constraint]");
-                        ImGui::TreeNodeEx(*CName, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                        bool bClicked = ImGui::TreeNodeEx(*CName, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                        if (ImGui::IsItemClicked())
+                        {
+                            SelectedType = EPhysicsSelectionType::Constraint;
+                            SelectedName = Inst.JointName;
+                        }
                     }
                 }
             }
@@ -149,6 +156,11 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
                 {
                     FString BodyLabel = BoneName.ToString() + TEXT(" [Body]");
                     ImGui::TreeNodeEx(*BodyLabel, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+                    if (ImGui::IsItemClicked())
+                    {
+                        SelectedType = EPhysicsSelectionType::Body;
+                        SelectedName = BoneName;
+                    }
                 }
             }
         }
@@ -210,6 +222,9 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 RenderBoneRecursive(RefSkeleton, BoneIndex, Pose);
             }
         }
+
+        RenderSelectedProperty(Pose);
+        /*
         int SelectedBoneIndex = SkeletalMeshComponent->GetSelectedBone();
         if (SelectedBoneIndex != INDEX_NONE && Pose.IsValidIndex(SelectedBoneIndex))
         {
@@ -255,12 +270,157 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 Pose.SetBoneTransform(SelectedBoneIndex, BoneTransform);
             }
         }
+        */
 
     }
 
     ImGui::End();
 }
 
+void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
+{
+    if (!SkeletalMeshComponent) return;
+
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+
+    if (SelectedType == EPhysicsSelectionType::Bone)
+    {
+        const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(SelectedName);
+        if (BoneIndex == INDEX_NONE || !Pose.IsValidIndex(BoneIndex)) return;
+
+        ImGui::SeparatorText("Bone Transform");
+
+        FTransform BoneTransform = Pose.GetBoneTransform(BoneIndex);
+        FVector Translation = BoneTransform.GetTranslation();
+        FRotator Rotator = BoneTransform.GetRotation().Rotator();
+
+        static int32 LastBoneIndex = -1;
+        static float EulerAngles[3] = { 0.f, 0.f, 0.f };
+
+        if (LastBoneIndex != BoneIndex)
+        {
+            // Bone이 바뀐 경우에만 회전값 초기화
+            EulerAngles[0] = Rotator.Roll;
+            EulerAngles[1] = Rotator.Yaw;
+            EulerAngles[2] = Rotator.Pitch;
+            LastBoneIndex = BoneIndex;
+        }
+
+        float pos[3] = { Translation.X, Translation.Y, Translation.Z };
+        bool bChanged = false;
+
+        if (ImGui::DragFloat3("Position", pos, 0.1f))
+        {
+            BoneTransform.SetTranslation(FVector(pos[0], pos[1], pos[2]));
+            bChanged = true;
+        }
+
+        if (ImGui::DragFloat3("Rotation", EulerAngles, 0.5f))
+        {
+            BoneTransform.SetRotation(FQuat(FRotator(EulerAngles[0], EulerAngles[1], EulerAngles[2])));
+            bChanged = true;
+        }
+
+        if (bChanged)
+        {
+            Pose.SetBoneTransform(BoneIndex, BoneTransform);
+        }
+    }
+
+
+    else if (SelectedType == EPhysicsSelectionType::Body)
+    {
+        if (!PhysicsAsset) return;
+
+        int32 BodyIndex = PhysicsAsset->FindBodyIndex(SelectedName);
+        if (BodyIndex == INDEX_NONE) return;
+
+        ImGui::SeparatorText("Body Settings");
+        
+        UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
+    }
+    else if (SelectedType == EPhysicsSelectionType::Constraint)
+    {
+        if (!PhysicsAsset) return;
+
+        for (UPhysicsConstraintTemplate* Constraint : PhysicsAsset->ConstraintSetup)
+        {
+            if (Constraint && Constraint->DefaultInstance.JointName == SelectedName)
+            {
+                ImGui::SeparatorText("Constraint Settings");
+
+                FConstraintInstance& Inst = Constraint->DefaultInstance;
+
+                // [1] Linear Constraint
+                ImGui::Text("Linear Constraint");
+
+                float LinearLimit = Inst.ProfileInstance.LinearLimit.Limit;
+                if (ImGui::DragFloat("Limit", &LinearLimit, 0.1f, 0.0f, 1000.0f))
+                    Inst.ProfileInstance.LinearLimit.Limit = LinearLimit;
+
+                const char* LinearMotionTypes[] = { "Free", "Limited", "Locked" };
+
+                int xMotion = Inst.ProfileInstance.LinearLimit.XMotion;
+                int yMotion = Inst.ProfileInstance.LinearLimit.YMotion;
+                int zMotion = Inst.ProfileInstance.LinearLimit.ZMotion;
+
+                ImGui::Combo("X Motion", &xMotion, LinearMotionTypes, IM_ARRAYSIZE(LinearMotionTypes));
+                ImGui::Combo("Y Motion", &yMotion, LinearMotionTypes, IM_ARRAYSIZE(LinearMotionTypes));
+                ImGui::Combo("Z Motion", &zMotion, LinearMotionTypes, IM_ARRAYSIZE(LinearMotionTypes));
+
+                Inst.ProfileInstance.LinearLimit.XMotion = static_cast<ELinearConstraintMotion>(xMotion);
+                Inst.ProfileInstance.LinearLimit.YMotion = static_cast<ELinearConstraintMotion>(yMotion);
+                Inst.ProfileInstance.LinearLimit.ZMotion = static_cast<ELinearConstraintMotion>(zMotion);
+
+                // [2] Cone (Swing) Constraint
+                ImGui::Separator();
+                ImGui::Text("Swing (Cone) Constraint");
+
+                float Swing1 = Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees;
+                float Swing2 = Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees;
+
+                if (ImGui::DragFloat("Swing1 Limit (Y)", &Swing1, 0.1f, 0.0f, 180.0f))
+                    Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees = Swing1;
+
+                if (ImGui::DragFloat("Swing2 Limit (X)", &Swing2, 0.1f, 0.0f, 180.0f))
+                    Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees = Swing2;
+
+                int swing1Motion = Inst.ProfileInstance.ConeLimit.Swing1Motion;
+                int swing2Motion = Inst.ProfileInstance.ConeLimit.Swing2Motion;
+                const char* AngularMotionTypes[] = { "Free", "Limited", "Locked" };
+
+                ImGui::Combo("Swing1 Motion", &swing1Motion, AngularMotionTypes, IM_ARRAYSIZE(AngularMotionTypes));
+                ImGui::Combo("Swing2 Motion", &swing2Motion, AngularMotionTypes, IM_ARRAYSIZE(AngularMotionTypes));
+
+                Inst.ProfileInstance.ConeLimit.Swing1Motion = static_cast<EAngularConstraintMotion>(swing1Motion);
+                Inst.ProfileInstance.ConeLimit.Swing2Motion = static_cast<EAngularConstraintMotion>(swing2Motion);
+
+                // [3] Twist Constraint
+                ImGui::Separator();
+                ImGui::Text("Twist Constraint");
+
+                float Twist = Inst.ProfileInstance.TwistLimit.TwistLimitDegrees;
+                if (ImGui::DragFloat("Twist Limit (Z)", &Twist, 0.1f, 0.0f, 180.0f))
+                    Inst.ProfileInstance.TwistLimit.TwistLimitDegrees = Twist;
+
+                int twistMotion = Inst.ProfileInstance.TwistLimit.TwistMotion;
+                ImGui::Combo("Twist Motion", &twistMotion, AngularMotionTypes, IM_ARRAYSIZE(AngularMotionTypes));
+                Inst.ProfileInstance.TwistLimit.TwistMotion = static_cast<EAngularConstraintMotion>(twistMotion);
+
+                // [4] 연결 정보
+                ImGui::Separator();
+                ImGui::Text("Connected Bones:");
+                ImGui::BulletText("Bone1: %s", *Inst.ConstraintBone1.ToString());
+                ImGui::BulletText("Bone2: %s", *Inst.ConstraintBone2.ToString());
+
+                break;
+            }
+        }
+    }
+
+
+}
 
 inline void PhysicsViewerPanel::RenderPanelLayout()
 {
