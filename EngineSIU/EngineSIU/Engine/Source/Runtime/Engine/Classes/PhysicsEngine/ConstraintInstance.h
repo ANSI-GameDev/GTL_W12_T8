@@ -53,7 +53,7 @@ struct FConstraintInstanceBase
     /* Skeletal Mesh Component 배열 내의 인덱스 */
     int32 ConstraintIndex;
 
-    FPhysScene* PhysScene;
+    FPhysScene* PhysScene = nullptr;
 };
 
 /* 실제 시뮬레이션에 사용되는 물리 엔진 레벨의 Constraint 데이터
@@ -74,7 +74,9 @@ public:
     float GetLinearLimit() const;
     void UpdateLinearLimit();
     void UpdateAngularLimit();
-    void InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, USkeletalMeshComponent* OwningComponent);
+    void InitConstraint(
+        FBodyInstance* Body1, FBodyInstance* Body2, const FTransform& Frame1, const FTransform& Frame2, FPhysScene* InScene
+    );
     FTransform CalculateDefaultChildTransform() const;
     FTransform CalculateDefaultParentTransform(const UPhysicsAsset* PhysicsAsset) const;
     void SnapTransformsToDefault(const EConstraintTransformComponentFlags SnapFlags, const UPhysicsAsset* const PhysicsAsset);

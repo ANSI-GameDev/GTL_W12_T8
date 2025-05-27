@@ -66,6 +66,7 @@ struct FTransform
     // 변환 연산자들과 함수들
     FTransform operator*(const FTransform& Other) const;
     FTransform operator*(float Scale) const;
+    bool operator==(const FTransform& Other) const;
     
     void Blend(const FTransform& Atom1, const FTransform& Atom2, float Alpha);
     FTransform BlendWith(const FTransform& Other, float Alpha) const;
@@ -124,5 +125,5 @@ struct FTransform
 
     //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
     FTransform(const physx::PxTransform& InTransform);
-    physx::PxTransform ToPxTransform();
+    physx::PxTransform ToPxTransform() const;
 };

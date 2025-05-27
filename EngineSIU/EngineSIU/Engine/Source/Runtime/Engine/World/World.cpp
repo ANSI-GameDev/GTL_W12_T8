@@ -58,7 +58,7 @@ void UWorld::InitializeNewWorld()
     Platform->SetKinematic(true);
     
     ADirectionalLight* LightActor = SpawnActor<ADirectionalLight>();
-    
+    LightActor->SetActorRotation(FRotator(50, 50, 0));
 }
 
 void UWorld::InitializeLightScene()
@@ -137,26 +137,26 @@ void UWorld::Tick(float DeltaTime)
 {
     TimeSeconds += DeltaTime;
     
-    if (TimeSeconds > SpawnTime)
-    {
-        SpawnTime += 1.f;
-        SpawnType = 1 - SpawnType;
-        if (SpawnType)
-        {
-            ACubeActor* CubeActor = SpawnActor<ACubeActor>();
-            CubeActor->SetActorLocation(FVector(0, 0, 30));
-            CubeActor->InitBodyInstance();
-            CubeActor->SetActorLabel(TEXT("OBJ_BOX_COLLISION"));
-            CubeActor->SetActorTickInEditor(true); 
-        }else
-        {
-            ASphereActor* SphereActor = SpawnActor<ASphereActor>();
-            SphereActor->SetActorLocation(FVector(0, 0, 30));
-            SphereActor->InitBodyInstance();
-            SphereActor->SetActorLabel(TEXT("OBJ_SPHERE_COLLISION"));
-            SphereActor->SetActorTickInEditor(true);
-        }
-    }
+    // if (TimeSeconds > SpawnTime)
+    // {
+    //     SpawnTime += 1.f;
+    //     SpawnType = 1 - SpawnType;
+    //     if (SpawnType)
+    //     {
+    //         ACubeActor* CubeActor = SpawnActor<ACubeActor>();
+    //         CubeActor->SetActorLocation(FVector(0, 0, 30));
+    //         CubeActor->InitBodyInstance();
+    //         CubeActor->SetActorLabel(TEXT("OBJ_BOX_COLLISION"));
+    //         CubeActor->SetActorTickInEditor(true); 
+    //     }else
+    //     {
+    //         ASphereActor* SphereActor = SpawnActor<ASphereActor>();
+    //         SphereActor->SetActorLocation(FVector(0, 0, 30));
+    //         SphereActor->InitBodyInstance();
+    //         SphereActor->SetActorLabel(TEXT("OBJ_SPHERE_COLLISION"));
+    //         SphereActor->SetActorTickInEditor(true);
+    //     }
+    // }
     
     // SpawnActor()에 의해 Actor가 생성된 경우, 여기서 BeginPlay 호출
     if (WorldType != EWorldType::Editor)

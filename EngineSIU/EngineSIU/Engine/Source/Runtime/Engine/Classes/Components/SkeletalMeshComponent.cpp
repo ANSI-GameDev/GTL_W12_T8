@@ -494,7 +494,13 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
         if (Body1 && Body2)
         {
             FConstraintInstance* NewConstraint = new FConstraintInstance();
-            ConInst->InitConstraint(Body1, Body2, Scale, OwningComponent);
+            FMatrix CompWorldInvMatrix = FMatrix::Inverse(GetWorldMatrix());
+            FTransform Body1Transform = Body1->WorldTransform;
+            Body1Transform.Translation = CompWorldInvMatrix.TransformPosition(Body1Transform.Translation);
+            FTransform Body2Transform = Body2->WorldTransform;
+            Body2Transform.Translation = CompWorldInvMatrix.TransformPosition(Body2Transform.Translation);
+            
+            ConInst->InitConstraint(Body1, Body2, Body1Transform, Body2Transform, GetWorld()->GetPhysicsScene());
         }
     }
 }

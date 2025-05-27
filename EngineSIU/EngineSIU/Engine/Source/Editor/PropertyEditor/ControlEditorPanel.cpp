@@ -58,6 +58,7 @@
 #include <Particles/ParticleModules/ParticleModuleSize.h>
 #include <Particles/ParticleModules/ParticleModuleVelocity.h>
 
+#include "Components/Material/PhysicsConstraintComponent.h"
 #include "SubWindow/PhysicsSubEngine.h"
 
 ControlEditorPanel::ControlEditorPanel()
@@ -371,7 +372,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
             {.Label = "BoxCol", .OBJ = OBJ_BOX_COLLISION},
             {.Label = "SphereCol", .OBJ = OBJ_SPHERE_COLLISION},
             {.Label = "CapsuleCol", .OBJ = OBJ_CAPSULE_COLLISION},
-            {.Label = "Fish", .OBJ = OBJ_FISH},
+            {.Label = "Constraint", .OBJ = OBJ_Constraint},
             {.Label = "Platform", .OBJ = OBJ_PLATFORM},
             {.Label = "GoalPlatform", .OBJ = OBJ_GOALPLATFORM},
             {.Label = "Coin", .OBJ = OBJ_COIN},
@@ -495,10 +496,15 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                     CapsuleActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
                     break;
                 }
-                case OBJ_FISH:
-                    SpawnedActor = World->SpawnActor<AFish>();
-                    SpawnedActor->SetActorLabel(TEXT("OBJ_FISH"));
+                case OBJ_Constraint:
+                {
+                    SpawnedActor = World->SpawnActor<AActor>();
+                    SpawnedActor->SetActorLabel(TEXT("OBJ_CONSTRAINT"));
+                    SpawnedActor->SetActorTickInEditor(true);
+                    UPhysicsConstraintComponent* Comp = SpawnedActor->AddComponent<UPhysicsConstraintComponent>();
+                    SpawnedActor->SetRootComponent(Comp);
                     break;
+                }
                 case OBJ_PLATFORM:
                     SpawnedActor = World->SpawnActor<APlatformActor>();
                     SpawnedActor->SetActorLabel(TEXT("OBJ_PLATFORM"));

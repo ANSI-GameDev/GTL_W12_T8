@@ -161,7 +161,7 @@ public:
 
     //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
     FQuat(const physx::PxQuat& InQuat);
-    physx::PxQuat ToPxQuat();
+    physx::PxQuat ToPxQuat() const;
 };
 
 inline FArchive& operator<<(FArchive& Ar, FQuat& Q)

@@ -439,6 +439,15 @@ FTransform FTransform::operator*(float Scale) const
     return Result;
 }
 
+bool FTransform::operator==(const FTransform& Other) const
+{
+    if (Translation != Other.Translation)   {   return false; }
+    if (Rotation != Other.Rotation)         {   return false; }
+    if (Scale3D != Other.Scale3D)           {   return false; }
+
+    return true;
+}
+
 FVector FTransform::TransformPosition(const FVector& V) const
 {
     return Rotation.RotateVector(Scale3D * V) + Translation;

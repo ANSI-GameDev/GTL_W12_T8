@@ -19,9 +19,9 @@ void ACubeActor::InitBodyInstance()
     UBodySetup* BodySetup = FObjectFactory::ConstructObject<UBodySetup>(this);
     FKBoxElem Box;
     Box.Center = FVector(0);
-    Box.Extent = FVector(Scale.X*2, Scale.Y*2, Scale.Z);
+    Box.Extent = FVector(Scale.X*2, Scale.Y*2, Scale.Z*2);
     BodySetup->AggGeom.BoxElems.Add(Box);
-
+    BodySetup->BoneName = FName(std::to_string(GetUUID()));
     
     UWorld* world = GetWorld();
     

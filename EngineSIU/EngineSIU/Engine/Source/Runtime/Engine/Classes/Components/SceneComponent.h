@@ -46,7 +46,6 @@ public:
     virtual void SetRelativeRotation(const FQuat& InQuat);
     virtual void SetRelativeScale3D(const FVector& InScale);
     virtual void SetRelativeTransform(const FTransform& InTransform);
-    virtual void SetForceRelativeTransform(const FTransform& InTransform){}
     
     FVector GetRelativeLocation() const { return RelativeLocation; }
     FRotator GetRelativeRotation() const { return RelativeRotation; }

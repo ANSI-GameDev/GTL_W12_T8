@@ -14,7 +14,6 @@ public:
 
 public:
     static const FMatrix Identity;
-
 public:
     // 기본 연산자 오버로딩
     FMatrix operator+(const FMatrix& Other) const;

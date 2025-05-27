@@ -373,9 +373,9 @@ void USceneComponent::SetRelativeRotation(const FQuat& InQuat)
 
 void USceneComponent::SetRelativeTransform(const FTransform& InTransform)
 {
-    SetRelativeLocation(InTransform.GetTranslation());
-    SetRelativeRotation(InTransform.GetRotation().GetNormalized().Rotator());
-    SetRelativeScale3D(InTransform.GetScale3D());
+    USceneComponent::SetRelativeLocation(InTransform.GetTranslation());
+    USceneComponent::SetRelativeRotation(InTransform.GetRotation().GetNormalized().Rotator());
+    USceneComponent::SetRelativeScale3D(InTransform.GetScale3D());
     UpdateOverlaps();
 }
 

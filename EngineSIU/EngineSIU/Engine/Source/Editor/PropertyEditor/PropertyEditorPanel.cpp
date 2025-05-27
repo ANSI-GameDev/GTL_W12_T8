@@ -5,6 +5,7 @@
 //#include <windows.h>
 //#include <tchar.h>
 
+#include "PhysScene.h"
 #include "World/World.h"
 #include "Actors/Player.h"
 #include "Animation/AnimationAsset.h"
@@ -44,6 +45,7 @@
 #include "imgui/imgui_curve.h"
 #include "Math/Transform.h"
 #include "Animation/AnimStateMachine.h"
+#include "Components/Material/PhysicsConstraintComponent.h"
 
 PropertyEditorPanel::PropertyEditorPanel()
 {
@@ -120,6 +122,11 @@ void PropertyEditorPanel::Render()
                 ImGui::EndCombo();
             }
         }
+    }
+
+    if (UPhysicsConstraintComponent* ConstraintComponent = GetTargetComponent<UPhysicsConstraintComponent>(SelectedActor, SelectedComponent))
+    {
+        RenderForConstraintComponent(ConstraintComponent);
     }
     
     if (UAmbientLightComponent* LightComponent = GetTargetComponent<UAmbientLightComponent>(SelectedActor, SelectedComponent))
@@ -295,11 +302,7 @@ void PropertyEditorPanel::RenderForSceneComponent(USceneComponent* SceneComponen
         FImGuiWidget::DrawVec3Control("Scale", Scale, 1, 85);
         ImGui::Spacing();
 
-        UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComponent);
-        if (PrimComp)
-        {
-            SceneComponent->SetForceRelativeTransform(FTransform(Rotation, Location, Scale));
-        }
+        SceneComponent->SetRelativeTransform(FTransform(Rotation, Location, Scale));
 
         std::string CoordiButtonLabel;
         if (Player->GetCoordMode() == ECoordMode::CDM_WORLD)
@@ -715,6 +718,53 @@ void PropertyEditorPanel::RenderForSkeletalMesh(USkeletalMeshComponent* Skeletal
         }
         ImGui::TreePop();
     }
+    ImGui::PopStyleColor();
+}
+
+void PropertyEditorPanel::RenderForConstraintComponent(UPhysicsConstraintComponent* ConstraintComponent) const
+{
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    
+    UWorld* World = ConstraintComponent->GetWorld();
+    TArray<FBodyInstance*> BodyInstances = World->GetPhysicsScene()->BodyInstances;
+    
+    if (ImGui::BeginCombo("##ConnectRigidbody1", ConstraintComponent->BodyInstance1 ? *ConstraintComponent->BodyInstance1->BodySetup->BoneName.ToString() : "RigidBody", ImGuiComboFlags_None))
+    {
+        for (FBodyInstance* BodyInstance : BodyInstances)
+        {
+            if (ImGui::Selectable(GetData(BodyInstance->BodySetup->BoneName.ToString()), false))
+            {
+                if (BodyInstance != nullptr && ConstraintComponent->BodyInstance2 != BodyInstance)
+                {
+                    ConstraintComponent->BodyInstance1 = BodyInstance;
+                }
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::BeginCombo("##ConnectRigidbody2", ConstraintComponent->BodyInstance2 ?*ConstraintComponent->BodyInstance2->BodySetup->BoneName.ToString() : "RigidBody", ImGuiComboFlags_None))
+    {
+        for (FBodyInstance* BodyInstance : BodyInstances)
+        {
+            if (ImGui::Selectable(GetData(BodyInstance->BodySetup->BoneName.ToString()), false))
+            {
+                if (BodyInstance != nullptr && ConstraintComponent->BodyInstance1 != BodyInstance)
+                {
+                    ConstraintComponent->BodyInstance2 = BodyInstance;
+                }
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (ImGui::Button("Connect To Joint"))
+    {
+        FConstraintInstance* ConstraintInstance = new FConstraintInstance();
+        ConstraintComponent->SetConstraintInstance(ConstraintInstance);
+        ConstraintComponent->InitConstraint();
+    }
+    
     ImGui::PopStyleColor();
 }
 

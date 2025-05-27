@@ -14,34 +14,32 @@ using namespace physx;
 
 #define SCOPED_READ_LOCK(scene) PxSceneReadLock scopedReadLock(scene);
 
-void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
+void FBodyInstance::SetTransformRigidBody(FTransform NewTransform)
 {
-    WorldTransform = MoveLocation;
-
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-    RefreshPhysicsState();
-    RigidBody->setKinematicTarget(WorldTransform.ToPxTransform());
-    RefreshPhysicsState();
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, BodySetup->PhysicsType == PhysType_Kinematic);
-    RefreshPhysicsState();
-
-    if (RigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
+    if (WorldTransform == NewTransform)
     {
-        RigidBody->setLinearVelocity(LinearVelocity.ToPxVec3());
-        RigidBody->setAngularVelocity(AngularVelocity.ToPxVec3());
+        return;
     }
+
+    LinearVelocity = (NewTransform.Translation - WorldTransform.Translation);
+    RigidBody->setLinearVelocity(LinearVelocity.ToPxVec3());
+    
+    FQuat DeltaQuat = NewTransform.Rotation * WorldTransform.Rotation.Inverse();
+
+    FVector Axis;
+    float Angle;
+    DeltaQuat.ToAxisAndAngle(Axis, Angle);
+
+    float DeltaTime = 1.f / 60.f;
+    AngularVelocity = Axis * (Angle / DeltaTime);
+    
+    RigidBody->setAngularVelocity(AngularVelocity.ToPxVec3());
 }
 
 void FBodyInstance::SetRigidbodyKinematic(bool bIsKinematic)
 {
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, bIsKinematic);
     BodySetup->PhysicsType = bIsKinematic ? PhysType_Kinematic : PhysType_Default;
-    RefreshPhysicsState();
-}
-
-void FBodyInstance::RefreshPhysicsState()
-{
-    MyScene->gScene->fetchResults(true);
 }
 
 void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene)
@@ -120,7 +118,8 @@ void FBodyInstance::DestroyInPhysicsScene()
     {
         RigidBody->getScene()->removeActor(*RigidBody);
     }
-    
+
+    MyScene->BodyInstances.Remove(this);
     RigidBody->release();
     RigidBody = nullptr;
 }
@@ -131,7 +130,7 @@ void FBodyInstance::UpdatePhysics()
     {
         return;
     }
-
+    
     WorldTransform = FTransform(RigidBody->getGlobalPose());
     LinearVelocity = FVector(RigidBody->getLinearVelocity());
     AngularVelocity = FVector(RigidBody->getAngularVelocity());

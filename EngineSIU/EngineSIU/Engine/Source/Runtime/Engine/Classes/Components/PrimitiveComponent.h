@@ -23,8 +23,12 @@ public:
     virtual void DestroyComponent(bool bPromoteChildren = false) override;
     void SetSimulatePhysics(bool bSimulate);
 
-    virtual void SetForceRelativeTransform(const FTransform& InTransform) override;
-    
+    virtual void SetRelativeTransform(const FTransform& InTransform) override;
+    virtual void SetRelativeLocation(const FVector& InLocation) override;
+    virtual void SetRelativeRotation(const FRotator& InRotation) override;
+    virtual void SetRelativeRotation(const FQuat& InQuat) override;
+    virtual void SetRelativeScale3D(const FVector& InScale) override;
+
     bool IntersectRayTriangle(
         const FVector& RayOrigin, const FVector& RayDirection,
         const FVector& v0, const FVector& v1, const FVector& v2, float& OutHitDistance
