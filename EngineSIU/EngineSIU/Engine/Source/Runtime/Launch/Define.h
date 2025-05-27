@@ -197,6 +197,7 @@ struct FSimpleVertex
 
 struct FOBB {
     FVector4 corners[8];
+    FVector4 Color;
 };
 
 struct FRect

@@ -32,7 +32,7 @@ struct FKSphylElem : public FKShapeElem
 
     FTransform GetTransform() const
     {
-        return FTransform(Rotation, Center);
+        return FTransform(RQuat, Center);
     }
 
     void SetTransform(const FTransform& InTransform)
@@ -44,6 +44,7 @@ struct FKSphylElem : public FKShapeElem
     //Capsule
     FVector Center;
     FRotator Rotation;
+    FQuat RQuat;
     float Radius;
     float Length;
 };

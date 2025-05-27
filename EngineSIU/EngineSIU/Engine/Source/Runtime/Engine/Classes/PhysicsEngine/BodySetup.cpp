@@ -1,4 +1,4 @@
-﻿#include "BodySetup.h"
+#include "BodySetup.h"
 #include "ConvexElem.h"
 #include "SphereElem.h"
 #include "BoxElem.h"
@@ -42,4 +42,29 @@ FBoundingBox FKConvexElem::CalcAABB(const FTransform& BoneTM, const FVector& Sca
         LocalToWorld.TransformPosition(ElemBox.MinLocation),
         LocalToWorld.TransformPosition(ElemBox.MaxLocation)
     );
+}
+
+/* Box, Sphere, Capsule의 크기 및 위치를 Scale3D 기준으로 조정 */
+void UBodySetup::ApplyWorldScale(const FVector& Scale3D)
+{
+    for (FKBoxElem& Box : AggGeom.BoxElems)
+    {
+        Box.Extent *= Scale3D;
+        Box.Center *= Scale3D;
+    }
+
+    for (FKSphereElem& Sphere : AggGeom.SphereElems)
+    {
+        float MaxScale = Scale3D.GetMax();
+        Sphere.Radius *= MaxScale;
+        Sphere.Center *= Scale3D;
+    }
+
+    for (FKSphylElem& Capsule : AggGeom.SphylElems)
+    {
+        float MaxXY = FMath::Max(Scale3D.X, Scale3D.Y);
+        Capsule.Radius *= MaxXY;
+        Capsule.Length *= Scale3D.Z;
+        Capsule.Center *= Scale3D;
+    }
 }

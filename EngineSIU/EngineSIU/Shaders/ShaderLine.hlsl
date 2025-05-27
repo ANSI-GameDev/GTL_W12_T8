@@ -41,6 +41,7 @@ struct FConeData
 struct FOrientedBoxCornerData
 {
     float4 corners[8]; // 회전/이동 된 월드 공간상의 8꼭짓점
+    float4 Color;
 };
 
 StructuredBuffer<FBoundingBoxData> g_BoundingBoxes : register(t2);
@@ -305,7 +306,8 @@ PS_INPUT mainVS(VS_INPUT input)
         uint edgeIndex = obbLocalID % 12;
 
         pos = ComputeOrientedBoxPosition(obbIndex, edgeIndex, input.vertexID);
-        color = float4(0.4, 1.0, 0.4, 1.0); // 예시: 연두색
+        color = g_OrientedBoxes[obbIndex].Color; // OBB 색상
+        //color = float4(0.4, 1.0, 0.4, 1.0); // 예시: 연두색
     }
 
     // 출력 변환

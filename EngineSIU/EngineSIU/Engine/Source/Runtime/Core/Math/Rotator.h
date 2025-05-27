@@ -78,6 +78,8 @@ struct FRotator
 
     static float NormalizeAxis(float Angle);
     static FRotator MakeLookAtRotation(const FVector& From, const FVector& To);
+    FVector Euler() const;
+
 };
 
 inline FArchive& operator<<(FArchive& Ar, FRotator& R)

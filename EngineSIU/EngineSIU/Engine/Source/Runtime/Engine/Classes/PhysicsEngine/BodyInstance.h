@@ -61,7 +61,9 @@ struct FBodyInstance : public FBodyInstanceCore
     
     float LinearDamping;
     float AngularDamping;
+
     float MassScale;
+    FVector InertiaTensorScale;
 
     /** [Physx Only] Locks physical movement along specified axis.*/
     EDOFMode::Type DOFMode;

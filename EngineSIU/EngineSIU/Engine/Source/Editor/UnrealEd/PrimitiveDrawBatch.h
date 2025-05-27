@@ -40,7 +40,7 @@ public:
 
     // 프리미티브 렌더링 관련
     void AddAABBToBatch(const FBoundingBox& LocalAABB, const FVector& Center, const FMatrix& ModelMatrix);
-    void AddOBBToBatch(const FBoundingBox& LocalAABB, const FVector& Center, const FMatrix& ModelMatrix);
+    void AddOBBToBatch(const FBoundingBox& LocalAABB, const FVector& Center, const FMatrix& ModelMatrix, const FVector4& Color);
     void AddConeToBatch(const FVector& Center, float Radius, float Height, int Segments, const FVector4& Color, const FMatrix& ModelMatrix);
     void AddConeToBatch(const FVector& Start, const FVector& End, float Radius, int Segments, const FVector4& Color);
 

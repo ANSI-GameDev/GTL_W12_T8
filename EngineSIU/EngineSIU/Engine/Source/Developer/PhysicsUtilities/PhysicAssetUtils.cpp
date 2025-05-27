@@ -149,100 +149,89 @@ namespace FPhysicsAssetUtils
     {
         if (!bs || !skelMesh || !skelMesh->GetSkeleton()->GetRefSkeleton().IsValidRawIndex(BoneIndex))
         {
-            UE_LOG(ELogLevel::Error, TEXT("FPhysicsAssetUtils::CreateCollisionFromBoneInternal : Invalid parameters"));
+            UE_LOG(ELogLevel::Error, TEXT("Invalid parameters"));
             return false;
         }
 
         const FReferenceSkeleton& RefSkeleton = skelMesh->GetSkeleton()->GetRefSkeleton();
-        const FTransform BoneTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
-        const FName BoneName = RefSkeleton.GetBoneName(BoneIndex);
+        // 원본은 RawRefBonePose 썼지만, 스켈레탈 메시 전체 참조 좌표계는 GetComposedRefPoseMatrix 로 꺼내도 됩니다.
+        FTransform ElementTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
 
-        // 1. AABB 계산용 기본 정보
-        FVector BoxCenter(0, 0, 0), BoxExtent(1,1,1);
-        FTransform ElementTransform = BoneTransform;
+        // fallback
+        FVector BoxExtent(1.f);
+        FVector BoxCenter = FVector::ZeroVector;
 
-#if Cal_AABB_From_BonePos
-        for (int32 ChildIndex = 0; ChildIndex < RefSkeleton.GetRawBoneNum(); ++ChildIndex)
+        // 부모↔자식 벡터 계산
+        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        if (ParentIndex != INDEX_NONE)
         {
-            if (RefSkeleton.GetParentIndex(ChildIndex) == BoneIndex)
-            {
-                const FTransform& ChildTransform = RefSkeleton.GetRawRefBonePose()[ChildIndex];
-                FVector LocalDelta = ChildTransform.GetTranslation();
-                BoxExtent = FVector::GetAbs(LocalDelta) * 0.5f; // 길이의 절반
-                BoxCenter = LocalDelta * 0.5f;
-                break;
-            }
+            // (1) 월드 좌표계 위치 얻기
+            FTransform ParentWorld = RefSkeleton.GetRawRefBonePose()[ParentIndex];
+            for (int32 P = RefSkeleton.GetParentIndex(ParentIndex); P != INDEX_NONE; P = RefSkeleton.GetParentIndex(P))
+                ParentWorld = RefSkeleton.GetRawRefBonePose()[P] * ParentWorld;
+
+            FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+            for (int32 T = RefSkeleton.GetParentIndex(BoneIndex); T != INDEX_NONE; T = RefSkeleton.GetParentIndex(T))
+                ThisWorld = RefSkeleton.GetRawRefBonePose()[T] * ThisWorld;
+
+            FVector ParentPos = ParentWorld.GetLocation();
+            FVector ThisPos = ThisWorld.GetLocation();
+            FVector Dir = (ThisPos - ParentPos);
+            float Length = Dir.Size();
+            Dir = Dir.GetSafeNormal();
+            //if (Length < KINDA_SMALL_NUMBER)
+            //{
+            //    Dir = FVector(0, 0, 1);
+            //    Length = 10.f;
+            //}
+            //else
+            //{
+            //    Dir /= Length;
+            //}
+
+            // Z축에만 half-length를 실어줌
+            BoxCenter = (ParentPos + ThisPos) * 0.5f;
+            BoxExtent = FVector(1.f, 1.f, Length * 0.5f);
+
+            FQuat CapsuleDirRotation = FQuat::FindBetweenNormals(FVector(1, 0, 0), Dir);
+            FQuat PhysX_YtoZ_Rotation = FQuat(FVector(1, 0, 0), PI / 2); // 90도 회전 (X축 기준)
+            FQuat FinalRotation = CapsuleDirRotation*PhysX_YtoZ_Rotation;
+
+            ElementTransform = FTransform(FinalRotation, BoxCenter);
         }
 
-        if (BoxExtent.IsNearlyZero())
+        // --- 이제 GeomType 별로 추가 ---
+        if (bs->GeomType == EFG_Sphyl)
         {
-            BoxExtent = FVector(1, 1, 1);
-            BoxCenter = FVector::ZeroVector;
+            FKSphylElem SphylElem;
+
+            // ★ 반지름: X,Y 중 큰 값 / 절반높이: Z축 값
+            float CapsuleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
+            CapsuleRadius = FMath::Max(CapsuleRadius, 1.f);
+            float CapsuleHalfLength = BoxExtent.Z;
+            CapsuleHalfLength = FMath::Max(CapsuleHalfLength, 1.f);
+
+            SphylElem.Center = ElementTransform.GetLocation();
+            SphylElem.RQuat = ElementTransform.GetRotation();
+            SphylElem.Radius = CapsuleRadius;
+            SphylElem.Length = CapsuleHalfLength * 2.f;  // PhysX는 전체 길이
+
+            bs->AggGeom.SphylElems.Add(SphylElem);
         }
-        ElementTransform.AddToTranslation(BoxCenter);
-
-#endif
-
-
-        if (bs->GeomType == EFG_Box)
+        else if (bs->GeomType == EFG_Box)
         {
             FKBoxElem BoxElem;
             BoxElem.SetTransform(ElementTransform);
-            BoxElem.Center = BoxCenter;
-
-            BoxElem.Extent = FVector(BoxExtent.X * 2.0f * 1.01f,
-            BoxExtent.Y * 2.0f * 1.01f,
-            BoxExtent.Z * 2.0f * 1.01f); // Graphics Glitch 방지용으로 1% 추가
-
+            BoxElem.Center = FVector::ZeroVector;
+            BoxElem.Extent = BoxExtent * 2.f * 1.01f;
             bs->AggGeom.BoxElems.Add(BoxElem);
         }
         else if (bs->GeomType == EFG_Sphere)
         {
             FKSphereElem SphereElem;
-
             SphereElem.Center = ElementTransform.GetTranslation();
             SphereElem.Radius = BoxExtent.GetMax() * 1.01f;
-
             bs->AggGeom.SphereElems.Add(SphereElem);
-        }
-        else if (bs->GeomType == EFG_Sphyl)
-        {
-            FKSphylElem SphylElem;
-
-            /* Z축 정렬 : 가장 긴 길이 축이 Z가 되도록 수동을 회전 -> 본의 길이 방향과 일치하도록
-             * ex) X, Y 축이 가장 축이 길다면 해당 축을 Z축으로 회전
-             */
-            if (BoxExtent.X > BoxExtent.Z && BoxExtent.X > BoxExtent.Y)
-            {
-                //X축이 가장 길다면 회전: X-axis into Z-axis
-                SphylElem.SetTransform(FTransform(FQuat(FVector(0, 1, 0), -PI * 0.5f)) * ElementTransform);
-                SphylElem.Radius = FMath::Max(BoxExtent.Y, BoxExtent.Z) * 1.01f;
-                SphylElem.Length = BoxExtent.X * 1.01f;
-
-            }
-            else if (BoxExtent.Y > BoxExtent.Z && BoxExtent.Y > BoxExtent.X)
-            {
-                //Y축이 가장 길다면 회전: Y-axis into Z-axis
-                SphylElem.SetTransform(FTransform(FQuat(FVector(1, 0, 0), PI * 0.5f)) * ElementTransform);
-                SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Z) * 1.01f;
-                SphylElem.Length = BoxExtent.Y * 1.01f;
-            }
-
-            else
-            {
-                // Z축이 가장 길다면 그대로 사용
-                SphylElem.SetTransform(ElementTransform);
-
-                SphylElem.Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
-                SphylElem.Length = BoxExtent.Z * 1.01f;
-            }
-
-            bs->AggGeom.SphylElems.Add(SphylElem);
-        }
-        else if (bs->GeomType == EFG_SingleConvexHull || bs->GeomType == EFG_MultiConvexHull)
-        {
-            // TArray<FVector> Verts;
-            // TArray<uint32> Indices;
         }
 
         return true;
