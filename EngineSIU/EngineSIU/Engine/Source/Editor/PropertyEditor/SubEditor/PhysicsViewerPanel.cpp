@@ -19,28 +19,38 @@ void PhysicsViewerPanel::Render()
 
     if (ImGui::Begin("PhysicsViewer", nullptr, windowFlags))
     {
-
         RenderPanelLayout();
-        /*
-        RenderViewportPanel();
-        ImGui::Separator();
-        RenderPhysicsSettings();
-        ImGui::Separator();
-        RenderInfoPanel();
-        RenderSkeletonUI();*/
         ImGui::End();
     }
 
-    //현재는 Selected를 Comp에서 확인하여 빨간색으로 그림
-    //추후 ViewerPanel에서 선택된 Bone를 가져오는 것도 좋을듯
-    FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
-    FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch);
-    //if (SelectedType == EPhysicsSelectionType::Constraint)
-        FSkeletalMeshDebugger::DrawConeConstraints(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName);
-    
-    FSkeletalMeshDebugger::DrawCapsuleOBBs(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName);
+    if (!SkeletalMeshComponent || !PrimitiveDrawBatch) return;
 
+    // Skeleton
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Bone))
+    {
+        FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
+    }
+
+    // AABBs
+    FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch); // 항상 표시됨
+
+    // Constraints (Cone Limits)
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint) ||
+        EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::ConstraintSelectedOnly))
+    {
+        bool bDrawAllConstraints = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint);
+        FSkeletalMeshDebugger::DrawConeConstraints(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName, bDrawAllConstraints);
+    }
+
+    // Bodies (Capsule OBBs)
+    if (EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body) ||
+        EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::BodySelectedOnly))
+    {
+        bool bDrawAllBodies = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body);
+        FSkeletalMeshDebugger::DrawCapsuleOBBs(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName, bDrawAllBodies);
+    }
 }
+
 
 
 void PhysicsViewerPanel::OnResize(HWND hWnd)
@@ -616,15 +626,28 @@ inline void PhysicsViewerPanel::RenderPanelLayout()
 {
     ImVec2 avail = ImGui::GetContentRegionAvail();
     float leftW = Width * 0.75f;
+    float topBarHeight = 40.0f; // 상단 디버그 버튼 영역 높이
 
+    // 1. 상단 바 UI 렌더링 (Physics Debug 버튼)
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(leftW, Height), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(leftW, topBarHeight), ImGuiCond_Always);
+    if (ImGui::Begin("TopBar", nullptr,
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse))
+    {
+        DrawShowFlags();
+    }
+    ImGui::End();
 
-    ImGuiWindowFlags canvasFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
+    // 2. 실제 PhysicsCanvas 뷰포트 영역
+    ImGui::SetNextWindowPos(ImVec2(0, topBarHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(leftW, Height - topBarHeight), ImGuiCond_Always);
+
+    ImGuiWindowFlags canvasFlags =
+        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
 
     if (ImGui::Begin("PhysicsCanvas", nullptr, canvasFlags))
     {
-        RenderViewportPanel();
+        RenderViewportPanel(); // SRV 그리기
         ImGui::Separator();
         RenderPhysicsSettings();
         ImGui::Separator();
@@ -632,5 +655,58 @@ inline void PhysicsViewerPanel::RenderPanelLayout()
     }
     ImGui::End();
 
+    // 3. 우측 Bone 트리
     RenderSkeletonUI();
+}
+
+void PhysicsViewerPanel::ToggleFlag(EPhysicsDebugDisplay Flag, bool bEnable)
+{
+    if (bEnable)
+    {
+        DebugDisplayFlags |= Flag;
+    }
+    else
+    {
+        DebugDisplayFlags &= ~Flag;
+    }
+}
+
+void PhysicsViewerPanel::DrawShowFlags()
+{
+    if (ImGui::Button("Physics Debug", ImVec2(120, 32)))
+    {
+        ImGui::OpenPopup("PhysicsDebugFlags");
+    }
+
+    if (ImGui::BeginPopup("PhysicsDebugFlags"))
+    {
+        bool bBone = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Bone);
+        bool bBody = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body);
+        bool bBodySelected = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::BodySelectedOnly);
+        bool bConstraint = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Constraint);
+        bool bConstraintSelected = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::ConstraintSelectedOnly);
+
+        if (ImGui::Checkbox("Show Bones", &bBone))
+        {
+            ToggleFlag(EPhysicsDebugDisplay::Bone, bBone);
+        }
+        if (ImGui::Checkbox("Show All Bodies", &bBody))
+        {
+            ToggleFlag(EPhysicsDebugDisplay::Body, bBody);
+        }
+        if (ImGui::Checkbox("Show Selected Body Only", &bBodySelected))
+        {
+            ToggleFlag(EPhysicsDebugDisplay::BodySelectedOnly, bBodySelected);
+        }
+        if (ImGui::Checkbox("Show All Constraints", &bConstraint))
+        {
+            ToggleFlag(EPhysicsDebugDisplay::Constraint, bConstraint);
+        }
+        if (ImGui::Checkbox("Show Selected Constraint Only", &bConstraintSelected))
+        {
+            ToggleFlag(EPhysicsDebugDisplay::ConstraintSelectedOnly, bConstraintSelected);
+        }
+
+        ImGui::EndPopup();
+    }
 }

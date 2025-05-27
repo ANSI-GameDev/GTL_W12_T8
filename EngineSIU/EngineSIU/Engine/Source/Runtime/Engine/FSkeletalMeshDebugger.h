@@ -8,7 +8,14 @@ class FSkeletalMeshDebugger
 public:
     static void DrawSkeleton(const USkeletalMeshComponent* SkelMeshComp, UPrimitiveDrawBatch* DrawBatch);
     static void DrawSkeletonAABBs(const USkeletalMeshComponent* SkelMeshComp, UPrimitiveDrawBatch* DrawBatch);
-    static void DrawConeConstraints(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedConstraintName);
-    static void DrawCapsuleOBBs(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedBodyName);
-
+    static void DrawConeConstraints(
+        const USkeletalMeshComponent* SkelComp,
+        UPrimitiveDrawBatch* DrawBatch,
+        const FName& SelectedConstraintName,
+        bool bDrawAll);
+    static void DrawCapsuleOBBs(
+        const USkeletalMeshComponent* SkelComp,
+        UPrimitiveDrawBatch* DrawBatch,
+        const FName& SelectedBodyName,
+        bool bDrawAll);
 }; 

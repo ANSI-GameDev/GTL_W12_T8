@@ -3,6 +3,8 @@
 #include "UnrealEd/EditorViewportClient.h"
 #include <Windows.h> // HWND 정의를 위해 추가
 
+#include "Misc/EnumClassFlags.h"
+
 struct FBaseCompactPose;
 struct FTransform;
 struct FReferenceSkeleton;
@@ -11,14 +13,16 @@ struct FRenderTargetRHI;
 struct FDepthStencilRHI;
 
 class FEditorViewportClient;
-enum class EPhysicsDebugDisplay : uint8
+enum class EPhysicsDebugDisplay : uint32
 {
     None = 0,
     Bone = 1 << 0,
     Body = 1 << 1,
-    Constraint = 1 << 2,
-    All = Bone | Body | Constraint
+    BodySelectedOnly = 1 << 2,
+    Constraint = 1 << 3,
+    ConstraintSelectedOnly = 1 << 4,
 };
+ENUM_CLASS_FLAGS(EPhysicsDebugDisplay)
 enum class EPhysicsSelectionType : uint8
 {
     None,
@@ -45,12 +49,19 @@ private:
 
     void RenderPanelLayout();
     void RenderSkeletonUI();
+    void DrawShowFlags();
+    void ToggleFlag(EPhysicsDebugDisplay Flag, bool bEnable);
 public:
     UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
 private:
     float Width = 800.0f;
     float Height = 600.0f;
-    EPhysicsDebugDisplay DebugDisplayFlags = EPhysicsDebugDisplay::All;
+    EPhysicsDebugDisplay DebugDisplayFlags =
+        EPhysicsDebugDisplay::Bone |
+        EPhysicsDebugDisplay::Body |
+        EPhysicsDebugDisplay::BodySelectedOnly| 
+        EPhysicsDebugDisplay::ConstraintSelectedOnly;
+    
     std::shared_ptr<FEditorViewportClient> ViewportClient;
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
 

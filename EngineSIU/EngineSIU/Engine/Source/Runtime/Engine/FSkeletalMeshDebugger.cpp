@@ -150,7 +150,11 @@ void FSkeletalMeshDebugger::DrawSkeletonAABBs(const USkeletalMeshComponent* Skel
 //TODO
 //위치는 RefSkel 기준이 아닌 현재 Bone 위치 기준으로 할지 결정
 //Rot는 RefSkel로 하는게 맞음
-void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedConstraintName)
+void FSkeletalMeshDebugger::DrawConeConstraints(
+    const USkeletalMeshComponent* SkelComp,
+    UPrimitiveDrawBatch* DrawBatch,
+    const FName& SelectedConstraintName,
+    bool bDrawAll)
 {
     if (!SkelComp || !DrawBatch) return;
 
@@ -163,20 +167,19 @@ void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* Sk
     constexpr int32 ConeSegments = 16;
     const FVector4 ConeColor(1.f, 1.f, 0.f, 1.f); // 노란색
 
-    // [1] Constraint 기준으로 원뿔 렌더링
     for (UPhysicsConstraintTemplate* Constraint : PhysAsset->ConstraintSetup)
     {
         if (!Constraint) continue;
+
         const FConstraintInstance& Inst = Constraint->DefaultInstance;
-
-
         const FName& BoneName = Inst.ConstraintBone1;
-        if (Inst.JointName != SelectedConstraintName&&BoneName!=SelectedConstraintName)
+
+        if (!bDrawAll && Inst.JointName != SelectedConstraintName && BoneName != SelectedConstraintName)
             continue;
+
         int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
         if (!RefSkeleton.IsValidRawIndex(BoneIndex)) continue;
 
-        // ConstraintBone1의 자식 중 하나를 찾음
         int32 ChildIndex = INDEX_NONE;
         for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
         {
@@ -201,13 +204,16 @@ void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* Sk
     }
 }
 
-void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedBodyName)
+
+void FSkeletalMeshDebugger::DrawCapsuleOBBs(
+    const USkeletalMeshComponent* SkelComp,
+    UPrimitiveDrawBatch* DrawBatch,
+    const FName& SelectedBodyName,
+    bool bDrawAll)
 {
     if (!SkelComp || !DrawBatch || !SkelComp->GetSkeletalMeshAsset()) return;
 
     const USkeleton* Skeleton = SkelComp->GetSkeletalMeshAsset()->GetSkeleton();
-    if (!Skeleton) return;
-
     const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
     const UPhysicsAsset* PhysAsset = SkelComp->GetPhysicsAsset();
     if (!PhysAsset) return;
@@ -215,8 +221,8 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
     TArray<FMatrix> BoneWorldMatrices;
     SkelComp->GetCurrentGlobalBoneMatrices(BoneWorldMatrices);
 
-    const FVector4 DefaultColor(0.3f, 0.7f, 1.f, 1.f);  // 파란색
-    const FVector4 SelectedColor(1.f, 0.2f, 0.2f, 1.f); // 빨간색
+    const FVector4 DefaultColor(0.3f, 0.7f, 1.f, 1.f);
+    const FVector4 SelectedColor(1.f, 0.2f, 0.2f, 1.f);
 
     for (int32 BodyIndex = 0; BodyIndex < PhysAsset->BodySetup.Num(); ++BodyIndex)
     {
@@ -224,6 +230,9 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
         if (!BodySetup) continue;
 
         const FName& BoneName = BodySetup->BoneName;
+        if (!bDrawAll && BoneName != SelectedBodyName)
+            continue;
+
         int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
         if (!BoneWorldMatrices.IsValidIndex(BoneIndex)) continue;
 
@@ -233,14 +242,12 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
         for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
             const FTransform LocalTransform = Sphyl.GetTransform();
-
-            // 캡슐이 Y축 방향으로 눕도록 보정 (Z->Y)
             const FQuat ZtoYQuat = FQuat(FVector::RightVector, -PI * 0.5f);
             const FQuat FinalRot = ZtoYQuat * LocalTransform.GetRotation();
             const FMatrix RotationMatrix = FinalRot.ToMatrix();
 
             const float HalfLength = Sphyl.Length * 0.5f;
-            const FVector BoxExtent(Sphyl.Radius, HalfLength, Sphyl.Radius); // X=Radius, Y=Length, Z=Radius
+            const FVector BoxExtent(Sphyl.Radius, HalfLength, Sphyl.Radius);
 
             FBoundingBox LocalBox;
             LocalBox.MinLocation = -BoxExtent;
@@ -248,6 +255,5 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
 
             DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, RotationMatrix, Color);
         }
-
     }
 }
