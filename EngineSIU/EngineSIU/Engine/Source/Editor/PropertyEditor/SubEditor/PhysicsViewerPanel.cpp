@@ -510,35 +510,41 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         ImGui::SeparatorText("Body Settings");
         UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
         if (!BodySetup) return;
-
         if (BodySetup->AggGeom.SphylElems.Num() > 0)
         {
             FKSphylElem& Sphyl = BodySetup->AggGeom.SphylElems[0];
 
             FVector Center = Sphyl.Center;
-            FRotator Rotator = Sphyl.Rotation;
+            FQuat RQuat = Sphyl.RQuat;
+            FVector Euler = RQuat.Rotator().Euler();  // XYZ = Roll, Pitch, Yaw (degree)
+
+            float center[3] = { Center.X, Center.Y, Center.Z };
+            float euler[3] = { Euler.X, Euler.Y, Euler.Z };
+
             float Radius = Sphyl.Radius;
             float Length = Sphyl.Length;
 
-            float center[3] = { Center.X, Center.Y, Center.Z };
-
             static int32 LastSphylIndex = -1;
-            static float SphylEuler[3] = { 0.f, 0.f, 0.f };
+            static float LastEuler[3] = { 0.f, 0.f, 0.f };
 
             if (LastSphylIndex != BodyIndex)
             {
-                SphylEuler[0] = Rotator.Roll;
-                SphylEuler[1] = Rotator.Yaw;
-                SphylEuler[2] = Rotator.Pitch;
+                LastEuler[0] = euler[0];
+                LastEuler[1] = euler[1];
+                LastEuler[2] = euler[2];
                 LastSphylIndex = BodyIndex;
             }
 
             if (ImGui::DragFloat3("Center", center, 0.1f))
-                Sphyl.Center = FVector(center[0], center[1], center[2]);
-
-            if (ImGui::DragFloat3("Rotation", SphylEuler, 0.5f))
             {
-                Sphyl.Rotation = FRotator(SphylEuler[0], SphylEuler[1], SphylEuler[2]);
+                Sphyl.Center = FVector(center[0], center[1], center[2]);
+            }
+
+            if (ImGui::DragFloat3("Rotation", LastEuler, 0.5f))
+            {
+                // XYZ 오일러 → 쿼터니언 → 저장
+                FQuat NewQuat = FQuat::MakeFromEuler(FVector(LastEuler[0], LastEuler[1], LastEuler[2]));
+                Sphyl.RQuat = NewQuat;
             }
 
             if (ImGui::DragFloat("Radius", &Radius, 0.1f, 0.01f, 1000.f))
@@ -547,6 +553,7 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
             if (ImGui::DragFloat("Length", &Length, 0.1f, 0.01f, 1000.f))
                 Sphyl.Length = Length;
         }
+
     }
 
     // === 기존 Constraint 처리 영역 ===

@@ -32,7 +32,7 @@ struct FKSphylElem : public FKShapeElem
 
     FTransform GetTransform() const
     {
-        return FTransform(Rotation, Center);
+        return FTransform(RQuat, Center);
     }
 
     void SetTransform(const FTransform& InTransform)

@@ -221,8 +221,8 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(
     TArray<FMatrix> BoneWorldMatrices;
     SkelComp->GetCurrentGlobalBoneMatrices(BoneWorldMatrices);
 
-    const FVector4 DefaultColor(0.3f, 0.7f, 1.f, 1.f);
-    const FVector4 SelectedColor(1.f, 0.2f, 0.2f, 1.f);
+    const FVector4 DefaultColor(0.3f, 0.1f, 1.f, 1.f);
+    const FVector4 SelectedColor(1.f, 0.f, 0.f, 1.f);
 
     for (int32 BodyIndex = 0; BodyIndex < PhysAsset->BodySetup.Num(); ++BodyIndex)
     {
@@ -241,13 +241,13 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(
 
         for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
-            const FTransform LocalTransform = Sphyl.GetTransform();
-            const FQuat ZtoYQuat = FQuat(FVector::RightVector, -PI * 0.5f);
-            const FQuat FinalRot = ZtoYQuat * LocalTransform.GetRotation();
+            //const FTransform LocalTransform = Sphyl.GetTransform();
+            //const FQuat ZtoYQuat = FQuat(FVector::RightVector, -PI * 0.5f);
+            const FQuat FinalRot = Sphyl.RQuat;
             const FMatrix RotationMatrix = FinalRot.ToMatrix();
 
             const float HalfLength = Sphyl.Length * 0.5f;
-            const FVector BoxExtent(Sphyl.Radius, HalfLength, Sphyl.Radius);
+            const FVector BoxExtent(HalfLength,Sphyl.Radius, Sphyl.Radius);
 
             FBoundingBox LocalBox;
             LocalBox.MinLocation = -BoxExtent;
