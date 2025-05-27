@@ -29,6 +29,9 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
         return;
     }
 
+   
+
+
     //등록하는 행위
     InScene->BodyInstances.Add(this);
 
@@ -46,13 +49,21 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     // Body의 위치 = Body가 속한 Bone의 World Position
     PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
+
+    RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
+    RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
+
     // @@ TODO : TEst 용 추가
     //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
     // Shape 생성
+    RigidBody->setLinearVelocity(PxVec3(0, 0, 0));
+    RigidBody->setAngularVelocity(PxVec3(0, 0, 0));
     AttachShapes(InBodySetup->AggGeom, InScene);
-    
+
     PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
+
     InScene->gScene->addActor(*RigidBody);
     UpdatePhysics();
 }
@@ -92,7 +103,8 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
 
         // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
         PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
-        RigidBody->setGlobalPose(ActorPose);
+        RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
+        //RigidBody->setGlobalPose(ActorPose);
 
         // 4. Shape은 Actor 기준으로 위치 0으로 고정
         PxCapsuleGeometry Geometry(Radius, HalfLength);

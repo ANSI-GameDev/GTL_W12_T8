@@ -84,6 +84,10 @@ public:
     float GetLinearLimit() const;
     void UpdateLinearLimit();
     void UpdateAngularLimit();
+
+    /* 테스트 : 말단 관절 확인용*/
+    bool IsEndEffectorJoint(const FName& BoneName);
+
     void InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, USkeletalMeshComponent* OwningComponent);
     FTransform CalculateDefaultChildTransform() const;
     FTransform CalculateDefaultParentTransform(const UPhysicsAsset* PhysicsAsset) const;

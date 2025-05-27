@@ -48,6 +48,28 @@ void FConstraintInstance::UpdateAngularLimit()
 {
 }
 
+bool FConstraintInstance::IsEndEffectorJoint(const FName& BoneName)
+{
+    static const TArray<FString> EndBoneSubstrings = {
+        TEXT("hand"),
+        TEXT("foot"),
+        TEXT("toe"),
+        TEXT("_End")
+    };
+
+    const FString BoneStr = BoneName.ToString();
+
+    for (const FString& Substring : EndBoneSubstrings)
+    {
+        if (BoneStr.Contains(Substring))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /*
  * 여기서 모든 PhysX 엔진의 Constraint 인스턴스 생성
  */
@@ -59,6 +81,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         UE_LOG(ELogLevel::Error, TEXT("InitConstraint: Invalid input bodies or scene."));
         return;
     }
+
     const PxTransform ChildWorldPose = Body1->RigidBody->getGlobalPose();
     const PxTransform ParentWorldPose = Body2->RigidBody->getGlobalPose();
 
@@ -138,8 +161,35 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
     }
 
+    if (IsEndEffectorJoint(ConstraintBone1)) // 말단 본일 경우
+    {
+        PxD6JointDrive AngularDrive(1000.0f, 50.0f, PX_MAX_F32, true); // 강한 복원력과 감쇠
+        Joint->setDrive(PxD6Drive::eSWING, AngularDrive);
+        Joint->setDrive(PxD6Drive::eTWIST, AngularDrive);
+        //PxD6JointDrive DampedDrive(
+        //    50.0f,          // stiffness (0이면 회전 복원 없음)
+        //    20.0f,         // damping (감쇠 강도, 값 높일수록 감속 강해짐)
+        //    PX_MAX_F32,    // force limit
+        //    true           // acceleration mode
+        //);
+
+        //Joint->setDrive(PxD6Drive::eSLERP, DampedDrive);
+
+        // SLERP 드라이브를 쓰기 위해 twist/swing을 FREE로 설정
+        Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, false);
+        Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLOCKED);
+
+        Joint->setDrivePosition(PxTransform(PxIdentity));
+         //Joint->setDriveVelocity(PxVec3(0.f), PxVec3(0.f));
+    }
+
     // 6. mass scaling / 기타
-    //Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); // 보정 활성화
+    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); // 보정 활성화
 }
 
 /* 두 Bone 간 RefPose 기준 상대 위치 계산 */
