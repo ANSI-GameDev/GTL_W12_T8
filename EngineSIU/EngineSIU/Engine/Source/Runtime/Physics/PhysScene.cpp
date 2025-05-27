@@ -128,12 +128,18 @@ void FPhysScene::InitPhysX()
     if (VehicleManager != nullptr)
         VehicleManager->InitPhysXVehicle(gPhysics, gCooking);
 
-    VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxVec3(0.0f, 0.0f, 10.0f), PxQuat(PxIdentity)));
+    VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxVec3(0.0f, 0.0f, 50.0f), PxQuat(PxIdentity)));
+    VehicleManager->TargetVehicleIndex = 0;
 }
 
 void FPhysScene::Simulate(float DeltaTime)
 {
     DeltaTime = std::max(DeltaTime, KINDA_SMALL_NUMBER);
+
+    // Prepare Vehicle Environment
+    if (VehicleManager != nullptr)
+        VehicleManager->SuspensionRaycasts(gScene);
+    
     gScene->simulate(DeltaTime);
     gScene->fetchResults(true);
     for (FBodyInstance* BodyInstance : BodyInstances)

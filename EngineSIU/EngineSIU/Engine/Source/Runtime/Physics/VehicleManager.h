@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <cooking/PxCooking.h>
 #include <vehicle/PxVehicleUpdate.h>
+#include <vehicle/PxVehicleUtilControl.h>
 #include <vehicle/PxVehicleWheels.h>
 
 #include "Container/Array.h"
@@ -51,6 +52,17 @@ namespace VehicleHelper
         COLLISION_FLAG_OBSTACLE_AGAINST	            =	COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL |	COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE,
         COLLISION_FLAG_DRIVABLE_OBSTACLE_AGAINST    =	COLLISION_FLAG_GROUND 						 |	COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE,
     };
+
+    struct DigitalInputRawData
+    {
+        uint8 bAccelKey:1;
+        uint8 bBrakeKey:1;
+        uint8 bSteerLeftKey:1;
+        uint8 bSteerRightKey:1;
+        uint8 bHandBrakeKey:1;
+        uint8 bGearUpKey:1;
+        uint8 bGearDownKey:1;
+    };
 }
 
 class FVehicleManager
@@ -59,6 +71,8 @@ public:
     FVehicleManager();
 public:
     TArray<physx::PxVehicleWheels*> Vehicles;
+    int TargetVehicleIndex;
+    VehicleHelper::DigitalInputRawData Inputs;
 
 public:
     void InitPhysXVehicle(physx::PxPhysics* Physics, physx::PxCooking* Cooking);
@@ -94,7 +108,9 @@ private:
     physx::PxWheelQueryResult* WheelQueryResults;
     
     physx::PxBatchQuery* RaycastBatchQuery;
+    // one result for each wheel
     physx::PxRaycastQueryResult* RaycastQueryResults;
+    // one hit for each wheel
     physx::PxRaycastHit* RaycastHits;
 
     
@@ -106,4 +122,37 @@ private:
         physx::PxFilterData filterData0, physx::PxFilterData filterData1, const void* constantBlock,
         physx::PxU32 constantBlockSize, physx::PxHitFlags& queryFlags
     );
+
+    // process inputs
+    physx::PxVehicleKeySmoothingData KeySmoothingData = {
+        {
+            3.0f,	//rise rate eANALOG_INPUT_ACCEL		
+            3.0f,	//rise rate eANALOG_INPUT_BRAKE		
+            10.0f,	//rise rate eANALOG_INPUT_HANDBRAKE	
+            2.5f,	//rise rate eANALOG_INPUT_STEER_LEFT	
+            2.5f,	//rise rate eANALOG_INPUT_STEER_RIGHT	
+        },
+        {
+            5.0f,	//fall rate eANALOG_INPUT__ACCEL		
+            5.0f,	//fall rate eANALOG_INPUT__BRAKE		
+            10.0f,	//fall rate eANALOG_INPUT__HANDBRAKE	
+            5.0f,	//fall rate eANALOG_INPUT_STEER_LEFT	
+            5.0f	//fall rate eANALOG_INPUT_STEER_RIGHT	
+        }
+    };
+    float SteerVsForwardSpeedData[16] = {
+        0.0f,		0.75f,
+        5.0f,		0.75f,
+        30.0f,		0.125f,
+        120.0f,		0.1f,
+        PX_MAX_F32, PX_MAX_F32,
+        PX_MAX_F32, PX_MAX_F32,
+        PX_MAX_F32, PX_MAX_F32,
+        PX_MAX_F32, PX_MAX_F32
+    };
+    physx::PxFixedSizeLookupTable<8> SteerVsForwardSpeedTable;
+    void UpdateParameterTargetVehicle(float deltaTime);
+
+    // just hardcoding for debugging
+    void UpdateDigitalInput();
 };

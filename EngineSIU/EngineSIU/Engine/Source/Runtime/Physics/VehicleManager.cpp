@@ -7,16 +7,22 @@
 #include <extensions/PxRigidActorExt.h>
 #include <vehicle/PxVehicleDrive4W.h>
 #include <vehicle/PxVehicleDriveTank.h>
+#include <vehicle/PxVehicleUtil.h>
+#include <vehicle/PxVehicleUtilControl.h>
 #include <vehicle/PxVehicleUtilSetup.h>
 using namespace physx;
 
 FVehicleManager::FVehicleManager()
     : VehicleSimData(nullptr)
+    , TargetVehicleIndex(-1)
     , SurfaceTirePairs(nullptr)
     , RoadMaterials(nullptr)
     , RoadTypes()
     , VehicleMaterial(nullptr)
     , WheelQueryResults(nullptr)
+    , RaycastBatchQuery(nullptr)
+    , RaycastQueryResults(nullptr)
+    , RaycastHits(nullptr)
     , ChassisMass(1500.f)
     , ChassisMesh(nullptr)
     , WheelMass(20.f)
@@ -24,6 +30,9 @@ FVehicleManager::FVehicleManager()
     , WheelCount(0)
     , WheelCapacity(0)
 {
+    SteerVsForwardSpeedTable = PxFixedSizeLookupTable<8>(SteerVsForwardSpeedData, 4);
+    
+    // TODO: 메쉬 받아서 계산하기
     WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_LEFT] = PxVec3(15, -10, -5);
     WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_RIGHT] = PxVec3(15, 10, -5);
     WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_LEFT] = PxVec3(-15, -10, -5);
@@ -39,7 +48,7 @@ void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
     const float dynamicFriction = 0.5f;
     RoadMaterials = Physics->createMaterial(staticFriction, dynamicFriction, restitution);
     RoadTypes.mType = 0;
-    VehicleMaterial = Physics->createMaterial(0.f, 0.f, 0.f);
+    VehicleMaterial = Physics->createMaterial(staticFriction, dynamicFriction, restitution);
 
     // Init Vehicle Environment
     PxInitVehicleSDK(*Physics);
@@ -317,13 +326,15 @@ void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const Px
     WheelCount += 4;
     VehicleWheelsQueryResults.Add(queryResult);
 
+    
     /** Release Resource */
     wheelsSimData->free();
 }
 
 void FVehicleManager::Update(const float deltaTime, PxScene* Scene)
 {
-    SuspensionRaycasts(Scene);
+    UpdateDigitalInput();
+    UpdateParameterTargetVehicle(deltaTime);
     PxVehicleUpdates(deltaTime, Scene->getGravity(), *SurfaceTirePairs, Vehicles.Num(), Vehicles.GetData(), VehicleWheelsQueryResults.GetData());
 }
 
@@ -405,14 +416,14 @@ void FVehicleManager::CookPrimitiveMesh(PxPhysics* Physics, PxCooking* Cooking)
 
     {
         static PxVec3 WheelVertices[] = {
-            PxVec3(-0.5f, -0.5f, -0.5f),
-            PxVec3(-0.5f, -0.5f,  0.5f),
-            PxVec3(-0.5f,  0.5f, -0.5f),
-            PxVec3(-0.5f,  0.5f,  0.5f),
-            PxVec3( 0.5f, -0.5f, -0.5f),
-            PxVec3( 0.5f, -0.5f,  0.5f),
-            PxVec3( 0.5f,  0.5f, -0.5f),
-            PxVec3( 0.5f,  0.5f,  0.5f)
+            PxVec3(-5.f, -5.f, -5.f),
+            PxVec3(-5.f, -5.f,  5.f),
+            PxVec3(-5.f,  5.f, -5.f),
+            PxVec3(-5.f,  5.f,  5.f),
+            PxVec3( 5.f, -5.f, -5.f),
+            PxVec3( 5.f, -5.f,  5.f),
+            PxVec3( 5.f,  5.f, -5.f),
+            PxVec3( 5.f,  5.f,  5.f)
         };
 
     
@@ -449,4 +460,47 @@ PxQueryHitType::Enum FVehicleManager::SampleVehicleWheelRaycastPreFilter(
     PX_UNUSED(constantBlock);
     PX_UNUSED(filterData0);
     return ((0 == (filterData1.word3 & 0xffff0000)) ? PxQueryHitType::eNONE : PxQueryHitType::eBLOCK);
+}
+
+void FVehicleManager::UpdateParameterTargetVehicle(float deltaTime)
+{
+    if (TargetVehicleIndex < 0 || Vehicles.Num() <= TargetVehicleIndex)
+        return;
+    PxVehicleDrive4W* focusVehicle = static_cast<PxVehicleDrive4W*>(Vehicles[TargetVehicleIndex]);
+    PxVehicleDriveDynData* driveDynData = &focusVehicle->mDriveDynData;
+
+    PxVehicleDrive4WRawInputData carRawInputs;
+    carRawInputs.setDigitalAccel(Inputs.bAccelKey);
+    carRawInputs.setDigitalBrake(Inputs.bBrakeKey);
+    carRawInputs.setDigitalHandbrake(Inputs.bHandBrakeKey);
+    carRawInputs.setDigitalSteerLeft(Inputs.bSteerLeftKey);
+    carRawInputs.setDigitalSteerRight(Inputs.bSteerRightKey);
+    carRawInputs.setGearUp(Inputs.bGearUpKey);
+    carRawInputs.setGearDown(Inputs.bGearDownKey);
+
+    const bool isAir = PxVehicleIsInAir(VehicleWheelsQueryResults[0]);
+    PxVehicleDrive4WSmoothDigitalRawInputsAndSetAnalogInputs(
+        KeySmoothingData,
+        SteerVsForwardSpeedTable,
+        carRawInputs,
+        deltaTime,
+        false,
+        *focusVehicle
+    );
+    
+    
+}
+
+void FVehicleManager::UpdateDigitalInput()
+{
+    if (!(GetAsyncKeyState(VK_RBUTTON) & 0x8000))
+    {
+        Inputs.bSteerLeftKey = !(!(GetAsyncKeyState('A') & 0x8000));
+        Inputs.bSteerRightKey = !(!(GetAsyncKeyState('D') & 0x8000));
+        Inputs.bAccelKey = !(!(GetAsyncKeyState('W') & 0x8000));
+        Inputs.bBrakeKey = !(!(GetAsyncKeyState('S') & 0x8000));
+        Inputs.bHandBrakeKey = !(!(GetAsyncKeyState('X') & 0x8000));
+        Inputs.bGearDownKey = !(!(GetAsyncKeyState('Q') & 0x8000));
+        Inputs.bGearUpKey = !(!(GetAsyncKeyState('E') & 0x8000));
+    }
 }
