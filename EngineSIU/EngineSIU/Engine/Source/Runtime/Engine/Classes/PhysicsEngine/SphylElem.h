@@ -44,6 +44,7 @@ struct FKSphylElem : public FKShapeElem
     //Capsule
     FVector Center;
     FRotator Rotation;
+    FQuat RQuat;
     float Radius;
     float Length;
 };

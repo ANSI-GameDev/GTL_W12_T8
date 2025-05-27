@@ -46,6 +46,8 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     // Body의 위치 = Body가 속한 Bone의 World Position
     PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
+    // @@ TODO : TEst 용 추가
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
     // Shape 생성
     AttachShapes(InBodySetup->AggGeom, InScene);
@@ -82,9 +84,9 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
     {
         PxReal Radius = CapsuleGeom.Radius;
         PxReal HalfLength = CapsuleGeom.Length * 0.5f;
-        FQuat UnrealQuat = FQuat(CapsuleGeom.Rotation); 
+        FQuat UnrealQuat();
 
-        PxQuat PxRotation = PxQuat(UnrealQuat.X, UnrealQuat.Y, UnrealQuat.Z, UnrealQuat.W);
+        PxQuat PxRotation = CapsuleGeom.RQuat.ToPxQuat();
         PxTransform ShapePose(CapsuleGeom.Center.ToPxVec3(), PxRotation);
 
         PxCapsuleGeometry Geometry(Radius, HalfLength);
