@@ -25,6 +25,7 @@ class UBodySetup : public UBodySetupCore
     DECLARE_CLASS(UBodySetup, UBodySetupCore)
 public:
     UBodySetup() = default;
+    void ApplyWorldScale(const FVector& Scale3D);
 
     /* 위 PhysicAsset의 Bounding Box 계산 시 고려 여부 : false면 경계 박스 계산에서 제외*/
     uint8 bConsiderForBounds : 1;

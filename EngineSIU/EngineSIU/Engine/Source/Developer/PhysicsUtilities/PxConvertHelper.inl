@@ -20,9 +20,15 @@ inline PxTransform FTransform::ToPxTransform()
 }
 
 inline FQuat::FQuat(const physx::PxQuat& InQuat):X(InQuat.x), Y(InQuat.y), Z(InQuat.z), W(InQuat.w){}
+inline PxQuat FQuat::ToPxQuat() const 
+{
+    PxQuat quat = { this->X, this->Y, this->Z, this->W };
+    return quat;
+}
 inline PxQuat FQuat::ToPxQuat()
 {
-    return {this->X, this->Y, this->Z, this->W};
+    PxQuat quat = { this->X, this->Y, this->Z, this->W };
+    return quat;
 }
 FVector FQuat::GetUnitAxis(EAxis::Type Axis) const
 {
@@ -38,3 +44,6 @@ FVector FQuat::GetUnitAxis(EAxis::Type Axis) const
         return FVector::ZeroVector;
     }
 }
+
+
+

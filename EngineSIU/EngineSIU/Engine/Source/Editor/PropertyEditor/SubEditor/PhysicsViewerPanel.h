@@ -26,6 +26,7 @@ enum class EPhysicsSelectionType : uint8
     Body,
     Constraint
 };
+
 class PhysicsViewerPanel : public UEditorPanel
 {
 public:

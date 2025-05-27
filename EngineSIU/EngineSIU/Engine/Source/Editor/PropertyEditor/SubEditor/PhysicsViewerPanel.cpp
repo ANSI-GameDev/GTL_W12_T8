@@ -56,7 +56,7 @@ void PhysicsViewerPanel::OnResize(HWND hWnd)
         FViewport* Viewport = ViewportClient->GetViewport();
         if (Viewport)
         {
-            FRect NewRect(0, 0, Width, Height);
+            FRect NewRect(0,0,Width,Height);
             Viewport->ResizeViewport(NewRect);
         }
     }
@@ -117,6 +117,7 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
     bool bOpen = ImGui::TreeNodeEx(*BoneName.ToString(), flags);
 
+    bool bOpen = ImGui::TreeNodeEx(*Label, flags);
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
     {
         if (SkeletalMeshComponent)

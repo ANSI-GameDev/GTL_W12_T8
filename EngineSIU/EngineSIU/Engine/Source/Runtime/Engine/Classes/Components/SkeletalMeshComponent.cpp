@@ -173,6 +173,8 @@ void USkeletalMeshComponent::SetSkeletalMeshAsset(USkeletalMesh* InSkeletalMeshA
     CPURenderData->MaterialSubsets = InSkeletalMeshAsset->GetRenderData()->MaterialSubsets;
     SetSelectedBone(-1);
 
+    /* TODO : 기본적으로 PhysicAsset을 생성하는 대신 bSimulated 옵션이 켜질 때만 PhysicAsset 생성하기 */
+    OnCreatePhysicsState();
 }
 
 FTransform USkeletalMeshComponent::GetSocketTransform(FName SocketName) const
@@ -404,7 +406,12 @@ void USkeletalMeshComponent::OnCreatePhysicsState()
         return;
     }
 
-    InitArticulated(GetWorld()->GetPhysicsScene());
+    if (GetWorld() == nullptr)
+    {
+        return;
+    }
+
+    InitArticulated(GetOwner()->GetWorld()->GetPhysicsScene());
 }
 
 void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
@@ -501,8 +508,42 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
     }
 }
 
+/* 각 BodySetup에 대해 BodyInstance 생성 */
 void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, TArray<FBodyInstance*>& OutBodies, TMap<FName, FBodyInstance*>* OutNameToBodyMap, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/)const
 {
+    const FVector ComponentScale3D = GetComponentTransform().GetScale3D();
+
+    for (int32 i = 0; i < PhysAsset.BodySetup.Num(); ++i)
+    {
+        UBodySetup* BodySetup = PhysAsset.BodySetup[i];
+        if (BodySetup == nullptr || !PhysAsset.GetPreviewMesh() || !PhysAsset.GetPreviewMesh()->GetSkeleton())
+        {
+            UE_LOG(ELogLevel::Error, TEXT("USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal : BodySetup is NULLPTR or other skeleton MISSING"));
+            continue;
+        }
+
+        const FReferenceSkeleton& RefSkeleton = PhysAsset.GetPreviewMesh()->GetSkeleton()->GetRefSkeleton();
+        const int32 BoneIndex = RefSkeleton.FindRawBoneIndex(BodySetup->BoneName);
+        if (BoneIndex == INDEX_NONE)
+        {
+            UE_LOG(ELogLevel::Error, TEXT("USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal : Could not find bone index for body '%s'"), *BodySetup->BoneName.ToString());
+            continue;
+        }
+
+        /* 컴포넌트의 Scale을 적용하여 충돌 형상 정의하기 위함 */
+        const FTransform BoneWorldTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+        BodySetup->ApplyWorldScale(ComponentScale3D);
+
+        FBodyInstance* NewBody = new FBodyInstance();
+        NewBody->InitBody(BodySetup, BoneWorldTransform.GetLocation(), PhysScene);
+
+        OutBodies.Add(NewBody);
+
+        if (OutNameToBodyMap)
+        {
+            OutNameToBodyMap->Add(BodySetup->BoneName, NewBody);
+        }
+    }
 }
 
 

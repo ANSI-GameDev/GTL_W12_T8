@@ -142,6 +142,8 @@ public:
         return Slerp_NotNormalized(Quat1, Quat2, Slerp).GetNormalized();
     }
 
+    static FQuat FindBetweenNormals(const FVector& A, const FVector& B);
+
     // 회전 각도와 축으로부터 쿼터니언 생성 (axis-angle 방식)
     static FQuat FromAxisAngle(const FVector& Axis, float AngleRad);
 
@@ -162,6 +164,7 @@ public:
 
     //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
     FQuat(const physx::PxQuat& InQuat);
+    physx::PxQuat ToPxQuat() const;
     physx::PxQuat ToPxQuat();
     FVector GetUnitAxis(EAxis::Type Axis) const;
 
