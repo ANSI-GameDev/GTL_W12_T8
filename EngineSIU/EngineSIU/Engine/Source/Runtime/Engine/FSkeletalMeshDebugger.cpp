@@ -3,6 +3,8 @@
 #include "Animation/AnimationPoseData.h"
 #include "Engine/SkeletalMesh.h"
 #include "Launch/EngineLoop.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
 //현재 Bone의 위치를 Cone의 꼭지, 부모 Bone의 위치를 Cone의 바닥으로 사용
 /*void FSkeletalMeshDebugger::DrawSkeleton(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch)
@@ -145,3 +147,46 @@ void FSkeletalMeshDebugger::DrawSkeletonAABBs(const USkeletalMeshComponent* Skel
         DrawBatch->AddAABBToBatch(Box, Pos, FMatrix::Identity);
     }
 }
+void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch)
+{
+    if (!SkelComp || !DrawBatch) return;
+
+    UPhysicsAsset* PhysAsset = SkelComp->GetPhysicsAsset();
+    if (!PhysAsset) return;
+
+    const USkeleton* Skeleton = SkelComp->GetSkeletalMeshAsset()->GetSkeleton();
+    const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
+
+    TArray<FMatrix> BoneWorldMatrices;
+    SkelComp->GetCurrentGlobalBoneMatrices(BoneWorldMatrices);
+
+    constexpr int32 ConeSegments = 16;
+    const FVector4 ConeColor(1.f, 1.f, 0.f, 1.f); // 노란색
+
+    for (UPhysicsConstraintTemplate* Constraint : PhysAsset->ConstraintSetup)
+    {
+        if (!Constraint) continue;
+
+        const FConstraintInstance& Inst = Constraint->DefaultInstance;
+        int32 ChildIdx = RefSkeleton.FindBoneIndex(Inst.ConstraintBone1);
+        int32 ParentIdx = RefSkeleton.FindBoneIndex(Inst.ConstraintBone2);
+
+        if (!BoneWorldMatrices.IsValidIndex(ChildIdx) || !BoneWorldMatrices.IsValidIndex(ParentIdx)) continue;
+
+        FVector Start = BoneWorldMatrices[ParentIdx].GetOrigin();  // 부모 (Base)
+        FVector End = BoneWorldMatrices[ChildIdx].GetOrigin();   // 자식 (Apex)
+
+        FVector Axis = (End - Start);
+        float Length = Axis.Length();
+        if (Length < KINDA_SMALL_NUMBER) continue;
+
+        FVector Dir = Axis / Length;
+
+        // 평균 각도로 원뿔 반지름 계산 (기준 길이만큼 뻗었을 때의 반경)
+        float AvgSwing = (Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees + Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees) * 0.5f;
+        float Radius = FMath::Tan(FMath::DegreesToRadians(AvgSwing)) * Length;
+
+        DrawBatch->AddConeToBatch(Start, End, Radius, ConeSegments, ConeColor);
+    }
+}
+

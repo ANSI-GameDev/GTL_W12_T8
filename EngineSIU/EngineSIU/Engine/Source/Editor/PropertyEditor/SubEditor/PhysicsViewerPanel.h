@@ -34,6 +34,7 @@ public:
 public:
     void SetViewportClient(std::shared_ptr<FEditorViewportClient> InViewportClient);
     void SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent);
+    void SetPrimitiveDrawBatch(UPrimitiveDrawBatch* InPrimitiveDrawBatch);
 private:
     void RenderViewportPanel();
     void RenderPhysicsSettings();
@@ -43,6 +44,8 @@ private:
 
     void RenderPanelLayout();
     void RenderSkeletonUI();
+public:
+    UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
 private:
     float Width = 800.0f;
     float Height = 600.0f;

@@ -1,5 +1,6 @@
 #include "PhysicsViewerPanel.h"
 
+#include "FSkeletalMeshDebugger.h"
 #include "ReferenceSkeleton.h"
 #include "UnrealClient.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -29,6 +30,12 @@ void PhysicsViewerPanel::Render()
         RenderSkeletonUI();*/
         ImGui::End();
     }
+
+    //현재는 Selected를 Comp에서 확인하여 빨간색으로 그림
+    //추후 ViewerPanel에서 선택된 Bone를 가져오는 것도 좋을듯
+    FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
+    FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch);
+    FSkeletalMeshDebugger::DrawConeConstraints(SkeletalMeshComponent, PrimitiveDrawBatch);
 }
 
 
@@ -59,6 +66,11 @@ void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkel
 {
     SkeletalMeshComponent = InSkeletalMeshComponent;
     SkeletalMeshComponent->SetSelectedBone(-1);
+}
+
+void PhysicsViewerPanel::SetPrimitiveDrawBatch(UPrimitiveDrawBatch* InPrimitiveDrawBatch)
+{
+    PrimitiveDrawBatch = InPrimitiveDrawBatch;
 }
 
 void PhysicsViewerPanel::RenderViewportPanel()
