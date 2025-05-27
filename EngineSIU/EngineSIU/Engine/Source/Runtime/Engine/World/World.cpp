@@ -34,6 +34,10 @@ UWorld* UWorld::CreateWorld(UObject* InOuter, const EWorldType InWorldType, cons
     return NewWorld;
 }
 
+//test용
+#include "Actors/CubeActor.h"
+#include "Actors/SphereActor.h"
+
 void UWorld::InitializeNewWorld()
 {
     ActiveLevel = FObjectFactory::ConstructObject<ULevel>(this);
@@ -45,6 +49,13 @@ void UWorld::InitializeNewWorld()
     FPhysScene* NewPhysScene = new FPhysScene();
     NewPhysScene->InitPhysX();
     SetPhysicsScene(NewPhysScene);
+
+    ACubeActor* Platform = SpawnActor<ACubeActor>();
+    Platform->SetActorScale(FVector(40, 40, 0.01f));
+    Platform->InitBodyInstance();
+    Platform->SetActorLabel(TEXT("OBJ_PLATFORM"));
+    Platform->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도    
+    Platform->SetKinematic(true);
     
     ADirectionalLight* LightActor = SpawnActor<ADirectionalLight>();
     
@@ -125,6 +136,27 @@ UObject* UWorld::Duplicate(UObject* InOuter)
 void UWorld::Tick(float DeltaTime)
 {
     TimeSeconds += DeltaTime;
+    
+    if (TimeSeconds > SpawnTime)
+    {
+        SpawnTime += 1.f;
+        SpawnType = 1 - SpawnType;
+        if (SpawnType)
+        {
+            ACubeActor* CubeActor = SpawnActor<ACubeActor>();
+            CubeActor->SetActorLocation(FVector(0, 0, 30));
+            CubeActor->InitBodyInstance();
+            CubeActor->SetActorLabel(TEXT("OBJ_BOX_COLLISION"));
+            CubeActor->SetActorTickInEditor(true); 
+        }else
+        {
+            ASphereActor* SphereActor = SpawnActor<ASphereActor>();
+            SphereActor->SetActorLocation(FVector(0, 0, 30));
+            SphereActor->InitBodyInstance();
+            SphereActor->SetActorLabel(TEXT("OBJ_SPHERE_COLLISION"));
+            SphereActor->SetActorTickInEditor(true);
+        }
+    }
     
     // SpawnActor()에 의해 Actor가 생성된 경우, 여기서 BeginPlay 호출
     if (WorldType != EWorldType::Editor)
