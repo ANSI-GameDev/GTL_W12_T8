@@ -70,7 +70,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     const PxQuat AlignToX = PxShortestRotation(PxVec3(1, 0, 0), JointDir);
 
     // 3. Anchor 위치는 자식의 현재 위치
-    const PxVec3 AnchorPos = ParentPos;
+    const PxVec3 AnchorPos = ChildPos;
     const PxTransform JointWorldPose(AnchorPos, AlignToX);
 
     // 4. 각각 로컬 프레임 계산
@@ -96,9 +96,13 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, !ProfileInstance.bDisableCollision);
 
     // 5. DOF 제한 설정
-    Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
-    Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
-    Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
+    //Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
+    //Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
+    //Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
+
+    //Joint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE);
+    //Joint->setMotion(PxD6Axis::eY, PxD6Motion::eFREE);
+    //Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eFREE);
 
     const PxTolerancesScale& ToleranceScale = PhysScene->gPhysics->getTolerancesScale();
     PxReal LimitExtent = Scale * ProfileInstance.LinearLimit.Limit;
@@ -111,7 +115,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     if (ProfileInstance.TwistLimit.TwistMotion == ACM_Limited)
     {
         float TwistAngle = FMath::DegreesToRadians(ProfileInstance.TwistLimit.TwistLimitDegrees);
-        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLIMITED);
         Joint->setTwistLimit(PxJointAngularLimitPair(-TwistAngle, TwistAngle));
     }
     else
@@ -135,7 +139,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     }
 
     // 6. mass scaling / 기타
-    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); // 보정 활성화
+    //Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); // 보정 활성화
 }
 
 /* 두 Bone 간 RefPose 기준 상대 위치 계산 */

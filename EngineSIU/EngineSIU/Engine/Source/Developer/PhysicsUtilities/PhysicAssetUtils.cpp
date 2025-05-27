@@ -182,7 +182,7 @@ namespace FPhysicsAssetUtils
             if (Length < KINDA_SMALL_NUMBER)
             {
                 Dir = FVector(0, 0, 1);
-                Length = 10.f;
+                Length = 5.f;
             }
 
 
@@ -192,7 +192,7 @@ namespace FPhysicsAssetUtils
 
             /* Y+를 Z+로 보정하고 (PhysX Y축 캡슐을 Z축 기준으로 회전) //[미사용] Z축 기준으로 본 방향을 향하도록 회전시킴*/
             FQuat CapsuleDirRotation = FQuat::FindBetweenNormals(FVector(1, 0, 0), Dir);
-            FQuat PhysX_YtoZ_Rotation = FQuat(FVector(1, 0, 0), PI / 2); // 90도 회전 (X축 기준)
+            //FQuat PhysX_YtoZ_Rotation = FQuat(FVector(1, 0, 0), PI / 2); // 90도 회전 (X축 기준)
             //FQuat FinalRotation = CapsuleDirRotation/**PhysX_YtoZ_Rotation*/;
 
             ElementTransform = FTransform(CapsuleDirRotation, BoxCenter);
@@ -213,7 +213,8 @@ namespace FPhysicsAssetUtils
             float CapsuleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
             CapsuleRadius = FMath::Max(CapsuleRadius, 1.f);
             float CapsuleHalfLength = BoxExtent.Z;
-            CapsuleHalfLength = FMath::Max(CapsuleHalfLength, 1.f);
+            CapsuleHalfLength = FMath::Max(CapsuleHalfLength - CapsuleRadius, 0.7f);
+            //CapsuleHalfLength -= CapsuleRadius;
 
             SphylElem.Center = ElementTransform.GetLocation();
             SphylElem.RQuat = ElementTransform.GetRotation();
