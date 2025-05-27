@@ -122,7 +122,7 @@ struct FTransform
     // Unit Axis 함수 관련
     FVector GetUnitAxis(EAxis::Type InAxis) const;
 
-    //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
+    //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.inl"
     FTransform(const physx::PxTransform& InTransform);
     physx::PxTransform ToPxTransform();
 };

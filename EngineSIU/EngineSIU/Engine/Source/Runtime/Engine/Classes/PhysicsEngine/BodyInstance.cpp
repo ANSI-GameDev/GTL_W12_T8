@@ -47,7 +47,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
     // @@ TODO : TEst 용 추가
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+    //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
     // Shape 생성
     AttachShapes(InBodySetup->AggGeom, InScene);
@@ -82,16 +82,23 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
 
     for (const FKSphylElem& CapsuleGeom : InAggregateGeom.SphylElems)
     {
+        // 1. Shape 정보
         PxReal Radius = CapsuleGeom.Radius;
         PxReal HalfLength = CapsuleGeom.Length * 0.5f;
-        FQuat UnrealQuat();
 
-        PxQuat PxRotation = CapsuleGeom.RQuat.ToPxQuat();
-        PxTransform ShapePose(CapsuleGeom.Center.ToPxVec3(), PxRotation);
+        // 2. 캡슐 회전/위치
+        PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
+        PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
 
+        // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
+        PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
+        RigidBody->setGlobalPose(ActorPose);
+
+        // 4. Shape은 Actor 기준으로 위치 0으로 고정
         PxCapsuleGeometry Geometry(Radius, HalfLength);
         PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
-        Shape->setLocalPose(ShapePose);
+        Shape->setLocalPose(PxTransform(PxIdentity));
+
         RigidBody->attachShape(*Shape);
         Shape->release();
     }

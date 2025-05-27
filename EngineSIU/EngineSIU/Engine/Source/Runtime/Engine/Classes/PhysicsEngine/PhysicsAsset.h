@@ -15,6 +15,8 @@ public:
     void UpdateBodySetupIndexMap();
     void UpdateBoundsBodiesArray();
 
+    void SetPreviewSkeletalMesh(USkeletalMesh* InPreviewMesh);
+
     const TArray<FName>& GetConstraintProfileNames() const;
     USkeletalMesh* GetPreviewMesh() const { return PreviewSkeletalMesh; }
 

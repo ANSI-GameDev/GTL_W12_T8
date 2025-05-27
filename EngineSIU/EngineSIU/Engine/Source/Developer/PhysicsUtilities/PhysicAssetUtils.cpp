@@ -52,7 +52,7 @@ namespace FPhysicsAssetUtils
                 const FName ParentName = RefSkeleton.GetBoneName(ParentIndex);
 
                 /* "pelvis_abdomen" : pelvis와 abdomen을 잇는 Joint 이름*/
-                const FName ConstraintName = FName(*FString::Printf(TEXT("%s_%s_Constraint"), *ChildName.ToString(), *ParentName.ToString()));
+                const FName ConstraintName = FName(*FString::Printf(TEXT("%s->%s_Constraint"), *ChildName.ToString(), *ParentName.ToString()));
 
                 UPhysicsConstraintTemplate* CS = nullptr;
                 int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, ConstraintName, CS, ParentName, ChildName);
@@ -196,6 +196,12 @@ namespace FPhysicsAssetUtils
             //FQuat FinalRotation = CapsuleDirRotation/**PhysX_YtoZ_Rotation*/;
 
             ElementTransform = FTransform(CapsuleDirRotation, BoxCenter);
+        }
+        else // 자신이 root bone일 때
+        {
+            FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+            ElementTransform = FTransform(FQuat::Identity, ThisWorld.GetLocation());
+            BoxExtent = FVector::ZeroVector;
         }
 
         // --- 이제 GeomType 별로 추가 ---

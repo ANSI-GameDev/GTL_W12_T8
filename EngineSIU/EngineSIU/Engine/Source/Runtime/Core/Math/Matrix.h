@@ -74,7 +74,7 @@ public:
 
 namespace FRotationMatrix
 {
-    inline FQuat MakeFromXY(const FVector& XAxis, const FVector& YAxis);
+    FQuat MakeFromXY(const FVector& XAxis, const FVector& YAxis);
 }
 
 inline FArchive& operator<<(FArchive& Ar, FMatrix& M)

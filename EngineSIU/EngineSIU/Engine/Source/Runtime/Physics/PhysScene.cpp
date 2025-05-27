@@ -1,4 +1,4 @@
-﻿#include "PhysScene.h"
+#include "PhysScene.h"
 
 #include "UObject/Casts.h"
 #include "World/World.h"
@@ -99,7 +99,7 @@ void FPhysScene::InitPhysX()
     //addActor하고 Joint생성
        
     PxRigidStatic* rigidStatic = nullptr;
-    PxPlane plane = PxPlane(0, 0, 1, 0);
+    PxPlane plane = PxPlane(0, 0, 1, -5);
     
     // PxD6Joint* Joint = PxD6JointCreate(*gPhysics, RBody2, RPos2, rigidBody, pose);
     // Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE); //회전 고정
