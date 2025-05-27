@@ -115,6 +115,20 @@ void FPhysScene::InitPhysX()
     
     rigidStatic = PxCreatePlane(*gPhysics, plane, *gMaterial);
     gScene->addActor(*rigidStatic);
+
+    // Init Cooking
+    PxTolerancesScale scale;
+    scale.length = 1.0f;
+    scale.speed  = 9.81f;
+    PxCookingParams cookingParams(scale);
+    gCooking = PxCreateCooking(PX_PHYSICS_VERSION, *gFoundation, cookingParams);
+
+    // Init Vehicle Environment
+    VehicleManager = new FVehicleManager();
+    if (VehicleManager != nullptr)
+        VehicleManager->InitPhysXVehicle(gPhysics, gCooking);
+
+    VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxIdentity));
 }
 
 void FPhysScene::Simulate(float DeltaTime)

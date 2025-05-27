@@ -382,6 +382,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClCompile Include="Engine\Source\Runtime\Launch\Launch.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Physics\CollisionManager.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Physics\PhysScene.cpp"/>
+    <ClCompile Include="Engine\Source\Runtime\Physics\VehicleManager.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\BillboardRenderPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\CameraEffectRenderPass.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Renderer\CompositingPass.cpp" />
@@ -781,6 +782,7 @@ xcopy /y /d "$(SolutionDir)$(ProjectName)\Engine\Source\ThirdParty\FBX\lib\x64\$
     <ClInclude Include="Engine\Source\Runtime\Launch\LightDefine.h" />
     <ClInclude Include="Engine\Source\Runtime\Physics\CollisionManager.h" />
     <ClInclude Include="Engine\Source\Runtime\Physics\PhysScene.h" />
+    <ClInclude Include="Engine\Source\Runtime\Physics\VehicleManager.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\BillboardRenderPass.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\CameraEffectRenderPass.h" />
     <ClInclude Include="Engine\Source\Runtime\Renderer\CompositingPass.h" />

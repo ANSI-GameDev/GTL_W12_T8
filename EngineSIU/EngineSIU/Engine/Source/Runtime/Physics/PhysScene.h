@@ -4,7 +4,10 @@
 #include <extensions/PxDefaultCpuDispatcher.h>
 #include <extensions/PxDefaultErrorCallback.h>
 #include <pvd/PxPvd.h>
+#include <vehicle/PxVehicleUpdate.h>
+#include <vehicle/PxVehicleWheels.h>
 
+#include "VehicleManager.h"
 #include "Container/Array.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "PhysicsEngine/ConstraintInstance.h"
@@ -49,4 +52,7 @@ public:
     PxScene* gScene = nullptr;
     PxMaterial* gMaterial = nullptr;
     PxDefaultCpuDispatcher* gDispatcher = nullptr;
+    PxCooking* gCooking = nullptr;
+
+    FVehicleManager* VehicleManager = nullptr;
 };
