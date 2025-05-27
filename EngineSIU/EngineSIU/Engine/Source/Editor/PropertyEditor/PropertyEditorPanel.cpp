@@ -295,7 +295,11 @@ void PropertyEditorPanel::RenderForSceneComponent(USceneComponent* SceneComponen
         FImGuiWidget::DrawVec3Control("Scale", Scale, 1, 85);
         ImGui::Spacing();
 
-        SceneComponent->SetRelativeTransform(FTransform(Rotation, Location, Scale));
+        UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(SceneComponent);
+        if (PrimComp)
+        {
+            SceneComponent->SetForceRelativeTransform(FTransform(Rotation, Location, Scale));
+        }
 
         std::string CoordiButtonLabel;
         if (Player->GetCoordMode() == ECoordMode::CDM_WORLD)

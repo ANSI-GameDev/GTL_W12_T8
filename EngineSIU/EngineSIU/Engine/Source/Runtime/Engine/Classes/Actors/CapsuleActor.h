@@ -11,6 +11,8 @@ class ACapsuleActor : public AActor
 public:
     ACapsuleActor();
 
+    void InitBodyInstance();
+    
     UCapsuleComponent* GetShapeComponent() const;
 
 protected:

@@ -52,6 +52,7 @@ struct FBodyInstance : public FBodyInstanceCore
 // linear, angularvel, massscale TO CHECK
     FVector LinearVelocity;
     FVector AngularVelocity;
+    
 // 이거 뭐임
     FVector COMNudge;
 
@@ -73,11 +74,14 @@ public:
     // void AddImpulse(FVector Impulse);
 
     void SetTransformRigidBody(FTransform MoveLocation);
-    
+    void SetRigidbodyKinematic(bool bIsKinematic);
+    void RefreshPhysicsState();
+
     //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
     void InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene);
     void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
-
+    void DestroyInPhysicsScene();
+    
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
 
@@ -94,7 +98,9 @@ public:
     uint8 bLockZRotation : 1;
 
     uint8 bOverrideMaxAngularVelocity : 1;
- 
+
+    FTransform ForceMoveTransform;
+    
     void SetLinearVelocity(FVector V) {LinearVelocity = V;}
     void SetAngularVelocity(FVector AV) {AngularVelocity = AV;}
 

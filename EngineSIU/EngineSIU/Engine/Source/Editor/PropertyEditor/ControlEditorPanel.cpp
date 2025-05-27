@@ -402,7 +402,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 {
                     // TODO: 다른 부분들 전부 Actor만 소환하도록 하고, Component 생성은 Actor가 자체적으로 하도록 변경.
                     ACube* CubeActor = World->SpawnActor<ACube>();
-                    CubeActor->InitCube();
+                    CubeActor->InitBodyInstance();
                     CubeActor->SetActorLabel(TEXT("OBJ_CUBE"));
                     break;
                 }
@@ -470,23 +470,29 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
                 }
                 case OBJ_BOX_COLLISION:
                 {
-                    SpawnedActor = World->SpawnActor<ACubeActor>();
-                    SpawnedActor->SetActorLabel(TEXT("OBJ_BOX_COLLISION"));
-                    SpawnedActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
+                    ACubeActor* CubeActor = World->SpawnActor<ACubeActor>();
+                    CubeActor->SetActorLocation(FVector(0, 0, 10));
+                    CubeActor->InitBodyInstance();
+                    CubeActor->SetActorLabel(TEXT("OBJ_BOX_COLLISION"));
+                    CubeActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
                     break;
                 }
                 case OBJ_SPHERE_COLLISION:
                 {
-                    SpawnedActor = World->SpawnActor<ASphereActor>();
-                    SpawnedActor->SetActorLabel(TEXT("OBJ_SPHERE_COLLISION"));
-                    SpawnedActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
+                    ASphereActor* SphereActor = World->SpawnActor<ASphereActor>();
+                    SphereActor->SetActorLocation(FVector(0, 0, 10));
+                    SphereActor->InitBodyInstance();
+                    SphereActor->SetActorLabel(TEXT("OBJ_SPHERE_COLLISION"));
+                    SphereActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
                     break;
                 }
                 case OBJ_CAPSULE_COLLISION:
                 {
-                    SpawnedActor = World->SpawnActor<ACapsuleActor>();
-                    SpawnedActor->SetActorLabel(TEXT("OBJ_CAPSULE_COLLISION"));
-                    SpawnedActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
+                    ACapsuleActor* CapsuleActor = World->SpawnActor<ACapsuleActor>();
+                    CapsuleActor->SetActorLocation(FVector(0, 0, 10));
+                    CapsuleActor->InitBodyInstance();
+                    CapsuleActor->SetActorLabel(TEXT("OBJ_CAPSULE_COLLISION"));
+                    CapsuleActor->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도
                     break;
                 }
                 case OBJ_FISH:

@@ -16,16 +16,41 @@ using namespace physx;
 
 void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
 {
+    WorldTransform = MoveLocation;
+
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-    RigidBody->setKinematicTarget(MoveLocation.ToPxTransform());
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+    RefreshPhysicsState();
+    RigidBody->setKinematicTarget(WorldTransform.ToPxTransform());
+    RefreshPhysicsState();
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, BodySetup->PhysicsType == PhysType_Kinematic);
+    RefreshPhysicsState();
+
+    if (RigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
+    {
+        RigidBody->setLinearVelocity(LinearVelocity.ToPxVec3());
+        RigidBody->setAngularVelocity(AngularVelocity.ToPxVec3());
+    }
+}
+
+void FBodyInstance::SetRigidbodyKinematic(bool bIsKinematic)
+{
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, bIsKinematic);
+    BodySetup->PhysicsType = bIsKinematic ? PhysType_Kinematic : PhysType_Default;
+    RefreshPhysicsState();
+}
+
+void FBodyInstance::RefreshPhysicsState()
+{
+    MyScene->gScene->fetchResults(true);
 }
 
 void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene)
 {
     //아래는 하면 안될수도 있음
-    // MyScene = InScene;
+    MyScene = InScene;
 
+    BodySetup = InBodySetup;
+    
     //등록하는 행위
     InScene->BodyInstances.Add(this);
 
@@ -33,16 +58,12 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     //있는데 다시 만들면 해제했다가 다시 할당
     if (RigidBody)
     {
-        if (RigidBody->getScene())
-        {
-            RigidBody->getScene()->removeActor(*RigidBody);
-        }
-        //joint가 있으면 joint도 같이 해제해야함
-        RigidBody->release();
+        DestroyInPhysicsScene();
     }
     
     //Instance의 위치주기
     PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
+    
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
 
     AttachShapes(InBodySetup->AggGeom, InScene);
@@ -88,9 +109,30 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
     }
 }
 
+void FBodyInstance::DestroyInPhysicsScene()
+{
+    if (!RigidBody)
+    {
+        return;
+    }
+    
+    if (RigidBody->getScene())
+    {
+        RigidBody->getScene()->removeActor(*RigidBody);
+    }
+    
+    RigidBody->release();
+    RigidBody = nullptr;
+}
+
 void FBodyInstance::UpdatePhysics()
 {
-    PxTransform t = RigidBody->getGlobalPose();
-    
-    WorldTransform = FTransform(t);
+    if (!RigidBody)
+    {
+        return;
+    }
+
+    WorldTransform = FTransform(RigidBody->getGlobalPose());
+    LinearVelocity = FVector(RigidBody->getLinearVelocity());
+    AngularVelocity = FVector(RigidBody->getAngularVelocity());
 }

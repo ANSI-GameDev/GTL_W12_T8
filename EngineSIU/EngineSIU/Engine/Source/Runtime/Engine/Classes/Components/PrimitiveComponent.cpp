@@ -4,6 +4,7 @@
 #include "Engine/OverlapInfo.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Actor.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "World/World.h"
 
 // 언리얼 엔진에서도 여기에서 FOverlapInfo의 생성자를 정의하고 있음.
@@ -183,9 +184,46 @@ void UPrimitiveComponent::TickComponent(float DeltaTime)
     Super::TickComponent(DeltaTime);
 }
 
+void UPrimitiveComponent::PhysicsUpdate(float DeltaTime)
+{
+    //StaticMesh는 Rigidbody가 곧 내 위치
+    FTransform BodyTransform = BodyInstance->GetWorldTransform();
+    FVector Scale = GetRelativeScale3D();
+    BodyTransform.Scale3D = Scale;
+    SetWorldTransform(BodyTransform);
+}
+
+void UPrimitiveComponent::DestroyComponent(bool bPromoteChildren)
+{
+    USceneComponent::DestroyComponent(bPromoteChildren);
+
+    BodyInstance->DestroyInPhysicsScene();
+}
+
 void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
 {
     
+}
+
+void UPrimitiveComponent::SetForceRelativeTransform(const FTransform& InTransform)
+{
+    USceneComponent::SetForceRelativeTransform(InTransform);
+
+    if (BodyInstance)
+    {
+        //skeletal은 보유 bodyInstance돌면서 이거 실행
+        FTransform BodyInstanceTransform = BodyInstance->GetWorldTransform();
+        
+        FVector DifLocation = InTransform.Translation - GetRelativeLocation();
+
+        BodyInstanceTransform.Translation += DifLocation;
+        
+        FQuat DifRotation = (InTransform.Rotation.Rotator() - GetRelativeRotation()).Quaternion();
+
+        BodyInstanceTransform.Rotation = BodyInstanceTransform.Rotation * DifRotation;
+        
+        BodyInstance->SetTransformRigidBody(BodyInstanceTransform);
+    }
 }
 
 bool UPrimitiveComponent::IntersectRayTriangle(const FVector& RayOrigin, const FVector& RayDirection, const FVector& v0, const FVector& v1, const FVector& v2, float& OutHitDistance) const
