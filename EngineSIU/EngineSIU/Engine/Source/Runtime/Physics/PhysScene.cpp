@@ -128,11 +128,12 @@ void FPhysScene::InitPhysX()
     if (VehicleManager != nullptr)
         VehicleManager->InitPhysXVehicle(gPhysics, gCooking);
 
-    VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxIdentity));
+    VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxVec3(0.0f, 0.0f, 10.0f), PxQuat(PxIdentity)));
 }
 
 void FPhysScene::Simulate(float DeltaTime)
 {
+    DeltaTime = std::max(DeltaTime, KINDA_SMALL_NUMBER);
     gScene->simulate(DeltaTime);
     gScene->fetchResults(true);
     for (FBodyInstance* BodyInstance : BodyInstances)
@@ -143,6 +144,10 @@ void FPhysScene::Simulate(float DeltaTime)
         }
     }
     // Ragdoll 본들 위치 업데이트
+
+    // Update Vehicle Environment
+    if (VehicleManager != nullptr)
+        VehicleManager->Update(DeltaTime, gScene);
 }
 
 

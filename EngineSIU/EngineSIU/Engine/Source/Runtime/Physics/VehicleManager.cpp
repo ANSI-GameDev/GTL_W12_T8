@@ -65,9 +65,11 @@ void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
     }
 
     // Init WheelQuery
-    const uint32 InitWheelQUeryResultCount = 16;
-    WheelQueryResults = (PxWheelQueryResult*)malloc(sizeof(PxWheelQueryResult) * InitWheelQUeryResultCount);
-    WheelCapacity = InitWheelQUeryResultCount;
+    const uint32 InitWheelCapacity = 16;
+    WheelQueryResults = (PxWheelQueryResult*)malloc(sizeof(PxWheelQueryResult) * InitWheelCapacity);
+    RaycastQueryResults = (PxRaycastQueryResult*)malloc(sizeof(PxRaycastQueryResult) * InitWheelCapacity);
+    RaycastHits = (PxRaycastHit*)malloc(sizeof(PxRaycastHit) * InitWheelCapacity);
+    WheelCapacity = InitWheelCapacity;
 
     // Init Mesh
     // ChassisMesh = Physics->create
@@ -319,6 +321,27 @@ void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const Px
     wheelsSimData->free();
 }
 
+void FVehicleManager::Update(const float deltaTime, PxScene* Scene)
+{
+    SuspensionRaycasts(Scene);
+    PxVehicleUpdates(deltaTime, Scene->getGravity(), *SurfaceTirePairs, Vehicles.Num(), Vehicles.GetData(), VehicleWheelsQueryResults.GetData());
+}
+
+void FVehicleManager::SuspensionRaycasts(PxScene* scene)
+{
+    if (RaycastBatchQuery == nullptr)
+    {
+        PxBatchQueryDesc desc(WheelCapacity, 0, 0);
+        desc.queryMemory.userRaycastResultBuffer = RaycastQueryResults;
+        desc.queryMemory.userRaycastTouchBuffer = RaycastHits;
+        desc.queryMemory.raycastTouchBufferSize = WheelCapacity;
+        desc.preFilterShader = SampleVehicleWheelRaycastPreFilter;
+        RaycastBatchQuery = scene->createBatchQuery(desc);
+    }
+    PxSceneReadLock scopedLock(*scene);
+    PxVehicleSuspensionRaycasts(RaycastBatchQuery, Vehicles.Num(), Vehicles.GetData(), WheelCapacity, RaycastQueryResults); 
+}
+
 VehicleHelper::AABB FVehicleManager::ComputeMeshAABB(const PxConvexMesh* mesh)
 {
     const PxU32 numChassisVerts = mesh->getNbVertices();
@@ -341,6 +364,8 @@ void FVehicleManager::ReallocWheelQueryResults()
 {
     WheelCapacity *= 2;
     WheelQueryResults = (PxWheelQueryResult*)realloc((void*)WheelQueryResults, sizeof(PxWheelQueryResult) * WheelCapacity);
+    RaycastQueryResults = (PxRaycastQueryResult*)realloc((void*)RaycastQueryResults, sizeof(PxRaycastQueryResult) * WheelCapacity);
+    RaycastHits = (PxRaycastHit*)realloc((void*)RaycastHits, sizeof(PxRaycastHit) * WheelCapacity);
 
     for (int i = 0; i < VehicleWheelsQueryResults.Num(); ++i)
     {
@@ -408,4 +433,20 @@ void FVehicleManager::CookPrimitiveMesh(PxPhysics* Physics, PxCooking* Cooking)
             WheelMeshes[i] = Physics->createConvexMesh(readBuffer);
         }
     }
+}
+
+PxQueryHitType::Enum FVehicleManager::SampleVehicleWheelRaycastPreFilter(	
+    PxFilterData filterData0, 
+    PxFilterData filterData1,
+    const void* constantBlock, PxU32 constantBlockSize,
+    PxHitFlags& queryFlags
+)
+{
+    //filterData0 is the vehicle suspension raycast.
+    //filterData1 is the shape potentially hit by the raycast.
+    PX_UNUSED(queryFlags);
+    PX_UNUSED(constantBlockSize);
+    PX_UNUSED(constantBlock);
+    PX_UNUSED(filterData0);
+    return ((0 == (filterData1.word3 & 0xffff0000)) ? PxQueryHitType::eNONE : PxQueryHitType::eBLOCK);
 }

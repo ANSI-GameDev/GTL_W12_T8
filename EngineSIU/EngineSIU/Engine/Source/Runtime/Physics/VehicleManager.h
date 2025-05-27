@@ -59,18 +59,19 @@ public:
     FVehicleManager();
 public:
     TArray<physx::PxVehicleWheels*> Vehicles;
-    TArray<physx::PxVehicleWheelQueryResult> VehicleWheelsQueryResults;
 
 public:
     void InitPhysXVehicle(physx::PxPhysics* Physics, physx::PxCooking* Cooking);
     void Shutdown();
     void CreateVehicle(physx::PxPhysics* Physics, physx::PxScene* Scene, const physx::PxTransform& StartTransform);
+    void Update(float deltaTime, physx::PxScene* Scene);
+    void SuspensionRaycasts(physx::PxScene* scene);
 
 private:
     // Cached simulation data of focus vehicle
     physx::PxVehicleWheelsSimData* VehicleSimData;
     physx::PxVehicleDrivableSurfaceToTireFrictionPairs* SurfaceTirePairs;
-
+    
     // Road
     const physx::PxMaterial* RoadMaterials;
     physx::PxVehicleDrivableSurfaceType RoadTypes;
@@ -85,12 +86,24 @@ private:
     const float WheelMass;
     physx::PxVec3 WheelCentreOffsets[4];
     physx::PxConvexMesh* WheelMeshes[4];
-    physx::PxWheelQueryResult* WheelQueryResults;
     uint32 WheelCount;
     uint32 WheelCapacity;
+
+    // query
+    TArray<physx::PxVehicleWheelQueryResult> VehicleWheelsQueryResults;
+    physx::PxWheelQueryResult* WheelQueryResults;
+    
+    physx::PxBatchQuery* RaycastBatchQuery;
+    physx::PxRaycastQueryResult* RaycastQueryResults;
+    physx::PxRaycastHit* RaycastHits;
+
     
     static VehicleHelper::AABB ComputeMeshAABB(const physx::PxConvexMesh* mesh);
 
     void ReallocWheelQueryResults();
     void CookPrimitiveMesh(physx::PxPhysics* Physics, physx::PxCooking* Cooking);
+    static physx::PxQueryHitType::Enum SampleVehicleWheelRaycastPreFilter(
+        physx::PxFilterData filterData0, physx::PxFilterData filterData1, const void* constantBlock,
+        physx::PxU32 constantBlockSize, physx::PxHitFlags& queryFlags
+    );
 };
