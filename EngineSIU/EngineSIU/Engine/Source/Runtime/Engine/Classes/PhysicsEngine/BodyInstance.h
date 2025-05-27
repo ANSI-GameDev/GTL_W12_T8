@@ -82,6 +82,7 @@ public:
 
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
+    physx::PxRigidDynamic* GetPxRigidBoDynamic() const;
 
     uint8 bUseCCD : 1;
 

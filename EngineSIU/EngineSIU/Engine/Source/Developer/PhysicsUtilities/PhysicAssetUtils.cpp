@@ -179,25 +179,23 @@ namespace FPhysicsAssetUtils
             FVector Dir = (ThisPos - ParentPos);
             float Length = Dir.Size();
             Dir = Dir.GetSafeNormal();
-            //if (Length < KINDA_SMALL_NUMBER)
-            //{
-            //    Dir = FVector(0, 0, 1);
-            //    Length = 10.f;
-            //}
-            //else
-            //{
-            //    Dir /= Length;
-            //}
+            if (Length < KINDA_SMALL_NUMBER)
+            {
+                Dir = FVector(0, 0, 1);
+                Length = 10.f;
+            }
+
 
             // Z축에만 half-length를 실어줌
             BoxCenter = (ParentPos + ThisPos) * 0.5f;
             BoxExtent = FVector(1.f, 1.f, Length * 0.5f);
 
+            /* Y+를 Z+로 보정하고 (PhysX Y축 캡슐을 Z축 기준으로 회전) //[미사용] Z축 기준으로 본 방향을 향하도록 회전시킴*/
             FQuat CapsuleDirRotation = FQuat::FindBetweenNormals(FVector(1, 0, 0), Dir);
             FQuat PhysX_YtoZ_Rotation = FQuat(FVector(1, 0, 0), PI / 2); // 90도 회전 (X축 기준)
-            FQuat FinalRotation = CapsuleDirRotation*PhysX_YtoZ_Rotation;
+            //FQuat FinalRotation = CapsuleDirRotation/**PhysX_YtoZ_Rotation*/;
 
-            ElementTransform = FTransform(FinalRotation, BoxCenter);
+            ElementTransform = FTransform(CapsuleDirRotation, BoxCenter);
         }
 
         // --- 이제 GeomType 별로 추가 ---

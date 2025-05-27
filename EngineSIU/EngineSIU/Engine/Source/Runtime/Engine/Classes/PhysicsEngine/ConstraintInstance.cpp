@@ -1,9 +1,16 @@
-﻿#include "ConstraintInstance.h"
+#include "ConstraintInstance.h"
 #include "PhysicsCore/Chaos/ChaosEngineInterface.h"
 #include "PhysicsAsset.h"
 #include "Engine/SkeletalMesh.h"
 #include "Misc/EnumClassFlags.h"
 #include "UserInterface/Console.h"
+#include <PxPhysicsAPI.h>
+
+#include "PhysScene.h"
+
+#define PX_RELEASE(x) if ((x)) { (x)->release(); (x) = nullptr; }
+
+using namespace physx;
 
 FConstraintProfileProperties::FConstraintProfileProperties()
     : bDisableCollision(true) // 관절 사이의 충돌 기본적으로 비활성화
@@ -44,7 +51,78 @@ void FConstraintInstance::UpdateAngularLimit()
  */
 void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, USkeletalMeshComponent* OwningComponent)
 {
+    PX_RELEASE(PxJoint)
+    if (!Body1 || !Body2 || !Body1->RigidBody || !Body2->RigidBody || !PhysScene)
+    {
+        UE_LOG(ELogLevel::Error, TEXT("InitConstraint: Invalid input bodies or scene."));
+        return;
+    }
+    // 1. 부모, 자식 각각의 로컬 기준 프레임 계산
+    // 기준 위치 + 회전축 두 개 → 직교 행렬로 구성
+    FTransform ChildLocalTransform(Pos1);
+    ChildLocalTransform.SetRotation(FRotationMatrix::MakeFromXY(PriAxis1, SecAxis1));
 
+    FTransform ParentLocalTransform(Pos2);
+    ParentLocalTransform.SetRotation(FRotationMatrix::MakeFromXY(PriAxis2, SecAxis2));
+
+    // 2. PhysX Transform으로 변환
+    PxTransform PxLocalFrame1 = ChildLocalTransform.ToPxTransform();
+    PxTransform PxLocalFrame2 = ParentLocalTransform.ToPxTransform();
+
+    // 3. PxD6Joint 생성
+    PxD6Joint* Joint = PxD6JointCreate(
+        *PhysScene->gPhysics,
+        Body1->RigidBody, PxLocalFrame1,
+        Body2->RigidBody, PxLocalFrame2
+    );
+
+    if (!Joint)
+    {
+        UE_LOG(ELogLevel::Error, TEXT("InitConstraint: PxD6JointCreate failed."));
+        return;
+    }
+
+    PxJoint = Joint;
+
+    // 4. 충돌 여부
+    Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, !ProfileInstance.bDisableCollision);
+
+    // 5. DOF 제한 설정
+    Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLIMITED);
+    Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLIMITED);
+    Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLIMITED);
+
+    Joint->setLinearLimit(PxJointLinearLimit(Scale * ProfileInstance.LinearLimit.Limit, 0.05f));
+
+    // Twist 제한
+    if (ProfileInstance.TwistLimit.TwistMotion == ACM_Limited)
+    {
+        float TwistAngle = FMath::DegreesToRadians(ProfileInstance.TwistLimit.TwistLimitDegrees);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLIMITED);
+        Joint->setTwistLimit(PxJointAngularLimitPair(-TwistAngle, TwistAngle));
+    }
+    else
+    {
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+    }
+
+    // Swing 제한
+    if (ProfileInstance.ConeLimit.Swing1Motion == ACM_Limited && ProfileInstance.ConeLimit.Swing2Motion == ACM_Limited)
+    {
+        float Swing1 = FMath::DegreesToRadians(ProfileInstance.ConeLimit.Swing1LimitDegrees);
+        float Swing2 = FMath::DegreesToRadians(ProfileInstance.ConeLimit.Swing2LimitDegrees);
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
+        Joint->setSwingLimit(PxJointLimitCone(Swing1, Swing2));
+    }
+    else
+    {
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+    }
+
+    // 6. mass scaling / 기타
+    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); // 보정 활성화
 }
 
 /* 두 Bone 간 RefPose 기준 상대 위치 계산 */

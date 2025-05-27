@@ -298,6 +298,7 @@ void UAssetManager::AddToAssetMap(const FAssetLoadResult& Result, const FString&
         
         FString Key = Info.GetFullPath();
         AssetRegistry->PathNameToAssetInfo.Add(Key, Info);
+
         //TODO
         //이걸 여기서 초기화해도 되는지 확인 필요
         if (SkeletalMesh->GetPhysicsAsset() == nullptr)SkeletalMesh->SetPhysicsAsset(new UPhysicsAsset());

@@ -97,6 +97,17 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
     }
 }
 
+physx::PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
+{
+    if (!RigidBody)
+    {
+        UE_LOG(ELogLevel::Error, TEXT("FBodyInstance::GetPxRigidBoDynamic : RigidBody is nullptr"));
+        return nullptr;
+    }
+
+    return RigidBody;
+}
+
 void FBodyInstance::UpdatePhysics()
 {
     PxTransform t = RigidBody->getGlobalPose();

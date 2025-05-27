@@ -460,7 +460,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FBodyInstance*>& OutBodies, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) const
 {
-    const float ActualScale = Scale3D.GetAbsMin(); // Scale3D의
+    const float ActualScale = Scale3D.GetAbsMin(); // Scale3D 반영한 BuildScale용 
     const float Scale = ActualScale == 0.f ? KINDA_SMALL_NUMBER : ActualScale;
 
     TMap<FName, FBodyInstance*> NameToBodyMap;

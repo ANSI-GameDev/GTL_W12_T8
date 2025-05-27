@@ -70,8 +70,12 @@ public:
 
     bool Equals(const FMatrix& Other, float Tolerance = KINDA_SMALL_NUMBER) const;
     static FMatrix MakeLookAtLH(const FVector& Eye, const FVector& Target, const FVector& Up);
-
 };
+
+namespace FRotationMatrix
+{
+    inline FQuat MakeFromXY(const FVector& XAxis, const FVector& YAxis);
+}
 
 inline FArchive& operator<<(FArchive& Ar, FMatrix& M)
 {
