@@ -25,11 +25,4 @@ inline PxQuat FQuat::ToPxQuat() const
     PxQuat quat = { this->X, this->Y, this->Z, this->W };
     return quat;
 }
-inline PxQuat FQuat::ToPxQuat()
-{
-    PxQuat quat = { this->X, this->Y, this->Z, this->W };
-    return quat;
-}
-
-
 
