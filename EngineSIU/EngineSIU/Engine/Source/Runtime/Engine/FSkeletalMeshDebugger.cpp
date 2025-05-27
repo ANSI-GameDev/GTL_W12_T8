@@ -147,7 +147,7 @@ void FSkeletalMeshDebugger::DrawSkeletonAABBs(const USkeletalMeshComponent* Skel
         DrawBatch->AddAABBToBatch(Box, Pos, FMatrix::Identity);
     }
 }
-void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch)
+void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedConstraintName)
 {
     if (!SkelComp || !DrawBatch) return;
 
@@ -168,25 +168,85 @@ void FSkeletalMeshDebugger::DrawConeConstraints(const USkeletalMeshComponent* Sk
         if (!Constraint) continue;
 
         const FConstraintInstance& Inst = Constraint->DefaultInstance;
-        int32 ChildIdx = RefSkeleton.FindBoneIndex(Inst.ConstraintBone1);
-        int32 ParentIdx = RefSkeleton.FindBoneIndex(Inst.ConstraintBone2);
 
-        if (!BoneWorldMatrices.IsValidIndex(ChildIdx) || !BoneWorldMatrices.IsValidIndex(ParentIdx)) continue;
+        // 🔍 선택된 Constraint만 렌더링
+        if (Inst.JointName != SelectedConstraintName)
+            continue;
 
-        FVector Start = BoneWorldMatrices[ParentIdx].GetOrigin();  // 부모 (Base)
-        FVector End = BoneWorldMatrices[ChildIdx].GetOrigin();   // 자식 (Apex)
+        const FName& BoneName = Inst.ConstraintBone1; // 자식 본
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
 
-        FVector Axis = (End - Start);
+        if (!BoneWorldMatrices.IsValidIndex(BoneIndex)) continue;
+
+        // ConstraintBone1의 자식 중 하나를 찾음
+        int32 ChildOfTarget = INDEX_NONE;
+        for (int32 i = 0; i < RefSkeleton.GetRawBoneNum(); ++i)
+        {
+            if (RefSkeleton.GetParentIndex(i) == BoneIndex)
+            {
+                ChildOfTarget = i;
+                break;
+            }
+        }
+
+        // 자식이 없으면 시각화 생략
+        if (!BoneWorldMatrices.IsValidIndex(ChildOfTarget)) continue;
+
+        FVector Start = BoneWorldMatrices[BoneIndex].GetOrigin();       // ConstraintBone1 위치
+        FVector End = BoneWorldMatrices[ChildOfTarget].GetOrigin();     // 그 자식 Bone 위치
+
+        FVector Axis = End - Start;
         float Length = Axis.Length();
         if (Length < KINDA_SMALL_NUMBER) continue;
 
-        FVector Dir = Axis / Length;
-
-        // 평균 각도로 원뿔 반지름 계산 (기준 길이만큼 뻗었을 때의 반경)
         float AvgSwing = (Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees + Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees) * 0.5f;
         float Radius = FMath::Tan(FMath::DegreesToRadians(AvgSwing)) * Length;
 
         DrawBatch->AddConeToBatch(Start, End, Radius, ConeSegments, ConeColor);
     }
 }
+void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelComp, UPrimitiveDrawBatch* DrawBatch, const FName& SelectedBodyName)
+{
+    if (!SkelComp || !DrawBatch || !SkelComp->GetSkeletalMeshAsset()) return;
 
+    const USkeleton* Skeleton = SkelComp->GetSkeletalMeshAsset()->GetSkeleton();
+    if (!Skeleton) return;
+
+    const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
+    const UPhysicsAsset* PhysAsset = SkelComp->GetPhysicsAsset();
+    if (!PhysAsset) return;
+
+    TArray<FMatrix> BoneWorldMatrices;
+    SkelComp->GetCurrentGlobalBoneMatrices(BoneWorldMatrices);
+
+    const FVector4 DefaultColor(0.3f, 0.7f, 1.f, 1.f);  // 파란색
+    const FVector4 SelectedColor(1.f, 0.2f, 0.2f, 1.f); // 빨간색
+
+    for (int32 BodyIndex = 0; BodyIndex < PhysAsset->BodySetup.Num(); ++BodyIndex)
+    {
+        const UBodySetup* BodySetup = PhysAsset->BodySetup[BodyIndex];
+        if (!BodySetup) continue;
+
+        const FName& BoneName = BodySetup->BoneName;
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+        if (!BoneWorldMatrices.IsValidIndex(BoneIndex)) continue;
+
+        const FMatrix& BoneMatrix = BoneWorldMatrices[BoneIndex];
+        const FVector4 Color = (BoneName == SelectedBodyName) ? SelectedColor : DefaultColor;
+
+        for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
+        {
+            const FTransform LocalTransform = Sphyl.GetTransform();
+            const FTransform WorldTransform = LocalTransform * FTransform(BoneMatrix);
+
+            const float HalfLength = Sphyl.Length * 0.5f;
+            const FVector BoxExtent(Sphyl.Radius, Sphyl.Radius, HalfLength);
+
+            FBoundingBox LocalBox;
+            LocalBox.MinLocation = -BoxExtent;
+            LocalBox.MaxLocation = BoxExtent;
+            DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, FMatrix::Identity, Color);
+            //DrawBatch->AddOBBToBatch(LocalBox, WorldTransform.GetTranslation(), WorldTransform.ToMatrixNoScale(), Color);
+        }
+    }
+}

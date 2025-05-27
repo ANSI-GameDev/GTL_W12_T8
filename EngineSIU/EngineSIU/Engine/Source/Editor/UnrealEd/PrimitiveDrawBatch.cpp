@@ -258,7 +258,7 @@ void UPrimitiveDrawBatch::AddAABBToBatch(const FBoundingBox& LocalAABB, const FV
     BoundingBoxes.Add(BoundingBox);
 }
 
-void UPrimitiveDrawBatch::AddOBBToBatch(const FBoundingBox& LocalAABB, const FVector& Center, const FMatrix& ModelMatrix)
+void UPrimitiveDrawBatch::AddOBBToBatch(const FBoundingBox& LocalAABB, const FVector& Center, const FMatrix& ModelMatrix, const FVector4& Color)
 {
     FVector LocalVertices[8] = {
         { LocalAABB.MinLocation.X, LocalAABB.MinLocation.Y, LocalAABB.MinLocation.Z },
@@ -276,6 +276,7 @@ void UPrimitiveDrawBatch::AddOBBToBatch(const FBoundingBox& LocalAABB, const FVe
     {
         OBB.corners[i] = Center + FMatrix::TransformVector(LocalVertices[i], ModelMatrix);
     }
+    OBB.Color = Color;
     OrientedBoundingBoxes.Add(OBB);
 }
 

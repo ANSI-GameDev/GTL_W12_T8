@@ -35,7 +35,12 @@ void PhysicsViewerPanel::Render()
     //추후 ViewerPanel에서 선택된 Bone를 가져오는 것도 좋을듯
     FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
     FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch);
-    FSkeletalMeshDebugger::DrawConeConstraints(SkeletalMeshComponent, PrimitiveDrawBatch);
+    if (SelectedType == EPhysicsSelectionType::Constraint)
+    {
+        FSkeletalMeshDebugger::DrawConeConstraints(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName);
+    }
+    FSkeletalMeshDebugger::DrawCapsuleOBBs(SkeletalMeshComponent, PrimitiveDrawBatch,SelectedName);
+
 }
 
 
@@ -156,6 +161,7 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
                         {
                             SelectedType = EPhysicsSelectionType::Constraint;
                             SelectedName = Inst.JointName;
+                            SkeletalMeshComponent->SetSelectedBone(BoneIndex);
                         }
                     }
                 }
@@ -172,6 +178,7 @@ void PhysicsViewerPanel::RenderBoneRecursive(const FReferenceSkeleton& RefSkelet
                     {
                         SelectedType = EPhysicsSelectionType::Body;
                         SelectedName = BoneName;
+                        SkeletalMeshComponent->SetSelectedBone(BoneIndex);
                     }
                 }
             }
@@ -349,9 +356,49 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         if (BodyIndex == INDEX_NONE) return;
 
         ImGui::SeparatorText("Body Settings");
-        
+
         UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
+        if (!BodySetup) return;
+
+        // NOTE: 현재는 첫 번째 SphylElem만 조작 (여러 개 있을 경우는 반복문으로 확장 가능)
+        if (BodySetup->AggGeom.SphylElems.Num() > 0)
+        {
+            FKSphylElem& Sphyl = BodySetup->AggGeom.SphylElems[0];
+
+            FVector Center = Sphyl.Center;
+            FRotator Rotator = Sphyl.Rotation;
+            float Radius = Sphyl.Radius;
+            float Length = Sphyl.Length;
+
+            float center[3] = { Center.X, Center.Y, Center.Z };
+            float rotation[3] = { Rotator.Roll, Rotator.Pitch, Rotator.Yaw };
+
+            if (ImGui::DragFloat3("Center", center, 0.1f))
+            {
+                Sphyl.Center = FVector(center[0], center[1], center[2]);
+            }
+
+            if (ImGui::DragFloat3("Rotation", rotation, 0.5f))
+            {
+                Sphyl.Rotation = FRotator(rotation[0], rotation[1], rotation[2]);
+            }
+
+            if (ImGui::DragFloat("Radius", &Radius, 0.1f, 0.01f, 1000.f))
+            {
+                Sphyl.Radius = Radius;
+            }
+
+            if (ImGui::DragFloat("Length", &Length, 0.1f, 0.01f, 1000.f))
+            {
+                Sphyl.Length = Length;
+            }
+        }
+        else
+        {
+            ImGui::Text("No Sphyl (Capsule) geometry found.");
+        }
     }
+
     else if (SelectedType == EPhysicsSelectionType::Constraint)
     {
         if (!PhysicsAsset) return;
