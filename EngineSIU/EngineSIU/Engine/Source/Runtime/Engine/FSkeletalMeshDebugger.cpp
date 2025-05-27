@@ -237,7 +237,7 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
         for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
             const FTransform LocalTransform = Sphyl.GetTransform();
-            const FTransform WorldTransform = LocalTransform * FTransform(BoneMatrix);
+            //const FTransform WorldTransform = LocalTransform * FTransform(BoneMatrix);
 
             const float HalfLength = Sphyl.Length * 0.5f;
             const FVector BoxExtent(Sphyl.Radius, Sphyl.Radius, HalfLength);
@@ -245,7 +245,7 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(const USkeletalMeshComponent* SkelCo
             FBoundingBox LocalBox;
             LocalBox.MinLocation = -BoxExtent;
             LocalBox.MaxLocation = BoxExtent;
-            DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, FMatrix::Identity, Color);
+            DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, LocalTransform.Rotation.ToMatrix(), Color);
             //DrawBatch->AddOBBToBatch(LocalBox, WorldTransform.GetTranslation(), WorldTransform.ToMatrixNoScale(), Color);
         }
     }
