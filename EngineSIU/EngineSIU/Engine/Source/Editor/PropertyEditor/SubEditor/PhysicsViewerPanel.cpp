@@ -295,6 +295,89 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
 
     ImGui::End();
 }
+void ApplyConstraintLimit(FTransform& BoneTransform, const FReferenceSkeleton& RefSkeleton, UPhysicsAsset* PhysicsAsset, const FName& BoneName, TArray<FTransform> BonePoseLocal)
+{
+    if (!PhysicsAsset) return;
+
+    int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+    if (BoneIndex == INDEX_NONE) return;
+
+    // 🛠️ 1. BoneTransform을 Pose에 반영해줌
+    BonePoseLocal[BoneIndex] = BoneTransform;
+
+    // [1] 로컬 -> 월드 회전 변환
+    FTransform WorldTransform = BonePoseLocal[BoneIndex];
+    int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+    while (ParentIndex != INDEX_NONE)
+    {
+        WorldTransform = BonePoseLocal[ParentIndex] * WorldTransform;
+        ParentIndex = RefSkeleton.GetParentIndex(ParentIndex);
+    }
+
+    FQuat TargetWorldQuat = WorldTransform.GetRotation();
+    FQuat RefQuat = RefSkeleton.GetRefWorldTransform(BoneIndex).GetRotation();
+    FQuat DeltaQuat = RefQuat.Inverse() * TargetWorldQuat;
+
+    for (UPhysicsConstraintTemplate* Constraint : PhysicsAsset->ConstraintSetup)
+    {
+        const FConstraintInstance& Inst = Constraint->DefaultInstance;
+        if (Inst.ConstraintBone1 != BoneName)
+            continue;
+
+        const FVector TwistAxis = RefQuat.GetUnitAxis(EAxis::X); // 언리얼 기준 Twist = X
+        FVector RotationAxis;
+        float AngleRad;
+        DeltaQuat.ToAxisAndAngle(RotationAxis, AngleRad);
+        RotationAxis.Normalize();
+
+        float SwingDot = FVector::DotProduct(RotationAxis, TwistAxis);
+        FVector TwistComponent = TwistAxis * SwingDot;
+        FVector SwingComponent = RotationAxis - TwistComponent;
+
+        FQuat ClampedDeltaQuat = DeltaQuat;
+
+        // Twist 제한
+        if (Inst.ProfileInstance.TwistLimit.TwistMotion == EAngularConstraintMotion::ACM_Limited)
+        {
+            float TwistLimitRad = FMath::DegreesToRadians(Inst.ProfileInstance.TwistLimit.TwistLimitDegrees);
+            float TwistAngle = SwingDot * AngleRad;
+            TwistAngle = FMath::Clamp(TwistAngle, -TwistLimitRad, TwistLimitRad);
+            FQuat TwistQuat = FQuat(TwistAxis, TwistAngle);
+
+            // Swing 제한
+            float SwingAngle = (SwingComponent.Size() > KINDA_SMALL_NUMBER) ? (AngleRad * (1 - FMath::Abs(SwingDot))) : 0.0f;
+            float SwingLimit1 = FMath::DegreesToRadians(Inst.ProfileInstance.ConeLimit.Swing1LimitDegrees);
+            float SwingLimit2 = FMath::DegreesToRadians(Inst.ProfileInstance.ConeLimit.Swing2LimitDegrees);
+            float SwingLimit = FMath::Min(SwingLimit1, SwingLimit2);
+            SwingAngle = FMath::Clamp(SwingAngle, 0.0f, SwingLimit);
+            FQuat SwingQuat = FQuat(SwingComponent.GetSafeNormal(), SwingAngle);
+
+            ClampedDeltaQuat = SwingQuat * TwistQuat;
+        }
+
+        // [2] 최종 월드 회전
+        FQuat NewWorldQuat = (RefQuat * ClampedDeltaQuat).GetNormalized();
+
+        // [3] 부모 기준 로컬 회전으로 되돌림
+        FQuat ParentWorldQuat = FQuat::Identity;
+        int32 Parent = RefSkeleton.GetParentIndex(BoneIndex);
+        if (Parent != INDEX_NONE)
+        {
+            FTransform ParentWorld = BonePoseLocal[Parent];
+            int32 Ancestor = RefSkeleton.GetParentIndex(Parent);
+            while (Ancestor != INDEX_NONE)
+            {
+                ParentWorld = BonePoseLocal[Ancestor] * ParentWorld;
+                Ancestor = RefSkeleton.GetParentIndex(Ancestor);
+            }
+            ParentWorldQuat = ParentWorld.GetRotation();
+        }
+
+        FQuat LocalQuat = ParentWorldQuat.Inverse() * NewWorldQuat;
+        BoneTransform.SetRotation(LocalQuat.GetNormalized());
+        break;
+    }
+}
 
 void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 {
@@ -365,9 +448,15 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
         if (ImGui::DragFloat3("Local Rotation", EulerAngles, 0.5f))
         {
-            BoneTransform.SetRotation(FQuat(FRotator(EulerAngles[0], EulerAngles[1], EulerAngles[2])));
+            FQuat NewQuat = FQuat(FRotator(EulerAngles[0], EulerAngles[1], EulerAngles[2]));
+            BoneTransform.SetRotation(NewQuat);
+
+            // ✅ Constraint 적용
+            ApplyConstraintLimit(BoneTransform, RefSkeleton, PhysicsAsset, SelectedName, Pose.GetBones());
+
             bChanged = true;
         }
+
 
         if (bChanged)
         {
