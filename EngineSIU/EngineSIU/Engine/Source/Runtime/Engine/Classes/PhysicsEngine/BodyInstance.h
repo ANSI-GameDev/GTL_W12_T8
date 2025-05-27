@@ -62,7 +62,9 @@ struct FBodyInstance : public FBodyInstanceCore
     
     float LinearDamping;
     float AngularDamping;
+
     float MassScale;
+    FVector InertiaTensorScale;
 
     /** [Physx Only] Locks physical movement along specified axis.*/
     EDOFMode::Type DOFMode;
@@ -83,6 +85,7 @@ public:
     
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
+    physx::PxRigidDynamic* GetPxRigidBoDynamic() const;
 
     uint8 bUseCCD : 1;
 
