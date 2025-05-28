@@ -205,7 +205,7 @@ void FSkeletalMeshDebugger::DrawConeConstraints(
 }
 
 
-void FSkeletalMeshDebugger::DrawCapsuleOBBs(
+void FSkeletalMeshDebugger::DrawBodyShapes(
     const USkeletalMeshComponent* SkelComp,
     UPrimitiveDrawBatch* DrawBatch,
     const FName& SelectedBodyName,
@@ -239,15 +239,15 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(
         const FMatrix& BoneMatrix = BoneWorldMatrices[BoneIndex];
         const FVector4 Color = (BoneName == SelectedBodyName) ? SelectedColor : DefaultColor;
 
+        // --- Capsule (Sphyl) ---
         for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
-            //const FTransform LocalTransform = Sphyl.GetTransform();
-            //const FQuat ZtoYQuat = FQuat(FVector::RightVector, -PI * 0.5f);
             const FQuat FinalRot = Sphyl.RQuat;
             const FMatrix RotationMatrix = FinalRot.ToMatrix();
 
             const float HalfLength = Sphyl.Length * 0.5f;
-            const FVector BoxExtent(HalfLength,Sphyl.Radius, Sphyl.Radius);
+            float TotalHalfLength = (Sphyl.Length + 2.0f * Sphyl.Radius) * 0.5f;
+            const FVector BoxExtent(TotalHalfLength, Sphyl.Radius, Sphyl.Radius);
 
             FBoundingBox LocalBox;
             LocalBox.MinLocation = -BoxExtent;
@@ -255,5 +255,25 @@ void FSkeletalMeshDebugger::DrawCapsuleOBBs(
 
             DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, RotationMatrix, Color);
         }
+
+        // --- Box ---
+        for (const FKBoxElem& Box : BodySetup->AggGeom.BoxElems)
+        {
+            const FVector BoxExtent = Box.Extent;
+            const FMatrix RotationMatrix = FQuat(Box.Rotation).ToMatrix();
+
+            FBoundingBox LocalBox;
+            LocalBox.MinLocation = -BoxExtent;
+            LocalBox.MaxLocation = BoxExtent;
+
+            DrawBatch->AddOBBToBatch(LocalBox, Box.Center, RotationMatrix, Color);
+        }
+
+        /*// --- Sphere ---
+        for (const FKSphereElem& Sphere : BodySetup->AggGeom.SphereElems)
+        {
+            FVector CenterWS = Sphere.Center;
+            DrawBatch->AddSphereToBatch(CenterWS, Sphere.Radius, 16, 8, Color);
+        }*/
     }
 }

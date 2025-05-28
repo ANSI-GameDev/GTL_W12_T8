@@ -1,6 +1,7 @@
 #include "PhysicsViewerPanel.h"
 
 #include "FSkeletalMeshDebugger.h"
+#include "PhysicsSettingsSerializer.h"
 #include "ReferenceSkeleton.h"
 #include "UnrealClient.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -47,7 +48,7 @@ void PhysicsViewerPanel::Render()
         EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::BodySelectedOnly))
     {
         bool bDrawAllBodies = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body);
-        FSkeletalMeshDebugger::DrawCapsuleOBBs(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName, bDrawAllBodies);
+        FSkeletalMeshDebugger::DrawBodyShapes(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName, bDrawAllBodies);
     }
 }
 
@@ -386,6 +387,82 @@ void ApplyConstraintLimit(FTransform& BoneTransform, const FReferenceSkeleton& R
         break;
     }
 }
+template <typename ElemType>
+void RenderCollisionShapeArray(const char* LabelPrefix, TArray<ElemType>& ElemArray)
+{
+    static int32 LastDeletedIndex = -1;
+
+    for (int32 i = 0; i < ElemArray.Num(); )
+    {
+        bool bDeleted = false;
+
+        FString ShapeLabel = FString::Printf(TEXT("%s [%d]"), LabelPrefix, i);
+
+        // 🟡 삭제 직후인 항목은 자동으로 접히도록
+        if (i == LastDeletedIndex)
+        {
+            ImGui::SetNextItemOpen(false, ImGuiCond_Always);
+            LastDeletedIndex = -1; // 한 번만 적용되도록 리셋
+        }
+
+        if (ImGui::TreeNode(*ShapeLabel))
+        {
+            ElemType& Elem = ElemArray[i];
+
+            FVector Center = Elem.Center;
+            float CenterArr[3] = { Center.X, Center.Y, Center.Z };
+            if (ImGui::DragFloat3("Center", CenterArr, 0.1f))
+                Elem.Center = FVector(CenterArr[0], CenterArr[1], CenterArr[2]);
+
+            if constexpr (std::is_same_v<std::decay_t<ElemType>, FKSphylElem>)
+            {
+                FVector Euler = Elem.RQuat.Rotator().Euler();
+                static float LastEuler[3] = { 0.f, 0.f, 0.f };
+                LastEuler[0] = Euler.X; LastEuler[1] = Euler.Y; LastEuler[2] = Euler.Z;
+
+                if (ImGui::DragFloat3("Rotation", LastEuler, 0.5f))
+                    Elem.RQuat = FQuat::MakeFromEuler(FVector(LastEuler[0], LastEuler[1], LastEuler[2]));
+
+                ImGui::DragFloat("Radius", &Elem.Radius, 0.1f, 0.01f, 1000.f);
+                ImGui::DragFloat("Length", &Elem.Length, 0.1f, 0.01f, 1000.f);
+            }
+            else if constexpr (std::is_same_v<std::decay_t<ElemType>, FKSphereElem>)
+            {
+                ImGui::DragFloat("Radius", &Elem.Radius, 0.1f, 0.01f, 1000.f);
+            }
+            else if constexpr (std::is_same_v<std::decay_t<ElemType>, FKBoxElem>)
+            {
+                FVector Ext = Elem.Extent;
+                float ExtArr[3] = { Ext.X, Ext.Y, Ext.Z };
+                if (ImGui::DragFloat3("Extent", ExtArr, 0.1f))
+                    Elem.Extent = FVector(ExtArr[0], ExtArr[1], ExtArr[2]);
+
+                FVector RotEuler = Elem.Rotation.Euler();
+                float RotArr[3] = { RotEuler.X, RotEuler.Y, RotEuler.Z };
+                if (ImGui::DragFloat3("Rotation", RotArr, 0.5f))
+                    Elem.Rotation = FRotator(FVector(RotArr[0], RotArr[1], RotArr[2]));
+            }
+
+            if (ImGui::Button("Delete"))
+            {
+                bDeleted = true;
+            }
+
+            ImGui::TreePop();
+        }
+
+        if (bDeleted)
+        {
+            ElemArray.RemoveAt(i);
+            LastDeletedIndex = i; // 다음 인덱스를 강제로 닫게 설정
+        }
+        else
+        {
+            ++i;
+        }
+    }
+}
+
 
 void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 {
@@ -399,6 +476,10 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
     // 공통: 선택한 이름 표시
     ImGui::SeparatorText("Selection Info");
+    if (ImGui::Button("Save Physics Settings"))
+    {
+        PhysicsSettingsSerializer::SavePhysicsSettings(SkeletalMeshComponent);
+    }
     ImGui::Text("Selected Name: %s", *SelectedLabel);
     ImGui::Text("Type: %s",
         SelectedType == EPhysicsSelectionType::Bone ? "Bone" :
@@ -507,54 +588,42 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         int32 BodyIndex = PhysicsAsset->FindBodyIndex(SelectedName);
         if (BodyIndex == INDEX_NONE) return;
 
-        ImGui::SeparatorText("Body Settings");
         UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
         if (!BodySetup) return;
-        if (BodySetup->AggGeom.SphylElems.Num() > 0)
+
+        ImGui::SeparatorText("Body Collision Shapes");
+
+        if (ImGui::Button("Add Sphere"))
         {
-            FKSphylElem& Sphyl = BodySetup->AggGeom.SphylElems[0];
-
-            FVector Center = Sphyl.Center;
-            FQuat RQuat = Sphyl.RQuat;
-            FVector Euler = RQuat.Rotator().Euler();  // XYZ = Roll, Pitch, Yaw (degree)
-
-            float center[3] = { Center.X, Center.Y, Center.Z };
-            float euler[3] = { Euler.X, Euler.Y, Euler.Z };
-
-            float Radius = Sphyl.Radius;
-            float Length = Sphyl.Length;
-
-            static int32 LastSphylIndex = -1;
-            static float LastEuler[3] = { 0.f, 0.f, 0.f };
-
-            if (LastSphylIndex != BodyIndex)
-            {
-                LastEuler[0] = euler[0];
-                LastEuler[1] = euler[1];
-                LastEuler[2] = euler[2];
-                LastSphylIndex = BodyIndex;
-            }
-
-            if (ImGui::DragFloat3("Center", center, 0.1f))
-            {
-                Sphyl.Center = FVector(center[0], center[1], center[2]);
-            }
-
-            if (ImGui::DragFloat3("Rotation", LastEuler, 0.5f))
-            {
-                // XYZ 오일러 → 쿼터니언 → 저장
-                FQuat NewQuat = FQuat::MakeFromEuler(FVector(LastEuler[0], LastEuler[1], LastEuler[2]));
-                Sphyl.RQuat = NewQuat;
-            }
-
-            if (ImGui::DragFloat("Radius", &Radius, 0.1f, 0.01f, 1000.f))
-                Sphyl.Radius = Radius;
-
-            if (ImGui::DragFloat("Length", &Length, 0.1f, 0.01f, 1000.f))
-                Sphyl.Length = Length;
+            FKSphereElem NewElem(10.0f); // default radius
+            BodySetup->AggGeom.SphereElems.Add(NewElem);
         }
+        ImGui::SameLine();
+        if (ImGui::Button("Add Capsule"))
+        {
+            FKSphylElem NewElem(10.0f, 20.0f); // radius, length
+            BodySetup->AggGeom.SphylElems.Add(NewElem);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Add Box"))
+        {
+            FKBoxElem NewElem(FVector(10.0f, 10.0f, 10.0f));
+            BodySetup->AggGeom.BoxElems.Add(NewElem);
+        }
+        /*ImGui::SameLine();
+        if (ImGui::Button("Add Convex"))
+        {
+            FKConvexElem NewElem;
+            // 최소 버텍스 세트는 외부 입력 필요
+            BodySetup->AggGeom.ConvexElems.Add(NewElem);
+        }*/
 
+        RenderCollisionShapeArray("Sphere", BodySetup->AggGeom.SphereElems);
+        RenderCollisionShapeArray("Capsule", BodySetup->AggGeom.SphylElems);
+        RenderCollisionShapeArray("Box", BodySetup->AggGeom.BoxElems);
+        //RenderCollisionShapeArray("Convex", BodySetup->AggGeom.ConvexElems);
     }
+
 
     // === 기존 Constraint 처리 영역 ===
     else if (SelectedType == EPhysicsSelectionType::Constraint)

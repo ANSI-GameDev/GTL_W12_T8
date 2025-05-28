@@ -13,7 +13,7 @@ public:
         UPrimitiveDrawBatch* DrawBatch,
         const FName& SelectedConstraintName,
         bool bDrawAll);
-    static void DrawCapsuleOBBs(
+    static void DrawBodyShapes(
         const USkeletalMeshComponent* SkelComp,
         UPrimitiveDrawBatch* DrawBatch,
         const FName& SelectedBodyName,
