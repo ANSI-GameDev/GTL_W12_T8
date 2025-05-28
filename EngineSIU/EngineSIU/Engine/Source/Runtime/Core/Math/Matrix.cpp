@@ -593,6 +593,59 @@ FMatrix FMatrix::MakeLookAtLH(const FVector& Eye, const FVector& Target, const F
     return Result;
 }
 
+void FMatrix::SetAxes(FMatrix& OutMatrix, const FVector* XAxis, const FVector* YAxis, const FVector* ZAxis)
+{
+
+    // X축
+    if (XAxis)
+    {
+        OutMatrix.M[0][0] = XAxis->X;
+        OutMatrix.M[1][0] = XAxis->Y;
+        OutMatrix.M[2][0] = XAxis->Z;
+        OutMatrix.M[3][0] = 0.0f;
+    }
+
+    // Y축
+    if (YAxis)
+    {
+        OutMatrix.M[0][1] = YAxis->X;
+        OutMatrix.M[1][1] = YAxis->Y;
+        OutMatrix.M[2][1] = YAxis->Z;
+        OutMatrix.M[3][1] = 0.0f;
+    }
+
+    // Z축
+    if (ZAxis)
+    {
+        OutMatrix.M[0][2] = ZAxis->X;
+        OutMatrix.M[1][2] = ZAxis->Y;
+        OutMatrix.M[2][2] = ZAxis->Z;
+        OutMatrix.M[3][2] = 0.0f;
+    }
+
+    // 위치(Origin) 설정 – 회전 행렬만 만들 경우엔 0
+    OutMatrix.M[0][3] = 0.0f;
+    OutMatrix.M[1][3] = 0.0f;
+    OutMatrix.M[2][3] = 0.0f;
+    OutMatrix.M[3][3] = 1.0f;
+}
+
+float FMatrix::GetMaximumDeviation(const FMatrix& A, const FMatrix& B)
+{
+    float MaxDiff = 0.0f;
+
+    for (int32 Row = 0; Row < 4; ++Row)
+    {
+        for (int32 Col = 0; Col < 4; ++Col)
+        {
+            float Diff = FMath::Abs(A.M[Row][Col] - B.M[Row][Col]);
+            MaxDiff = FMath::Max(MaxDiff, Diff);
+        }
+    }
+
+    return MaxDiff;
+}
+
 namespace FRotationMatrix
 {
     FQuat MakeFromXY(const FVector& XAxis, const FVector& YAxis)

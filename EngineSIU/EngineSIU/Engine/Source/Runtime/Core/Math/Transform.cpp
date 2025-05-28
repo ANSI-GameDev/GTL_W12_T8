@@ -301,6 +301,40 @@ FTransform FTransform::FromMatrix(const FMatrix& InMatrix)
     return Result;
 }
 
+FTransform FTransform::FromMatrixNoScale(const FMatrix& InMatrix)
+{
+    FTransform Result;
+
+    // 위치 추출
+    Result.Translation = InMatrix.GetOrigin();
+
+    // 스케일 없이 회전만 추출하기 위해 축들을 정규화한 후 회전 생성
+    FVector XAxis = InMatrix.GetScaledAxis(EAxis::X).GetSafeNormal();
+    FVector YAxis = InMatrix.GetScaledAxis(EAxis::Y).GetSafeNormal();
+    FVector ZAxis = InMatrix.GetScaledAxis(EAxis::Z).GetSafeNormal();
+
+    // 직교성 보정이 필요한 경우 (예: 반사된 행렬)
+    const float Det = InMatrix.Determinant();
+    if (Det < 0.0f)
+    {
+        // 좌표계가 반전되어 있으므로, 한 축을 반전시켜서 보정
+        XAxis *= -1.0f;
+    }
+
+    // 회전 생성
+    FMatrix RotMatrix;
+    RotMatrix.SetAxes(RotMatrix , &XAxis, &YAxis, &ZAxis);
+    Result.Rotation = FQuat(RotMatrix);
+    Result.Rotation.Normalize();
+
+    // 스케일은 단위값으로 고정
+    Result.Scale3D = FVector(1.0f, 1.0f, 1.0f);
+
+    return Result;
+}
+
+
+
 FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 {
     // 현재 변환에 대한 다른 변환의 상대 변환 계산

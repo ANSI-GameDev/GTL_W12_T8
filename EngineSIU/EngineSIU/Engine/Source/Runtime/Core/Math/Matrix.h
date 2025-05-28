@@ -70,6 +70,9 @@ public:
 
     bool Equals(const FMatrix& Other, float Tolerance = KINDA_SMALL_NUMBER) const;
     static FMatrix MakeLookAtLH(const FVector& Eye, const FVector& Target, const FVector& Up);
+
+    void SetAxes(FMatrix& OutMatrix, const FVector* XAxis, const FVector* YAxis, const FVector* ZAxis);
+    static float GetMaximumDeviation(const FMatrix& A, const FMatrix& B);
 };
 
 namespace FRotationMatrix

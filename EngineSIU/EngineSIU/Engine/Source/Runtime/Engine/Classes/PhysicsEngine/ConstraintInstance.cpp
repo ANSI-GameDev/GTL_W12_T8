@@ -51,11 +51,12 @@ void FConstraintInstance::UpdateAngularLimit()
 bool FConstraintInstance::IsEndEffectorJoint(const FName& BoneName)
 {
     static const TArray<FString> EndBoneSubstrings = {
-        TEXT("hand"),
+        /*TEXT("hand"),
         TEXT("foot"),
         TEXT("toe"),
-        TEXT("_End"),
+        TEXT("_End"),*/
         TEXT("root"),
+        TEXT("hip"),
     };
 
     const FString BoneStr = BoneName.ToString();
@@ -98,7 +99,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     const PxQuat AlignToX = PxShortestRotation(PxVec3(1, 0, 0), JointDir);
 
     // 3. Anchor 위치는 자식의 현재 위치
-    const PxVec3 AnchorPos = ParentPos;
+    const PxVec3 AnchorPos = ChildPos;
     const PxTransform JointWorldPose(AnchorPos, AlignToX);
 
     // 4. 각각 로컬 프레임 계산
@@ -158,7 +159,9 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         float Swing2 = FMath::DegreesToRadians(ProfileInstance.ConeLimit.Swing2LimitDegrees);
         Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
         Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
-        Joint->setSwingLimit(PxJointLimitCone(Swing1, Swing2));
+
+        //PxSpring spring = PxSpring(6000000.f, 50000.f);
+        Joint->setSwingLimit(PxJointLimitCone(Swing1, Swing2)/*, spring*/);
     }
     else
     {
@@ -198,7 +201,10 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     /* 제약(Joint)이 설정한 앵커 위치/회전에서 벗어났을 때, 일정 임계치 이상으로 틀어지면 자동으로 두 바디를 다시 끌어당겨 보정함 */
     Joint->setProjectionLinearTolerance(0.1f);
     Joint->setProjectionAngularTolerance(PxPi / 4.0f); // 관절이 한계를 넘었을 때 자동 보정
-    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); 
+    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true);
+
+    //PxD6JointDrive Drive(5000.0f, 500.0f, PX_MAX_F32); // stiffness, damping, forceLimit
+    //Joint->setDrive(PxD6Drive::eSLERP, Drive);
 }
 
 /* 두 Bone 간 RefPose 기준 상대 위치 계산 */

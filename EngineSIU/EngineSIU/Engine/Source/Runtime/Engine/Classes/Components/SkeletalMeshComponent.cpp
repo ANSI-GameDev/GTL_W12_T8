@@ -107,6 +107,7 @@ void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
         if (ParentIndex != INDEX_NONE)
         {
             ParentGlobalTransform.SetFromMatrix(GlobalPoseMatrix[ParentIndex]);
+            //ParentGlobalTransform = FTransform::FromMatrixNoScale(GlobalPoseMatrix[ParentIndex]);
         }
         FTransform ParentWorldTransform = ParentGlobalTransform * GetComponentTransform();
         FTransform ParentWorldInvTransform = ParentWorldTransform.Inverse();

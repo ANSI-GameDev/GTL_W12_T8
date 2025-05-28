@@ -88,6 +88,7 @@ struct FTransform
     FMatrix ToMatrixNoScale() const;
     void SetFromMatrix(const FMatrix& InMatrix);
     static FTransform FromMatrix(const FMatrix& InMatrix);
+    static FTransform FromMatrixNoScale(const FMatrix& InMatrix);
     // 상대 변환 계산
     FTransform GetRelativeTransform(const FTransform& Other) const;
     FTransform GetRelativeTransformReverse(const FTransform& Other) const;
