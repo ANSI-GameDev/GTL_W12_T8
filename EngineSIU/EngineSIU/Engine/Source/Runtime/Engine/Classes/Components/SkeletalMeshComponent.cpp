@@ -70,6 +70,14 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
 void USkeletalMeshComponent::TickPose(float DeltaTime)
 {
+    if (!GetSkeletalMeshAsset())
+    {
+        return;
+    }
+
+    //Physics때문에 애니메이션 아니더라도 해야함
+    // UpdateGlobalPose();
+
     if (!ShouldTickAnimation())
     {
         return;
@@ -99,29 +107,27 @@ void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
         uint32 ParentIndex = RefSkeleton.RawRefBoneInfo[BoneIndex].ParentIndex;
         // FTransform BodyInstanceTransform = BodyInstance->GetWorldTransform();
         FTransform BodyInstanceWorldTransform = BodyInstance->GetWorldTransform();
-
-        //TODO: 자식글로벌도 업데이트 해줘야할거같은데, 그러면 자식을 갖고있어야함
-        BonePoseContext.GlobalPose[BoneIndex] = BodyInstanceWorldTransform;
         
-        FTransform OriginPoseDebug = BonePoseContext.Pose[BoneIndex];
+        TArray<FMatrix> GlobalPoseMatrix;
+        GetCurrentGlobalBoneMatrices(GlobalPoseMatrix);
 
-        FTransform ParentWorldTransform = ParentIndex == INDEX_NONE ? GetComponentTransform() : BonePoseContext.GlobalPose[ParentIndex];
-
-        FTransform BodyInstanceRelativeTransform = BodyInstanceWorldTransform.GetRelativeTransform(ParentWorldTransform);
-        //worldtransform을 줘야하는데 relative를 가져오고 있었네
-        FTransform RefBoneTransform = RefSkeleton.RawRefBonePose[BoneIndex];
-        // OutPose.Pose[BoneIdx] = RefBoneTransform * DataModel->EvaluateBoneTrackTransform(BoneName, FrameTime, EAnimInterpolationType::Linear);
-
-        BonePoseContext.Pose[BoneIndex] = BodyInstanceRelativeTransform;
+        FTransform ParentGlobalTransform = FTransform::Identity;
+        if (ParentIndex != INDEX_NONE)
+        {
+            ParentGlobalTransform.SetFromMatrix(GlobalPoseMatrix[ParentIndex]);
+        }
+        FTransform ParentWorldTransform = ParentGlobalTransform * GetComponentTransform();
+        FTransform ParentWorldInvTransform = ParentWorldTransform.Inverse();
+        
+        FTransform LocalTransform = ParentWorldInvTransform * BodyInstanceWorldTransform;
+        
+        BonePoseContext.Pose[BoneIndex] = LocalTransform ;
     }
 }
 
 void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 {
-    if (GetSkeletalMeshAsset())
-    {
-        TickAnimInstances(DeltaTime);
-    }
+    TickAnimInstances(DeltaTime);
 
     CPUSkinning();
 }
@@ -132,20 +138,28 @@ void USkeletalMeshComponent::TickAnimInstances(float DeltaTime)
     {
         AnimScriptInstance->UpdateAnimation(DeltaTime, BonePoseContext);
     }
-
-    UpdateGlobalPose();
 }
 
 void USkeletalMeshComponent::UpdateGlobalPose()
 {
     //Bone돌면서 자기글로벌 = 자기 로컬 * 부모글로벌
-    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
-    for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
-    {
-        int32 ParentIndex = RefSkeleton.GetRawRefBoneInfo()[i].ParentIndex;
-        FTransform ParentGlobalPose = ParentIndex == INDEX_NONE ? GetComponentTransform() : BonePoseContext.GlobalPose[ParentIndex];
-        BonePoseContext.GlobalPose[i] = BonePoseContext.Pose[i] * ParentGlobalPose;
-    }
+    GetCurrentGlobalBoneMatrices(BonePoseContext.GlobalPoseMatrix);
+    // const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    // for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
+    // {
+    //     BonePoseContext.Pose[i] = RefSkeleton.RawRefBonePose[i];
+    //     RefBonePoseTransforms.Add(RefSkeleton.RawRefBonePose[i]);
+    //
+    //     int32 ParentIndex = RefSkeleton.RawRefBoneInfo[i].ParentIndex;
+    //     if (ParentIndex == INDEX_NONE)
+    //     {
+    //         BonePoseContext.GlobalPoseMatrix[i] = RefSkeleton.RawRefBonePose[i] * GetComponentTransform();
+    //     }
+    //     else
+    //     {
+    //         BonePoseContext.GlobalPoseMatrix[i] = RefSkeleton.RawRefBonePose[i] * BonePoseContext.GlobalPoseMatrix[ParentIndex];
+    //     }
+    // }
 }
 
 bool USkeletalMeshComponent::ShouldTickAnimation() const
@@ -213,17 +227,15 @@ void USkeletalMeshComponent::SetSkeletalMeshAsset(USkeletalMesh* InSkeletalMeshA
     
     const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
     BonePoseContext.Pose.InitBones(RefSkeleton.RawRefBoneInfo.Num());
-    BonePoseContext.GlobalPose.InitBones(RefSkeleton.RawRefBoneInfo.Num());
 
+    //TODO: 일단 넣어놓기
     for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
     {
         BonePoseContext.Pose[i] = RefSkeleton.RawRefBonePose[i];
-        RefBonePoseTransforms.Add(RefSkeleton.RawRefBonePose[i]);
-
-        int32 ParentIndex = RefSkeleton.RawRefBoneInfo[i].ParentIndex;
-        FTransform ParentTransform = ParentIndex == INDEX_NONE ? GetComponentTransform() : RefSkeleton.RawRefBonePose[ParentIndex];
-        BonePoseContext.GlobalPose[i] = RefSkeleton.RawRefBonePose[i] * ParentTransform;
     }
+
+    BonePoseContext.GlobalPoseMatrix.SetNum(RefSkeleton.RawRefBoneInfo.Num());
+    UpdateGlobalPose();
     
     CPURenderData->Vertices = InSkeletalMeshAsset->GetRenderData()->Vertices;
     CPURenderData->Indices = InSkeletalMeshAsset->GetRenderData()->Indices;
@@ -589,7 +601,8 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         }
 
         /* 컴포넌트의 Scale을 적용하여 충돌 형상 정의하기 위함 */
-        const FTransform BoneWorldTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+        FTransform BoneWorldTransform;
+        BoneWorldTransform.SetFromMatrix(BonePoseContext.GlobalPoseMatrix[BoneIndex]);
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
         FBodyInstance* NewBody = new FBodyInstance();
