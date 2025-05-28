@@ -1713,12 +1713,15 @@
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsAsset.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\PhysicsConstraintTemplate.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\ConstraintTypes.cpp" />
-    <ClCompile Include="PhysScene.cpp" />
     <ClCompile Include="Engine\Source\Developer\PhysicsUtilities\PhysicAssetUtils.cpp" />
     <ClCompile Include="Engine\Source\Runtime\PhysicsCore\PhysicalMaterials\PhysicalMaterial.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodySetup.cpp" />
     <ClCompile Include="Engine\Source\Runtime\Windows\SubWindow\PhysicsSubEngine.cpp" />
     <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsViewerPanel.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\FSkeletalMeshDebugger.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Physics\PhysScene.cpp" />
+    <ClCompile Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\BodyInstance.cpp" />
+    <ClCompile Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsSettingsSerializer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="EngineSIU.natvis" />
@@ -1846,7 +1849,6 @@
     <ClInclude Include="Engine\Source\Runtime\PhysicsCore\BodyInstanceCore.h" />
     <ClInclude Include="Engine\Source\Runtime\PhysicsCore\BodySetupCore.h" />
     <ClInclude Include="Engine\Source\Runtime\PhysicsCore\Chaos\ChaosEngineInterface.h" />
-    <ClInclude Include="PhysScene.h" />
     <ClInclude Include="Engine\Source\Developer\PhysicsUtilities\PhysicAssetUtils.h" />
     <ClInclude Include="Engine\Source\Runtime\PhysicsCore\PhysicalMaterials\PhysicalMaterial.h" />
     <ClInclude Include="Engine\Source\Runtime\Engine\Classes\PhysicsEngine\SphylElem.h" />
@@ -1854,6 +1856,10 @@
     <ClInclude Include="Engine\Source\Runtime\Core\Misc\EnumClassFlags.h" />
     <ClInclude Include="Engine\Source\Runtime\Windows\SubWindow\PhysicsSubEngine.h" />
     <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsViewerPanel.h" />
+    <ClInclude Include="Engine\Source\Developer\PhysicsUtilities\PxConvertHelper.inl" />
+    <ClInclude Include="Engine\Source\Runtime\Engine\FSkeletalMeshDebugger.h" />
+    <ClInclude Include="Engine\Source\Runtime\Physics\PhysScene.h" />
+    <ClInclude Include="Engine\Source\Editor\PropertyEditor\SubEditor\PhysicsSettingsSerializer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\CompositingShader.hlsl" />

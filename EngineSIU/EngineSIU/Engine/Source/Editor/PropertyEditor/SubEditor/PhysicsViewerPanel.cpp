@@ -1,6 +1,7 @@
 #include "PhysicsViewerPanel.h"
 
 #include "FSkeletalMeshDebugger.h"
+#include "PhysicsSettingsSerializer.h"
 #include "ReferenceSkeleton.h"
 #include "UnrealClient.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -47,7 +48,7 @@ void PhysicsViewerPanel::Render()
         EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::BodySelectedOnly))
     {
         bool bDrawAllBodies = EnumHasAnyFlags(DebugDisplayFlags, EPhysicsDebugDisplay::Body);
-        FSkeletalMeshDebugger::DrawCapsuleOBBs(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName, bDrawAllBodies);
+        FSkeletalMeshDebugger::DrawBodyShapes(SkeletalMeshComponent, PrimitiveDrawBatch, SelectedName, bDrawAllBodies);
     }
 }
 
@@ -452,6 +453,10 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
     // 공통: 선택한 이름 표시
     ImGui::SeparatorText("Selection Info");
+    if (ImGui::Button("Save Physics Settings"))
+    {
+        PhysicsSettingsSerializer::SavePhysicsSettings(SkeletalMeshComponent);
+    }
     ImGui::Text("Selected Name: %s", *SelectedLabel);
     ImGui::Text("Type: %s",
         SelectedType == EPhysicsSelectionType::Bone ? "Bone" :
