@@ -109,6 +109,5 @@ public:
     void SetbEnableGravity(bool b){ bEnableGravity = b; }
     
     void UpdatePhysics();
-
-
+    FTransform GetAdjustedWorldTransform() const;
 };

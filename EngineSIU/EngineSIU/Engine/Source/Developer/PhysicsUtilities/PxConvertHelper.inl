@@ -22,11 +22,14 @@ inline PxTransform FTransform::ToPxTransform()
 inline FQuat::FQuat(const physx::PxQuat& InQuat):X(InQuat.x), Y(InQuat.y), Z(InQuat.z), W(InQuat.w){}
 inline PxQuat FQuat::ToPxQuat() const 
 {
-    PxQuat quat = { this->X, this->Y, this->Z, this->W };
+    FQuat tmp = *this;
+    tmp.Normalize();
+    PxQuat quat = { tmp.X, tmp.Y, tmp.Z, tmp.W };
     return quat;
 }
 inline PxQuat FQuat::ToPxQuat()
 {
+    this->Normalize();
     PxQuat quat = { this->X, this->Y, this->Z, this->W };
     return quat;
 }

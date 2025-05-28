@@ -54,6 +54,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     AttachShapes(InBodySetup->AggGeom, InScene, InBodyWorldPosition);
     RigidBody->setSolverIterationCounts(8, 2);
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
+    RigidBody->setMaxDepenetrationVelocity(5.f);
 
     RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
     RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
@@ -65,7 +66,10 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     RigidBody->setLinearVelocity(PxVec3(0, 0, 0));
     RigidBody->setAngularVelocity(PxVec3(0, 0, 0));
 
-    PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
+    float Volume = InBodySetup->AggGeom.TotalVolume;
+    float Mass = FMath::Max(Volume * 10.f, 0.01f);
+    PxRigidBodyExt::updateMassAndInertia(*RigidBody, Mass);
+    //PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
 
     InScene->gScene->addActor(*RigidBody);
     UpdatePhysics();
@@ -113,8 +117,8 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         PxCapsuleGeometry Geometry(Radius, HalfLength);
         PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
         Shape->setLocalPose(PxTransform(/*CapsuleCenter,*/ PxIdentity));
-        Shape->setContactOffset(0.05f);  // 충돌 감지 시작 거리
-        Shape->setRestOffset(0.01f);     // solver에서 penetration 허용 오차
+        Shape->setContactOffset(10.25f);  // 충돌 감지 시작 거리 0.25f
+        Shape->setRestOffset(0.05f);     // solver에서 penetration 허용 오차
 
         PxFilterData filterData;
         filterData.word0 = BoneIndex;                  // 현재 본 index
@@ -154,4 +158,20 @@ void FBodyInstance::UpdatePhysics()
     PxTransform t = RigidBody->getGlobalPose();
     
     WorldTransform = FTransform(t);
+}
+
+FTransform FBodyInstance::GetAdjustedWorldTransform() const
+{
+    if (!RigidBody) return FTransform::Identity;
+
+    FTransform WorldTransform(RigidBody->getGlobalPose());
+
+    if (GetBodySetup()->AggGeom.SphylElems.Num() > 0)
+    {
+        const FQuat CapsuleRotation = GetBodySetup()->AggGeom.SphylElems[0].RQuat;
+        WorldTransform.ConcatenateRotation(CapsuleRotation.Inverse());
+        WorldTransform.NormalizeRotation();
+    }
+
+    return WorldTransform;
 }

@@ -225,6 +225,10 @@ namespace FPhysicsAssetUtils
             SphylElem.Radius = CapsuleRadius;
             SphylElem.Length = CapsuleHalfLength * 2.f;  // PhysX는 전체 길이
 
+            const float CylinderVolume = PI * FMath::Square(CapsuleRadius) * (SphylElem.Length);
+            const float SphereVolume = (4.0f / 3.0f) * PI * FMath::Pow(CapsuleRadius, 3);
+            bs->AggGeom.TotalVolume += CylinderVolume + SphereVolume;
+
             bs->AggGeom.SphylElems.Add(SphylElem);
         }
         else if (bs->GeomType == EFG_Box)
@@ -233,6 +237,11 @@ namespace FPhysicsAssetUtils
             BoxElem.SetTransform(ElementTransform);
             BoxElem.Center = FVector::ZeroVector;
             BoxElem.Extent = BoxExtent * 2.f * 1.01f;
+
+            const FVector Size = BoxElem.Extent;
+            const float Volume = Size.X * Size.Y * Size.Z;
+            bs->AggGeom.TotalVolume += Volume;
+
             bs->AggGeom.BoxElems.Add(BoxElem);
         }
         else if (bs->GeomType == EFG_Sphere)
@@ -240,6 +249,10 @@ namespace FPhysicsAssetUtils
             FKSphereElem SphereElem;
             SphereElem.Center = ElementTransform.GetTranslation();
             SphereElem.Radius = BoxExtent.GetMax() * 1.01f;
+
+            const float Volume = (4.0f / 3.0f) * PI * FMath::Pow(SphereElem.Radius, 3);
+            bs->AggGeom.TotalVolume += Volume;
+
             bs->AggGeom.SphereElems.Add(SphereElem);
         }
 

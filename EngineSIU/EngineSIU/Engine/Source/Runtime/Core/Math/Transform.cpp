@@ -71,6 +71,13 @@ FVector FTransform::InverseTransformDirection(const FVector& V) const
     return Rotation.Inverse().RotateVector(V);
 }
 
+void FTransform::ConcatenateRotation(const FQuat& DeltaRotation)
+{
+    // 현재 회전에 추가 회전을 곱하여 누적
+    Rotation = Rotation * DeltaRotation;
+    Rotation.Normalize();
+}
+
 FVector FTransform::GetLocation() const
 {
     return GetTranslation();

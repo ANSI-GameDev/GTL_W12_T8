@@ -54,7 +54,8 @@ bool FConstraintInstance::IsEndEffectorJoint(const FName& BoneName)
         TEXT("hand"),
         TEXT("foot"),
         TEXT("toe"),
-        TEXT("_End")
+        TEXT("_End"),
+        TEXT("root"),
     };
 
     const FString BoneStr = BoneName.ToString();
@@ -170,23 +171,25 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         //PxD6JointDrive AngularDrive(1000.0f, 50.0f, PX_MAX_F32, true); // 강한 복원력과 감쇠
         //Joint->setDrive(PxD6Drive::eSWING, AngularDrive);
         //Joint->setDrive(PxD6Drive::eTWIST, AngularDrive);
-        PxD6JointDrive DampedDrive(
-            10.0f,          // stiffness (0이면 회전 복원 없음)
-            30.0f,         // damping (감쇠 강도, 값 높일수록 감속 강해짐)
-            1000.0f,    // force limit
-            true           // acceleration mode
-        );
 
-        Joint->setDrive(PxD6Drive::eSLERP, DampedDrive);
+
+        //PxD6JointDrive DampedDrive(
+        //    10.0f,          // stiffness (0이면 회전 복원 없음)
+        //    30.0f,         // damping (감쇠 강도, 값 높일수록 감속 강해짐)
+        //    1000.0f,    // force limit
+        //    true           // acceleration mode
+        //);
+
+        //Joint->setDrive(PxD6Drive::eSLERP, DampedDrive);
 
         // SLERP 드라이브를 쓰기 위해 twist/swing을 FREE로 설정
         Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, false);
         Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
         Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
         Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLIMITED);
-        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
-        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLOCKED);
 
         //Joint->setDrivePosition(PxTransform(PxIdentity));
          //Joint->setDriveVelocity(PxVec3(0.f), PxVec3(0.f));

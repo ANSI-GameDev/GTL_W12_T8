@@ -40,6 +40,7 @@ struct FTransform
     FQuat GetRotation() const { return Rotation; }
     FRotator Rotator() const { return Rotation.Rotator(); }
     void SetRotation(const FQuat& InRotation) { Rotation = InRotation; }
+    void ConcatenateRotation(const FQuat& DeltaRotation);
     
     // 위치 관련 함수들
     FVector GetTranslation() const { return Translation; }

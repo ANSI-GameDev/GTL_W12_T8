@@ -74,27 +74,52 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
 void USkeletalMeshComponent::UpdatePosePhysics()
 {
-    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
-    TArray<FMatrix> GlobalBoneMatrices;
-    GetCurrentGlobalBoneMatrices(GlobalBoneMatrices);
+	const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
 
-    for (FBodyInstance* Body : Bodies)
-    {
-        if (!Body) continue;
+	for (FBodyInstance* Body : Bodies)
+	{
+		if (!Body || !Body->RigidBody)
+			continue;
 
-        //Body->UpdatePhysics();
-        const FTransform& WorldTransform = Body->WorldTransform;
+		const FTransform& BodyWorldTransform = Body->WorldTransform;
+		const FName& BoneName = Body->GetBodySetup()->BoneName;
 
-        int32 BoneIndex = RefSkeleton.FindRawBoneIndex(Body->GetBodySetup()->BoneName);
-        if (BoneIndex == INDEX_NONE) continue;
+		int32 BoneIndex = RefSkeleton.FindRawBoneIndex(BoneName);
+		if (BoneIndex == INDEX_NONE)
+			continue;
 
-        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
-        FTransform ParentWorld = (ParentIndex != INDEX_NONE) ? FTransform(GlobalBoneMatrices[ParentIndex]) : FTransform::Identity;
+		int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+		FTransform ParentWorldTransform = FTransform::Identity;
 
-        FTransform LocalTransform = WorldTransform.GetRelativeTransform(ParentWorld);
+		// ✅ 부모가 있을 경우 물리 결과에서 부모 WorldTransform 찾기
+		if (ParentIndex != INDEX_NONE)
+		{
+			for (FBodyInstance* ParentBody : Bodies)
+			{
+				if (ParentBody && ParentBody->GetBodySetup()->BoneName == RefSkeleton.GetBoneName(ParentIndex))
+				{
+					ParentWorldTransform = ParentBody->WorldTransform;
+					break;
+				}
+			}
+		}
 
-        BonePoseContext.Pose[BoneIndex] = LocalTransform;
-    }
+		// ✅ 자식의 로컬 트랜스폼 계산
+		FTransform LocalTransform = BodyWorldTransform.GetRelativeTransform(ParentWorldTransform);
+		//FQuat DeltaRot = FQuat(FVector(1, 0, 0), FMath::DegreesToRadians(-90));
+		//LocalTransform.ConcatenateRotation(DeltaRot);
+
+		// ✅ 방어적 조치: Scale이 터지는 경우 Clamp
+		FVector Scale = LocalTransform.GetScale3D();
+		if (Scale.GetMin() < 0.01f || Scale.GetMax() > 100.0f)
+		{
+            UE_LOG(ELogLevel::Warning, TEXT("Abnormal scale in bone %s: %s"), *BoneName.ToString(), *Scale.ToString());
+			LocalTransform.SetScale3D(FVector(1.0f));
+		}
+
+		// ✅ 최종 Pose에 기록
+		BonePoseContext.Pose[BoneIndex] = LocalTransform;
+	}
 }
 
 
