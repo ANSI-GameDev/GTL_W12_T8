@@ -390,9 +390,21 @@ void ApplyConstraintLimit(FTransform& BoneTransform, const FReferenceSkeleton& R
 template <typename ElemType>
 void RenderCollisionShapeArray(const char* LabelPrefix, TArray<ElemType>& ElemArray)
 {
-    for (int32 i = 0; i < ElemArray.Num(); ++i)
+    static int32 LastDeletedIndex = -1;
+
+    for (int32 i = 0; i < ElemArray.Num(); )
     {
+        bool bDeleted = false;
+
         FString ShapeLabel = FString::Printf(TEXT("%s [%d]"), LabelPrefix, i);
+
+        // 🟡 삭제 직후인 항목은 자동으로 접히도록
+        if (i == LastDeletedIndex)
+        {
+            ImGui::SetNextItemOpen(false, ImGuiCond_Always);
+            LastDeletedIndex = -1; // 한 번만 적용되도록 리셋
+        }
+
         if (ImGui::TreeNode(*ShapeLabel))
         {
             ElemType& Elem = ElemArray[i];
@@ -430,16 +442,27 @@ void RenderCollisionShapeArray(const char* LabelPrefix, TArray<ElemType>& ElemAr
                 if (ImGui::DragFloat3("Rotation", RotArr, 0.5f))
                     Elem.Rotation = FRotator(FVector(RotArr[0], RotArr[1], RotArr[2]));
             }
-            /*else if constexpr (std::is_same_v<std::decay_t<ElemType>, FKConvexElem>)
+
+            if (ImGui::Button("Delete"))
             {
-                ImGui::Text("Convex has %d vertices", Elem.VertexData.Num());
-                ImGui::Text("Editable support pending...");
-            }*/
+                bDeleted = true;
+            }
 
             ImGui::TreePop();
         }
+
+        if (bDeleted)
+        {
+            ElemArray.RemoveAt(i);
+            LastDeletedIndex = i; // 다음 인덱스를 강제로 닫게 설정
+        }
+        else
+        {
+            ++i;
+        }
     }
 }
+
 
 void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 {
