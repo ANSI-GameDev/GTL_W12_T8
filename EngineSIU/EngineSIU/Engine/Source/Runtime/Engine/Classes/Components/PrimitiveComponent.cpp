@@ -192,8 +192,17 @@ void UPrimitiveComponent::PhysicsUpdate(float DeltaTime)
     }
     
     //StaticMesh는 Rigidbody가 곧 내 위치
-    FTransform Transform = BodyInstance->GetWorldTransform();
-    SetWorldTransform(Transform);
+    FTransform BodyTransform = BodyInstance->GetWorldTransform();
+    FVector Scale = GetRelativeScale3D();
+    BodyTransform.Scale3D = Scale;
+    SetWorldTransform(BodyTransform);
+}
+
+void UPrimitiveComponent::DestroyComponent(bool bPromoteChildren)
+{
+    USceneComponent::DestroyComponent(bPromoteChildren);
+
+    BodyInstance->DestroyInPhysicsScene();
 }
 
 void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
@@ -201,6 +210,58 @@ void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
     
 }
 
+void UPrimitiveComponent::SetRelativeTransform(const FTransform& InTransform)
+{
+    USceneComponent::SetRelativeTransform(InTransform);
+
+    if (BodyInstance)
+    {
+        //skeletal은 보유 bodyInstance돌면서 이거 실행
+        FTransform BodyInstanceTransform = BodyInstance->GetWorldTransform();
+
+        BodyInstanceTransform.Translation = InTransform.Translation;
+        BodyInstanceTransform.Rotation = InTransform.Rotation;
+        //차이값으로 적용
+        // FVector DifLocation = InTransform.Translation - GetRelativeLocation();
+        // BodyInstanceTransform.Translation += DifLocation;
+        // FQuat DifRotation = (InTransform.Rotation.Rotator() - GetRelativeRotation()).Quaternion();
+        // BodyInstanceTransform.Rotation = BodyInstanceTransform.Rotation * DifRotation;
+        
+        BodyInstance->SetTransformRigidBody(BodyInstanceTransform);
+    }
+}
+
+void UPrimitiveComponent::SetRelativeLocation(const FVector& InLocation)
+{
+    FTransform NewTransform = GetRelativeTransform();
+    NewTransform.Translation = InLocation;
+    
+    UPrimitiveComponent::SetRelativeTransform(NewTransform);
+}
+
+void UPrimitiveComponent::SetRelativeRotation(const FRotator& InRotation)
+{
+    FTransform NewTransform = GetRelativeTransform();
+    NewTransform.Rotation = InRotation.Quaternion();
+    
+    UPrimitiveComponent::SetRelativeTransform(NewTransform);
+}
+
+void UPrimitiveComponent::SetRelativeRotation(const FQuat& InQuat)
+{
+    FTransform NewTransform = GetRelativeTransform();
+    NewTransform.Rotation = InQuat;
+    
+    UPrimitiveComponent::SetRelativeTransform(NewTransform);
+}
+
+void UPrimitiveComponent::SetRelativeScale3D(const FVector& InScale)
+{
+    FTransform NewTransform = GetRelativeTransform();
+    NewTransform.Scale3D = InScale;
+    
+    UPrimitiveComponent::SetRelativeTransform(NewTransform);
+}
 
 bool UPrimitiveComponent::IntersectRayTriangle(const FVector& RayOrigin, const FVector& RayDirection, const FVector& v0, const FVector& v1, const FVector& v2, float& OutHitDistance) const
 {

@@ -98,8 +98,10 @@ void FPhysScene::InitPhysX()
 
     //addActor하고 Joint생성
        
-    PxRigidStatic* rigidStatic = nullptr;
-    PxPlane plane = PxPlane(0, 0, 1, -10);
+    // PxRigidStatic* rigidStatic = nullptr;
+    // PxPlane plane = PxPlane(0, 0, 1, -10);
+    // rigidStatic = PxCreatePlane(*gPhysics, plane, *gMaterial);
+    // gScene->addActor(*rigidStatic);
     
     // PxD6Joint* Joint = PxD6JointCreate(*gPhysics, RBody2, RPos2, rigidBody, pose);
     // Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE); //회전 고정
@@ -113,8 +115,6 @@ void FPhysScene::InitPhysX()
     // obj.UpdateFromPhysics();
 
     
-    rigidStatic = PxCreatePlane(*gPhysics, plane, *gMaterial);
-    gScene->addActor(*rigidStatic);
 }
 
 void FPhysScene::Simulate(float DeltaTime)
@@ -128,7 +128,6 @@ void FPhysScene::Simulate(float DeltaTime)
             BodyInstance->UpdatePhysics();
         }
     }
-    // Ragdoll 본들 위치 업데이트
 }
 
 

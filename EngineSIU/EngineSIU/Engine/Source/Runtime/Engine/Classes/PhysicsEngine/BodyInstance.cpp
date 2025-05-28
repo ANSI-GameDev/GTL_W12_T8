@@ -14,11 +14,39 @@ using namespace physx;
 
 #define SCOPED_READ_LOCK(scene) PxSceneReadLock scopedReadLock(scene);
 
-void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
+void FBodyInstance::SetTransformRigidBody(FTransform NewTransform)
 {
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-    RigidBody->setKinematicTarget(MoveLocation.ToPxTransform());
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+    if (WorldTransform == NewTransform)
+    {
+        return;
+    }
+
+    if (RigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
+    {
+        RigidBody->setKinematicTarget(NewTransform.ToPxTransform());
+        WorldTransform = NewTransform;
+        return;
+    }
+    
+    LinearVelocity = (NewTransform.Translation - WorldTransform.Translation);
+    RigidBody->setLinearVelocity(LinearVelocity.ToPxVec3());
+    
+    FQuat DeltaQuat = NewTransform.Rotation * WorldTransform.Rotation.Inverse();
+
+    FVector Axis;
+    float Angle;
+    DeltaQuat.ToAxisAndAngle(Axis, Angle);
+
+    float DeltaTime = 1.f / 60.f;
+    AngularVelocity = Axis * (Angle / DeltaTime);
+    
+    RigidBody->setAngularVelocity(AngularVelocity.ToPxVec3());
+}
+
+void FBodyInstance::SetRigidbodyKinematic(bool bIsKinematic)
+{
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, bIsKinematic);
+    BodySetup->PhysicsType = bIsKinematic ? PhysType_Kinematic : PhysType_Default;
 }
 
 void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene)
@@ -40,11 +68,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
     // TODO : Joint 정보 또한 제거 필요
     if (RigidBody)
     {
-        if (RigidBody->getScene())
-        {
-            RigidBody->getScene()->removeActor(*RigidBody);
-        }
-        RigidBody->release();
+        DestroyInPhysicsScene();
     }
     
     // Body의 위치 = Body가 속한 Bone의 World Position
@@ -136,7 +160,7 @@ UBodySetup* FBodyInstance::GetBodySetup() const
     return nullptr;
 }
 
-physx::PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
+PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
 {
     if (!RigidBody)
     {
@@ -147,9 +171,32 @@ physx::PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
     return RigidBody;
 }
 
+
+void FBodyInstance::DestroyInPhysicsScene()
+{
+    if (!RigidBody)
+    {
+        return;
+    }
+    
+    if (RigidBody->getScene())
+    {
+        RigidBody->getScene()->removeActor(*RigidBody);
+    }
+
+    MyScene->BodyInstances.Remove(this);
+    RigidBody->release();
+    RigidBody = nullptr;
+}
+
 void FBodyInstance::UpdatePhysics()
 {
-    PxTransform t = RigidBody->getGlobalPose();
+    if (!RigidBody)
+    {
+        return;
+    }
     
-    WorldTransform = FTransform(t);
+    WorldTransform = FTransform(RigidBody->getGlobalPose());
+    LinearVelocity = FVector(RigidBody->getLinearVelocity());
+    AngularVelocity = FVector(RigidBody->getAngularVelocity());
 }

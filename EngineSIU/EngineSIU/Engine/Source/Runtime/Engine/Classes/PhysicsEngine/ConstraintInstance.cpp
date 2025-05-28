@@ -4,7 +4,6 @@
 #include "Engine/SkeletalMesh.h"
 #include "Misc/EnumClassFlags.h"
 #include "UserInterface/Console.h"
-#include "Math/Matrix.h"
 #include "Developer/PhysicsUtilities/PxConvertHelper.inl"
 #include <PxPhysicsAPI.h>
 
@@ -199,6 +198,25 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     Joint->setProjectionLinearTolerance(0.1f);
     Joint->setProjectionAngularTolerance(PxPi / 4.0f); // 관절이 한계를 넘었을 때 자동 보정
     Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); 
+}
+
+void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, const FTransform& Frame1, const FTransform& Frame2, FPhysScene* InScene)
+{
+    PhysScene = InScene;
+
+    InScene->Constraints.Add(this);
+
+    // TODO: FConstraintProfileProperties
+    
+    //임의 세팅
+    PxD6Joint* Joint = PxD6JointCreate(*InScene->gPhysics, Body1->RigidBody, Frame1.ToPxTransform(), Body2->RigidBody, Frame2.ToPxTransform());
+    Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLIMITED);
+    Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+    Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
+    Joint->setTwistLimit(PxJointAngularLimitPair(-PxPi/4, PxPi/4));
+    Joint->setSwingLimit(PxJointLimitCone(PxPi/6, PxPi/6));
+    Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(0, 1000, FLT_MAX, true));
+    // Joint->setLinearLimit(PxD6Axis::eX, PxJointLinearLimitPair(0.f, 1.0f, PxSpring(100.0f, 10.0f))); //PxJointLinearLimitPair
 }
 
 /* 두 Bone 간 RefPose 기준 상대 위치 계산 */

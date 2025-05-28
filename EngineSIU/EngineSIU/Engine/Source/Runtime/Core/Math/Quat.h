@@ -167,7 +167,6 @@ public:
     physx::PxQuat ToPxQuat() const;
     physx::PxQuat ToPxQuat();
     FVector GetUnitAxis(EAxis::Type Axis) const;
-
 };
 
 inline FArchive& operator<<(FArchive& Ar, FQuat& Q)
