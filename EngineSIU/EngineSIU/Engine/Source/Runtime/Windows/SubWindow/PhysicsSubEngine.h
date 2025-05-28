@@ -21,5 +21,7 @@ private:
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
 private:
     const float CameraSpeedMultiplier = 10;
+    UWorld* PhysicsWorld = nullptr;
+
     // 예: PhysicsWorld, CollisionDebugRenderer 등 필요시 추가
 };

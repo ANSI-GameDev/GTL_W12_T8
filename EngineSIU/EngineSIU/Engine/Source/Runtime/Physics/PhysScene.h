@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <PxFoundation.h>
 #include <extensions/PxDefaultAllocator.h>
 #include <extensions/PxDefaultCpuDispatcher.h>
@@ -20,7 +20,16 @@ using namespace physx;  // NOLINT(clang-diagnostic-header-hygiene)
 class physx::PxDefaultCpuDispatcher;
 class physx::PxPvd;
 class physx::PxFoundation;
+class FPhysXGlobals
+{
+public:
+    static physx::PxFoundation* GetFoundation();
+    static physx::PxPvd* GetPvd();
 
+private:
+    static physx::PxFoundation* Foundation;
+    static physx::PxPvd* Pvd;
+};
 class FPhysScene
 {
 public:
@@ -43,8 +52,6 @@ public:
     
     PxDefaultAllocator      gAllocator;
     PxDefaultErrorCallback  gErrorCallback;
-    PxFoundation* gFoundation = nullptr;
-    PxPvd* gPvd = nullptr;
     PxPhysics* gPhysics = nullptr;
     PxScene* gScene = nullptr;
     PxMaterial* gMaterial = nullptr;

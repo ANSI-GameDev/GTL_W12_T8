@@ -6,7 +6,32 @@
 #include <PxPhysicsAPI.h>
 
 using namespace physx;
+PxFoundation* FPhysXGlobals::Foundation = nullptr;
+PxPvd* FPhysXGlobals::Pvd = nullptr;
 
+PxFoundation* FPhysXGlobals::GetFoundation()
+{
+    if (!Foundation)
+    {
+        static PxDefaultAllocator GAllocator;
+        static PxDefaultErrorCallback GErrorCallback;
+
+        Foundation = PxCreateFoundation(PX_PHYSICS_VERSION, GAllocator, GErrorCallback);
+    }
+    return Foundation;
+}
+
+PxPvd* FPhysXGlobals::GetPvd()
+{
+    if (!Pvd)
+    {
+        PxFoundation* Foundation = GetFoundation();
+        Pvd = PxCreatePvd(*Foundation);
+        PxPvdTransport* Transport = PxDefaultPvdSocketTransportCreate("127.0.0.1", 5425, 10);
+        Pvd->connect(*Transport, PxPvdInstrumentationFlag::eALL);
+    }
+    return Pvd;
+}
 void FPhysScene::TickPhysScene(float DeltaTime)
 {
     Simulate(DeltaTime);
@@ -18,39 +43,32 @@ void FPhysScene::WaitPhysScenes()
 
 void FPhysScene::InitPhysX()
 {
-    gFoundation = PxCreateFoundation(PX_PHYSICS_VERSION, gAllocator, gErrorCallback);
+    using namespace physx;
 
-    /* Visual Debugger Transport 설정 */
-    gPvd = PxCreatePvd(*gFoundation);
-    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate(PVD_HOST, 5425, 10);
-    gPvd->connect(*transport, PxPvdInstrumentationFlag::eALL); // Debug | Profile | Memory
-    if (!gPvd->isConnected())
+    PxFoundation* Foundation = FPhysXGlobals::GetFoundation();
+    PxPvd* Pvd = FPhysXGlobals::GetPvd();
+
+    gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *Foundation, PxTolerancesScale(), true, Pvd);
+    if (!gPhysics)
     {
-        UE_LOG(ELogLevel::Error, TEXT("Failed to Connect PVD! Make sure to Execute"));
+        UE_LOG(ELogLevel::Error, TEXT("Failed to create PxPhysics!"));
+        return;
     }
 
-    gPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *gFoundation, PxTolerancesScale(), true, gPvd);
-    PxInitExtensions(*gPhysics, gPvd);
-    
+    PxInitExtensions(*gPhysics, Pvd);
+
     gDispatcher = PxDefaultCpuDispatcherCreate(2);
-    
-    //staticFriction: 정지 마찰력 (0.5)
-    // dynamicFriction: 운동 마찰력 (0.5)
-    // restitution: 반발 계수 (0.6) → 충돌 후 얼마나 튕길지를 결정
+
     gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
-    
+
     PxSceneDesc SceneDesc(gPhysics->getTolerancesScale());
     SceneDesc.gravity = PxVec3(0.0f, 0.0f, -9.81f);
     SceneDesc.cpuDispatcher = gDispatcher;
     SceneDesc.filterShader = PxDefaultSimulationFilterShader;
-    SceneDesc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-    SceneDesc.flags |= PxSceneFlag::eENABLE_CCD;
-    SceneDesc.flags |= PxSceneFlag::eENABLE_PCM;
+    SceneDesc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS | PxSceneFlag::eENABLE_CCD | PxSceneFlag::eENABLE_PCM;
+
     gScene = gPhysics->createScene(SceneDesc);
 
-    /* Visual Debugger 활성화
-     * 1) 물리제약조건 2) 충돌 지점 3) SceneQuery(Raycast, Sweep, Overlap) 정보를 PVD로 전송
-     */
     PxPvdSceneClient* pvdClient = gScene->getScenePvdClient();
     if (pvdClient)
     {

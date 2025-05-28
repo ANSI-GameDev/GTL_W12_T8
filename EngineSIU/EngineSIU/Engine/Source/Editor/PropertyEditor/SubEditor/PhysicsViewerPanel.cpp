@@ -1,5 +1,8 @@
 #include "PhysicsViewerPanel.h"
 
+#include <PxRigidBody.h>
+#include <PxRigidDynamic.h>
+
 #include "FSkeletalMeshDebugger.h"
 #include "PhysicsSettingsSerializer.h"
 #include "ReferenceSkeleton.h"
@@ -791,4 +794,55 @@ void PhysicsViewerPanel::DrawShowFlags()
 
         ImGui::EndPopup();
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Start Ragdoll", ImVec2(120, 32)))
+    {
+        ToggleRagdollSimulation(true);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Stop Ragdoll", ImVec2(120, 32)))
+    {
+        ToggleRagdollSimulation(false);
+    }
+
+}
+void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
+{
+    if (!SkeletalMeshComponent || !SkeletalMeshComponent->GetPhysicsAsset())
+        return;
+
+    USkeleton* Skeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton();
+    const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+
+    const TArray<FTransform>& RefPose = Skeleton->GetReferencePose();
+
+    for (UBodySetup* BodySetup : PhysicsAsset->BodySetup)
+    {
+        if (!BodySetup) continue;
+
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BodySetup->BoneName);
+        if (!RefPose.IsValidIndex(BoneIndex)) continue;
+
+        FBodyInstance* Instance = SkeletalMeshComponent->GetBodyInstance();
+        if (!Instance) continue;
+
+        if (bEnable)
+        {
+            // 기존 위치에서 중력 적용 (레그돌)
+            //Instance->RigidBody->setRigidBodyFlags(physx::PxRigidBodyFlag::eKINEMATIC, false);
+            Instance->RigidBody->setLinearVelocity({ 0, 0, 0 });
+            Instance->RigidBody->setAngularVelocity({ 0, 0, 0 });
+        }
+        else
+        {
+            // 정지시키고 ref pose 위치로 복구
+            //Instance->RigidBody->setRigidBodyFlags(physx::PxRigidBodyFlag::eKINEMATIC, true);
+
+            FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
+            Instance->SetTransformRigidBody(RefWorld);
+        }
+    }
+
+    bSimulateRagdoll = bEnable;
 }
