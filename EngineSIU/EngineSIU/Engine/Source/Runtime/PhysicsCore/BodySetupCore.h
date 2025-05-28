@@ -24,7 +24,8 @@ public:
 
     FName BoneName;
 
-    uint32 BoneIndex;
+    int32 BoneIndex;
+    int32 ParentBoneIndex;
     
     //PhysicsType Default, Kinematic, simulated
     PhysicsType PhysicsType;
