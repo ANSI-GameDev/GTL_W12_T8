@@ -246,7 +246,8 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
             const FMatrix RotationMatrix = FinalRot.ToMatrix();
 
             const float HalfLength = Sphyl.Length * 0.5f;
-            const FVector BoxExtent(HalfLength, Sphyl.Radius, Sphyl.Radius);
+            float TotalHalfLength = (Sphyl.Length + 2.0f * Sphyl.Radius) * 0.5f;
+            const FVector BoxExtent(TotalHalfLength, Sphyl.Radius, Sphyl.Radius);
 
             FBoundingBox LocalBox;
             LocalBox.MinLocation = -BoxExtent;
