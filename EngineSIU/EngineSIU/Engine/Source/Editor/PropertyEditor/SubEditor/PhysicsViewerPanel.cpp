@@ -554,6 +554,27 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         if (bChanged)
         {
             Pose.SetBoneTransform(BoneIndex, BoneTransform);
+            // Shape 위치도 함께 반영
+            if (SkeletalMeshComponent && SkeletalMeshComponent->Bodies.Contains(SelectedName))
+            {
+                FBodyInstance* BodyInstance = SkeletalMeshComponent->Bodies[SelectedName];
+                if (BodyInstance && BodyInstance->RigidBody && BodyInstance->bSimulatePhysics == false)
+                {
+                    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
+
+                    // [1] 부모 트랜스폼 누적
+                    FTransform WorldTransform = BoneTransform;
+                    int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+                    while (ParentIndex != INDEX_NONE && Pose.IsValidIndex(ParentIndex))
+                    {
+                        WorldTransform = Pose.GetBoneTransform(ParentIndex) * WorldTransform;
+                        ParentIndex = RefSkeleton.GetParentIndex(ParentIndex);
+                    }
+
+                    // [2] 적용
+                    BodyInstance->SetTransformRigidBody(WorldTransform);
+                }
+            }
         }
 
         // World Position (Current Pose)
@@ -562,32 +583,35 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
         if (GlobalMatrices.IsValidIndex(BoneIndex))
         {
-            const FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
-            const FVector WorldPos = BoneMatrix.GetOrigin();
-            const FQuat WorldQuat = BoneMatrix.ToQuat();
-            const FRotator WorldRot = WorldQuat.Rotator();
+            if (ImGui::TreeNode("World Transform (Current)")) {
+                const FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
+                const FVector WorldPos = BoneMatrix.GetOrigin();
+                const FQuat WorldQuat = BoneMatrix.ToQuat();
+                const FRotator WorldRot = WorldQuat.Rotator();
 
-            ImGui::SeparatorText("World Transform (Current)");
-            ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
-            ImGui::Text("World Rotation (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", WorldRot.Roll, WorldRot.Pitch, WorldRot.Yaw);
-            ImGui::Text("World Rotation (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", WorldQuat.X, WorldQuat.Y, WorldQuat.Z, WorldQuat.W);
+                ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
+                ImGui::Text("World Rotation (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", WorldRot.Roll, WorldRot.Pitch, WorldRot.Yaw);
+                ImGui::Text("World Rotation (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", WorldQuat.X, WorldQuat.Y, WorldQuat.Z, WorldQuat.W);
+                ImGui::TreePop();
+            }
         }
 
         const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
         if (RefSkeleton.IsValidRawIndex(BoneIndex))
         {
-            ImGui::SeparatorText("RefSkeleton Transform");
+            if (ImGui::TreeNode("RefSkeleton Transform")) {
 
-            const FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
-            const FVector RefWorldPos = RefWorld.GetTranslation();
-            const FQuat RefWorldQuat = RefWorld.GetRotation();
-            const FRotator RefWorldRot = RefWorldQuat.Rotator();
+                const FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
+                const FVector RefWorldPos = RefWorld.GetTranslation();
+                const FQuat RefWorldQuat = RefWorld.GetRotation();
+                const FRotator RefWorldRot = RefWorldQuat.Rotator();
 
-            ImGui::Text("Ref World Pos: (%.2f, %.2f, %.2f)", RefWorldPos.X, RefWorldPos.Y, RefWorldPos.Z);
-            ImGui::Text("Ref World Rot (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", RefWorldRot.Roll, RefWorldRot.Pitch, RefWorldRot.Yaw);
-            ImGui::Text("Ref World Rot (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", RefWorldQuat.X, RefWorldQuat.Y, RefWorldQuat.Z, RefWorldQuat.W);
+                ImGui::Text("Ref World Pos: (%.2f, %.2f, %.2f)", RefWorldPos.X, RefWorldPos.Y, RefWorldPos.Z);
+                ImGui::Text("Ref World Rot (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", RefWorldRot.Roll, RefWorldRot.Pitch, RefWorldRot.Yaw);
+                ImGui::Text("Ref World Rot (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", RefWorldQuat.X, RefWorldQuat.Y, RefWorldQuat.Z, RefWorldQuat.W);
+                ImGui::TreePop();
+            }
         }
-
 
     }
 
@@ -620,7 +644,6 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
                 BodyInstance->SetTransformRigidBody(PoseT * ParentWorld);*/
             }
         }
-
 
         ImGui::SeparatorText("Body Collision Shapes");
 
