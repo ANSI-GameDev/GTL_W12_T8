@@ -40,7 +40,6 @@ public:
     virtual void PhysicsUpdate(float DeltaTime) override;
     void TickAnimation(float DeltaTime);
     void TickAnimInstances(float DeltaTime);
-    void UpdateGlobalPose();
 
     bool ShouldTickAnimation() const;
 

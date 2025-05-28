@@ -12,6 +12,8 @@ struct FKAggregateGeom
     TArray<FKSphylElem>    SphylElems;  // 캡슐
     TArray<FKConvexElem>   ConvexElems;
 
+    float TotalVolume = 0.f;
+
     int32 GetElementCount() const
     {
         return SphereElems.Num() + SphylElems.Num() + BoxElems.Num() + ConvexElems.Num();

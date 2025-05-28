@@ -1,4 +1,6 @@
 #pragma once
+#include <foundation/PxTransform.h>
+
 #include "BodyInstance.h"
 #include "ConstraintTypes.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -84,6 +86,10 @@ public:
     float GetLinearLimit() const;
     void UpdateLinearLimit();
     void UpdateAngularLimit();
+
+    /* 테스트 : 말단 관절 확인용*/
+    static bool IsEndEffectorJoint(const FName& BoneName);
+
     void InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, USkeletalMeshComponent* OwningComponent);
     FTransform CalculateDefaultChildTransform() const;
     FTransform CalculateDefaultParentTransform(const UPhysicsAsset* PhysicsAsset) const;
@@ -95,6 +101,9 @@ public:
     FName ConstraintBone2;
 
     physx::PxD6Joint* PxJoint = nullptr; // 위 Constraint에 해당하는 PhysX 엔진의 Joint 객체
+    physx::PxTransform LocalFrameParent; // Body1의 Reference Frame
+    physx::PxTransform LocalFrameChild; // Body2의 Reference Frame
+
     
 private:
     float LastKnownScale; // 초기화 당시 컴포넌트의 Scale

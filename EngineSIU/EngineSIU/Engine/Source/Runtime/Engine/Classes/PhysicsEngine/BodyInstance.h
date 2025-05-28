@@ -49,10 +49,8 @@ struct FBodyInstance : public FBodyInstanceCore
     
     FTransform WorldTransform;
 
-// linear, angularvel, massscale TO CHECK
     FVector LinearVelocity;
     FVector AngularVelocity;
-// 이거 뭐임
     FVector COMNudge;
 
     bool bSimulatePhysics = true;
@@ -82,6 +80,7 @@ public:
 
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
+    UBodySetup* GetBodySetup() const;
     physx::PxRigidDynamic* GetPxRigidBoDynamic() const;
 
     uint8 bUseCCD : 1;
