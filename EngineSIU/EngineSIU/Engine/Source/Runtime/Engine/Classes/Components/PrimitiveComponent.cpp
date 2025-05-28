@@ -202,6 +202,11 @@ void UPrimitiveComponent::DestroyComponent(bool bPromoteChildren)
 {
     USceneComponent::DestroyComponent(bPromoteChildren);
 
+    if (!BodyInstance)
+    {
+        return;
+    }
+    
     BodyInstance->DestroyInPhysicsScene();
 }
 

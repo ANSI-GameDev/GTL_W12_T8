@@ -373,10 +373,12 @@ FMaterialInfo FFbxLoader::ExtractMaterialsFromFbx(FbxSurfaceMaterial* FbxMateria
         );
         
         FbxDouble3 Emissive = Lambert->Emissive.Get();
+        FbxDouble EmissiveFactor = Lambert->EmissiveFactor.Get(); // 기본값은 1.0
+
         MaterialInfo.EmissiveColor = FVector(
-            static_cast<float>(Emissive[0]), 
-            static_cast<float>(Emissive[1]), 
-            static_cast<float>(Emissive[2])
+            static_cast<float>(Emissive[0] * EmissiveFactor),
+            static_cast<float>(Emissive[1] * EmissiveFactor),
+            static_cast<float>(Emissive[2] * EmissiveFactor)
         );
         
         // 투명도 처리
@@ -624,12 +626,11 @@ void FFbxLoader::CollectBoneData(FbxNode* Node, FReferenceSkeleton& OutReference
     // 뼈 정보 추가
     FMeshBoneInfo BoneInfo(BoneName, ParentIndex);
     RefBoneInfo.Add(BoneInfo);
+
     if (ParentIndex != INDEX_NONE)
     {
         RefBoneInfo[ParentIndex].ChildIndex.Add(CurrentIndex);
     }
-
-
 
     // 레퍼런스 포즈
     FTransform BoneTransform;

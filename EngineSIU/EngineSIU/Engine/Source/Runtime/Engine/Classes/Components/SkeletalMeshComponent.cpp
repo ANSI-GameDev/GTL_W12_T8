@@ -108,10 +108,8 @@ void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
         {
             ParentGlobalTransform.SetFromMatrix(GlobalPoseMatrix[ParentIndex]);
         }
-        FTransform ParentWorldTransform = ParentGlobalTransform * GetComponentTransform();
-        FTransform ParentWorldInvTransform = ParentWorldTransform.Inverse();
-        
-        FTransform LocalTransform = ParentWorldInvTransform * BodyInstanceWorldTransform;
+        FTransform ParentWorldTransform = GetComponentTransform() * ParentGlobalTransform;
+        FTransform LocalTransform = (ParentWorldTransform.Inverse() * GetComponentTransform().Inverse()) * BodyInstanceWorldTransform;
         
         BonePoseContext.Pose[BoneIndex] = LocalTransform ;
     }

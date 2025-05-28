@@ -234,8 +234,7 @@ void USceneComponent::SetWorldRotation(const FQuat& InQuat)
         NewRelativeMatrix = NewRelativeMatrix * FMatrix::Inverse(ParentMatrix);
     }
     FQuat NewRelativeRotation = FQuat(NewRelativeMatrix);
-    RelativeRotation = FRotator(NewRelativeRotation);
-    RelativeRotation.Normalize();   
+    SetRelativeRotation(NewRelativeRotation);
 }
 
 void USceneComponent::SetWorldScale3D(const FVector& InScale)
@@ -248,7 +247,7 @@ void USceneComponent::SetWorldScale3D(const FVector& InScale)
         NewRelativeMatrix = NewRelativeMatrix * FMatrix::Inverse(ParentMatrix);
     }
     FVector NewRelativeScale = NewRelativeMatrix.GetScaleVector();
-    RelativeScale3D = NewRelativeScale;
+    SetRelativeScale3D(NewRelativeScale);
 }
 
 FVector USceneComponent::GetComponentLocation() const
