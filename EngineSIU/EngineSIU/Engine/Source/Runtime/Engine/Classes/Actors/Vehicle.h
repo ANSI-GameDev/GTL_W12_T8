@@ -9,8 +9,9 @@ class AVehicle: public AStaticMeshActor
 public:
     AVehicle();
     void InitVehicle();
-    void Tick(float DeltaTime) override;
-    void Destroyed() override;
+    virtual void Tick(float DeltaTime) override;
+    virtual void Destroyed() override;
+    void RemoveVehicle();
 
     UPROPERTY_WITH_FLAGS(
         EditAnywhere,
@@ -38,6 +39,7 @@ public:
     FVector ModifiedChassisAABBMax;
     float ChassisMass;
     void ApplyModifiedChassis();
+    void ResetPosition();
 
     // Wheel
     FVector GetWheelPosition(int index);
@@ -55,4 +57,5 @@ private:
     physx::PxVehicleDrive4W* Vehicle;
 
     void UpdateProperties();
+    void UpdateByModified();
 };

@@ -16,6 +16,9 @@ using namespace physx;
 FVehicleManager::FVehicleManager()
     : VehicleSimData(nullptr)
     , TargetVehicleIndex(-1)
+    , Inputs()
+    , Physics(nullptr)
+    , Cooking(nullptr)
     , SurfaceTirePairs(nullptr)
     , RoadMaterial(nullptr)
     , RoadTypes()
@@ -32,17 +35,15 @@ FVehicleManager::FVehicleManager()
     , WheelCapacity(0)
 {
     SteerVsForwardSpeedTable = PxFixedSizeLookupTable<8>(SteerVsForwardSpeedData, 4);
-    
-    // TODO: 메쉬 받아서 계산하기
-    WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_LEFT] = PxVec3(15, -10, -5);
-    WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_RIGHT] = PxVec3(15, 10, -5);
-    WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_LEFT] = PxVec3(-15, -10, -5);
-    WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_RIGHT] = PxVec3(-15, 10, -5);
 }
 
 void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
 {
-    CookPrimitiveMesh(Physics, Cooking);
+    this->Physics = Physics;
+    this->Cooking = Cooking;
+    
+    CookPrimitiveMesh();
+    
     // Init Physical Material
     const float restitution = 0.2f;
     const float staticFriction = 0.5f;
@@ -83,6 +84,7 @@ void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
 
     // Init Mesh
     // ChassisMesh = Physics->create
+
 }
 
 void FVehicleManager::Shutdown()
@@ -113,7 +115,7 @@ void FVehicleManager::Shutdown()
     SurfaceTirePairs->release();
 }
 
-PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
+PxVehicleDrive4W* FVehicleManager::CreateVehicle(VehicleHelper::CreateVehicleData data)
 {
     /** Create Simulation Data */
     PxVehicleWheelsSimData* wheelsSimData = PxVehicleWheelsSimData::allocate(4);
@@ -122,9 +124,10 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     // Create Simulation Data: Chassis
     PxVehicleChassisData chassisData;
     
-    VehicleHelper::AABB chassisAABB = ComputeMeshAABB(ChassisMesh);
+    // VehicleHelper::AABB chassisAABB = ComputeMeshAABB(ChassisMesh);
+    VehicleHelper::AABB chassisAABB = data.chassisAABB;
     const PxVec3 chassisDims = chassisAABB.max - chassisAABB.min;
-    const PxVec3 chassisCMOffset = PxVec3(0.0f, 0.f, 0.f);
+    const PxVec3 chassisCMOffset = data.chassisCMOffset;
     const PxVec3 chassisMOI(
         (chassisDims.y * chassisDims.y + chassisDims.z * chassisDims.z) * ChassisMass / 12.0f,
         (chassisDims.x * chassisDims.x + chassisDims.z * chassisDims.z) * ChassisMass / 12.0f,
@@ -139,9 +142,8 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     PxVehicleWheelData wheels[4];
     for (int i = 0; i < 4; ++i)
     {
-        VehicleHelper::AABB wheelAABB = ComputeMeshAABB(WheelMeshes[i]);
-        wheels[i].mWidth = wheelAABB.max.x - wheelAABB.min.x;
-        wheels[i].mRadius = std::max(wheelAABB.max.y, wheelAABB.max.z) * 1.414f;
+        wheels[i].mWidth = data.wheelWidth;
+        wheels[i].mRadius = data.wheelRadius;
         wheels[i].mMOI = WheelMass * wheels[i].mRadius * wheels[i].mRadius / 2.0f;
         wheels[i].mMass = WheelMass;
     }
@@ -165,7 +167,7 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
 
     // Create Simulation Data: Suspension Sprung
     float suspSprungMasses[4];
-    PxVehicleComputeSprungMasses(4, WheelCentreOffsets, chassisCMOffset, ChassisMass, 2, suspSprungMasses);
+    PxVehicleComputeSprungMasses(4, data.wheelCentreOffsets, chassisCMOffset, ChassisMass, 2, suspSprungMasses);
     
     // Create Simulation Data: Suspension
     PxVehicleSuspensionData suspensions[4];
@@ -203,7 +205,7 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     for (int i = 0; i < 4; ++i)
     {
         PxVec3 suspensionTravelDirection = PxVec3(0, 0, -1);
-        PxVec3 wheelCentreCMOffset = WheelCentreOffsets[i] - chassisCMOffset;
+        PxVec3 wheelCentreCMOffset = data.wheelCentreOffsets[i] - chassisCMOffset;
         PxVec3 suspensionForceAppCMOffset = PxVec3(wheelCentreCMOffset.x, wheelCentreCMOffset.y, 0.f);
         PxVec3 tireForceAppCMOffset = PxVec3(wheelCentreCMOffset.x, wheelCentreCMOffset.z, 0.f);
 
@@ -211,7 +213,7 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
         wheelsSimData->setTireData(i, tireData[i]);
         wheelsSimData->setSuspensionData(i, suspensions[i]);
         wheelsSimData->setSuspTravelDirection(i, suspensionTravelDirection);
-        wheelsSimData->setWheelCentreOffset(i, wheelCentreCMOffset);
+        wheelsSimData->setWheelCentreOffset(i, data.wheelCentreOffsets[i]);
         wheelsSimData->setSuspForceAppPointOffset(i, suspensionForceAppCMOffset);
         wheelsSimData->setTireForceAppPointOffset(i, tireForceAppCMOffset);
     }
@@ -237,9 +239,9 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     // Create Simulation Data: Steering
     PxVehicleAckermannGeometryData ackermann;
     ackermann.mAccuracy = 1.0f;
-    ackermann.mAxleSeparation = WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_LEFT].x - WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_LEFT].x;
-    ackermann.mFrontWidth = WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_RIGHT].y - WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_LEFT].y;
-    ackermann.mRearWidth = WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_RIGHT].y - WheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_LEFT].y;
+    ackermann.mAxleSeparation = data.wheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_LEFT].x - data.wheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_LEFT].x;
+    ackermann.mFrontWidth = data.wheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_RIGHT].y - data.wheelCentreOffsets[PxVehicleDrive4WWheelOrder::eFRONT_LEFT].y;
+    ackermann.mRearWidth = data.wheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_RIGHT].y - data.wheelCentreOffsets[PxVehicleDrive4WWheelOrder::eREAR_LEFT].y;
     
     // Store Simulation Data to DriveSimData
     driveSimData.setDiffData(diff);
@@ -266,7 +268,7 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     wheelCollFilterData.word1 = VehicleHelper::COLLISION_FLAG_WHEEL_AGAINST;
 
     // chassis
-    PxConvexMeshGeometry chassisGeom(ChassisMesh);
+    PxConvexMeshGeometry chassisGeom(CookCubeMesh(data.chassisAABB));
     PxFilterData chassisCollFilterData;
     chassisCollFilterData.word0 = VehicleHelper::COLLISION_FLAG_CHASSIS;
     chassisCollFilterData.word1 = VehicleHelper::COLLISION_FLAG_CHASSIS_AGAINST;
@@ -407,19 +409,48 @@ void FVehicleManager::ReallocWheelQueryResults()
     }
 }
 
-void FVehicleManager::CookPrimitiveMesh(PxPhysics* Physics, PxCooking* Cooking)
+PxConvexMesh* FVehicleManager::CookCubeMesh(VehicleHelper::AABB BoundingBox)
+{
+    PxVec3 ChassisVertices[] =
+    {
+        PxVec3(BoundingBox.min.x, BoundingBox.min.y, BoundingBox.min.z),
+        PxVec3(BoundingBox.min.x, BoundingBox.min.y, BoundingBox.max.z),
+        PxVec3(BoundingBox.min.x, BoundingBox.max.y, BoundingBox.min.z),
+        PxVec3(BoundingBox.min.x, BoundingBox.max.y, BoundingBox.max.z),
+        PxVec3(BoundingBox.max.x, BoundingBox.min.y, BoundingBox.min.z),
+        PxVec3(BoundingBox.max.x, BoundingBox.min.y, BoundingBox.max.z),
+        PxVec3(BoundingBox.max.x, BoundingBox.max.y, BoundingBox.min.z),
+        PxVec3(BoundingBox.max.x, BoundingBox.max.y, BoundingBox.max.z),
+    };
+
+    PxConvexMeshDesc convexDesc;
+    convexDesc.points.count     = 8;
+    convexDesc.points.stride    = sizeof(PxVec3);
+    convexDesc.points.data      = ChassisVertices;
+    convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
+
+    PxDefaultMemoryOutputStream writeBuffer;
+    if (!Cooking->cookConvexMesh(convexDesc, writeBuffer)) {
+        return nullptr;
+    }
+
+    PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+    return Physics->createConvexMesh(readBuffer);
+}
+
+void FVehicleManager::CookPrimitiveMesh()
 {
     {
         static PxVec3 ChassisVertices[] =
         {
-            PxVec3(-20.f, -10.f, -5.f),
-            PxVec3(-20.f, -10.f,  5.f),
-            PxVec3(-20.f,  10.f, -5.f),
-            PxVec3(-20.f,  10.f,  5.f),
-            PxVec3( 20.f, -10.f, -5.f),
-            PxVec3( 20.f, -10.f,  5.f),
-            PxVec3( 20.f,  10.f, -5.f),
-            PxVec3( 20.f,  10.f,  5.f)
+            PxVec3(-20.f, -10.f, 5.f),
+            PxVec3(-20.f, -10.f,  15.f),
+            PxVec3(-20.f,  10.f, 5.f),
+            PxVec3(-20.f,  10.f,  15.f),
+            PxVec3( 20.f, -10.f, 5.f),
+            PxVec3( 20.f, -10.f,  15.f),
+            PxVec3( 20.f,  10.f, 5.f),
+            PxVec3( 20.f,  10.f,  15.f)
         };
     
         PxConvexMeshDesc convexDesc;
@@ -439,19 +470,30 @@ void FVehicleManager::CookPrimitiveMesh(PxPhysics* Physics, PxCooking* Cooking)
 
     {
         static PxVec3 WheelVertices[] = {
-            PxVec3(-1.f, -1.f, -1.f),
-            PxVec3(-1.f, -1.f,  1.f),
-            PxVec3(-1.f,  1.f, -1.f),
-            PxVec3(-1.f,  1.f,  1.f),
-            PxVec3( 1.f, -1.f, -1.f),
-            PxVec3( 1.f, -1.f,  1.f),
-            PxVec3( 1.f,  1.f, -1.f),
-            PxVec3( 1.f,  1.f,  1.f)
+            // Bottom circle (y = -1)
+            PxVec3( 1.0f, -1.0f,  0.0f),
+            PxVec3( 0.7071f, -1.0f,  0.7071f),
+            PxVec3( 0.0f,   -1.0f,  1.0f),
+            PxVec3(-0.7071f, -1.0f,  0.7071f),
+            PxVec3(-1.0f, -1.0f,  0.0f),
+            PxVec3(-0.7071f, -1.0f, -0.7071f),
+            PxVec3( 0.0f,  -1.0f, -1.0f),
+            PxVec3( 0.7071f, -1.0f, -0.7071f),
+
+            // Top circle (y = +1)
+            PxVec3( 1.0f,  1.0f,  0.0f),
+            PxVec3( 0.7071f,  1.0f,  0.7071f),
+            PxVec3( 0.0f,    1.0f,  1.0f),
+            PxVec3(-0.7071f,  1.0f,  0.7071f),
+            PxVec3(-1.0f,  1.0f,  0.0f),
+            PxVec3(-0.7071f,  1.0f, -0.7071f),
+            PxVec3( 0.0f,   1.0f, -1.0f),
+            PxVec3( 0.7071f,  1.0f, -0.7071f),
         };
 
     
         PxConvexMeshDesc convexDesc;
-        convexDesc.points.count     = 8;
+        convexDesc.points.count     = 16;
         convexDesc.points.stride    = sizeof(PxVec3);
         convexDesc.points.data      = WheelVertices;
         convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;

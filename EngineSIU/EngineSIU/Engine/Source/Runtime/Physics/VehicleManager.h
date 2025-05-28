@@ -5,6 +5,7 @@
 #include <vehicle/PxVehicleWheels.h>
 
 #include "Container/Array.h"
+#include "Math/Vector.h"
 
 namespace VehicleHelper
 {
@@ -63,6 +64,32 @@ namespace VehicleHelper
         uint8 bGearUpKey:1;
         uint8 bGearDownKey:1;
     };
+
+    struct CreateVehicleData
+    {
+        physx::PxVec3 initPosition;
+        AABB chassisAABB;
+        physx::PxVec3 chassisCMOffset;
+        physx::PxVec3 wheelCentreOffsets[4];
+        float wheelRadius;
+        float wheelWidth;
+
+        CreateVehicleData()
+            : initPosition(physx::PxVec3(0, 0, 0))
+            , chassisAABB(FVector(-20, -10, -5).ToPxVec3(), FVector(20, 10, 5).ToPxVec3())
+            , chassisCMOffset(physx::PxVec3(0, 0, 0))
+            , wheelCentreOffsets{
+                physx::PxVec3(15, -10, -5),
+                physx::PxVec3(15, 10, -5),
+                physx::PxVec3(-15, -10, -5),
+                physx::PxVec3(-15, 10, -5)
+            }
+            , wheelRadius(1)
+            , wheelWidth(1)
+        {}
+    };
+
+    inline CreateVehicleData DefaultVehicleData = CreateVehicleData();
 }
 
 class FVehicleManager
@@ -77,7 +104,7 @@ public:
 public:
     void InitPhysXVehicle(physx::PxPhysics* Physics, physx::PxCooking* Cooking);
     void Shutdown();
-    physx::PxVehicleDrive4W* CreateVehicle(physx::PxPhysics* Physics);
+    physx::PxVehicleDrive4W* CreateVehicle(VehicleHelper::CreateVehicleData data = VehicleHelper::DefaultVehicleData);
     void RemoveVehicle(physx::PxVehicleWheels* Vehicle);
     void Update(float deltaTime, physx::PxScene* Scene);
     void SuspensionRaycasts(physx::PxScene* scene);
@@ -85,6 +112,10 @@ public:
 public:
     const physx::PxMaterial* GetVehicleMaterial();
 private:
+
+    physx::PxPhysics* Physics;
+    physx::PxCooking* Cooking;
+    
     // Cached simulation data of focus vehicle
     physx::PxVehicleWheelsSimData* VehicleSimData;
     physx::PxVehicleDrivableSurfaceToTireFrictionPairs* SurfaceTirePairs;
@@ -101,7 +132,6 @@ private:
 
     // wheels
     const float WheelMass;
-    physx::PxVec3 WheelCentreOffsets[4];
     physx::PxConvexMesh* WheelMeshes[4];
     uint32 WheelCount;
     uint32 WheelCapacity;
@@ -120,7 +150,8 @@ private:
     static VehicleHelper::AABB ComputeMeshAABB(const physx::PxConvexMesh* mesh);
 
     void ReallocWheelQueryResults();
-    void CookPrimitiveMesh(physx::PxPhysics* Physics, physx::PxCooking* Cooking);
+    physx::PxConvexMesh* CookCubeMesh(VehicleHelper::AABB BoundingBox);
+    void CookPrimitiveMesh();
     static physx::PxQueryHitType::Enum SampleVehicleWheelRaycastPreFilter(
         physx::PxFilterData filterData0, physx::PxFilterData filterData1, const void* constantBlock,
         physx::PxU32 constantBlockSize, physx::PxHitFlags& queryFlags
