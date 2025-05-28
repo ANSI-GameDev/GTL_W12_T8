@@ -17,13 +17,13 @@ namespace VehicleHelper
     enum: uint8
     {
         SURFACE_TYPE_ROAD=0,
-        SURFACE_TYPES_MAX
+        SURFACE_TYPE_MAX
     };
 
     inline float GetTireFrictionMultipliers(uint8 surfaceType, uint8 tireType)
     {
         // Tire model friction for each combination of drivable surface type and tire type.
-        static float tireFrictionMultipliers[SURFACE_TYPES_MAX][TIRE_TYPE_MAX]=
+        static float tireFrictionMultipliers[SURFACE_TYPE_MAX][TIRE_TYPE_MAX]=
         {
             // WETS
             {1.10f},		// ROAD
@@ -87,10 +87,10 @@ private:
     physx::PxVehicleDrivableSurfaceToTireFrictionPairs* SurfaceTirePairs;
     
     // Road
-    const physx::PxMaterial* RoadMaterials;
+    const physx::PxMaterial *RoadMaterial;
     physx::PxVehicleDrivableSurfaceType RoadTypes;
 
-    const physx::PxMaterial* VehicleMaterial;
+    const physx::PxMaterial *VehicleMaterial;
     
     // chassis
     const float ChassisMass;

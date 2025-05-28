@@ -126,7 +126,17 @@ void FPhysScene::InitPhysX()
     // Init Vehicle Environment
     VehicleManager = new FVehicleManager();
     if (VehicleManager != nullptr)
+    {
         VehicleManager->InitPhysXVehicle(gPhysics, gCooking);
+        
+        PxShape* shape = nullptr;
+        rigidStatic->getShapes(&shape, 1);
+        PxFilterData simFilterData;
+        simFilterData.word0 = VehicleHelper::COLLISION_FLAG_GROUND;
+        simFilterData.word1 = VehicleHelper::COLLISION_FLAG_GROUND_AGAINST;
+        shape->setSimulationFilterData(simFilterData);
+        shape->setQueryFilterData(PxFilterData(0, 0, 0, 0xffff0000));
+    }
 
     VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxVec3(0.0f, 0.0f, 50.0f), PxQuat(PxIdentity)));
     VehicleManager->TargetVehicleIndex = 0;

@@ -6,17 +6,18 @@
 #include <extensions/PxDefaultStreams.h>
 #include <extensions/PxRigidActorExt.h>
 #include <vehicle/PxVehicleDrive4W.h>
-#include <vehicle/PxVehicleDriveTank.h>
 #include <vehicle/PxVehicleUtil.h>
 #include <vehicle/PxVehicleUtilControl.h>
 #include <vehicle/PxVehicleUtilSetup.h>
+
+#include "UserInterface/Console.h"
 using namespace physx;
 
 FVehicleManager::FVehicleManager()
     : VehicleSimData(nullptr)
     , TargetVehicleIndex(-1)
     , SurfaceTirePairs(nullptr)
-    , RoadMaterials(nullptr)
+    , RoadMaterial(nullptr)
     , RoadTypes()
     , VehicleMaterial(nullptr)
     , WheelQueryResults(nullptr)
@@ -46,7 +47,7 @@ void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
     const float restitution = 0.2f;
     const float staticFriction = 0.5f;
     const float dynamicFriction = 0.5f;
-    RoadMaterials = Physics->createMaterial(staticFriction, dynamicFriction, restitution);
+    RoadMaterial = Physics->createMaterial(staticFriction, dynamicFriction, restitution);
     RoadTypes.mType = 0;
     VehicleMaterial = Physics->createMaterial(staticFriction, dynamicFriction, restitution);
 
@@ -62,10 +63,10 @@ void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
     VehicleSimData = PxVehicleWheelsSimData::allocate(4);
 
     SurfaceTirePairs = PxVehicleDrivableSurfaceToTireFrictionPairs::allocate(
-        VehicleHelper::TIRE_TYPE_MAX, VehicleHelper::SURFACE_TYPES_MAX
+        VehicleHelper::TIRE_TYPE_MAX, VehicleHelper::SURFACE_TYPE_MAX
     );
-    SurfaceTirePairs->setup(VehicleHelper::TIRE_TYPE_MAX, VehicleHelper::SURFACE_TYPES_MAX, &RoadMaterials, &RoadTypes);
-    for (uint8 i = 0; i < VehicleHelper::SURFACE_TYPES_MAX; ++i)
+    SurfaceTirePairs->setup(VehicleHelper::TIRE_TYPE_MAX, VehicleHelper::SURFACE_TYPE_MAX, &RoadMaterial, &RoadTypes);
+    for (uint8 i = 0; i < VehicleHelper::SURFACE_TYPE_MAX; ++i)
     {
         for (uint8 j = 0; j < VehicleHelper::TIRE_TYPE_MAX; ++j)
         {
@@ -140,7 +141,7 @@ void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const Px
     {
         VehicleHelper::AABB wheelAABB = ComputeMeshAABB(WheelMeshes[i]);
         wheels[i].mWidth = wheelAABB.max.x - wheelAABB.min.x;
-        wheels[i].mRadius = std::max(wheelAABB.max.y, wheelAABB.max.z);
+        wheels[i].mRadius = std::max(wheelAABB.max.y, wheelAABB.max.z) * 1.414f;
         wheels[i].mMOI = WheelMass * wheels[i].mRadius * wheels[i].mRadius / 2.0f;
         wheels[i].mMass = WheelMass;
     }
@@ -335,7 +336,14 @@ void FVehicleManager::Update(const float deltaTime, PxScene* Scene)
 {
     UpdateDigitalInput();
     UpdateParameterTargetVehicle(deltaTime);
-    PxVehicleUpdates(deltaTime, Scene->getGravity(), *SurfaceTirePairs, Vehicles.Num(), Vehicles.GetData(), VehicleWheelsQueryResults.GetData());
+    PxVehicleUpdates(
+        deltaTime,
+        Scene->getGravity(),
+        *SurfaceTirePairs,
+        Vehicles.Num(),
+        Vehicles.GetData(),
+        VehicleWheelsQueryResults.GetData()
+    );
 }
 
 void FVehicleManager::SuspensionRaycasts(PxScene* scene)
@@ -416,14 +424,14 @@ void FVehicleManager::CookPrimitiveMesh(PxPhysics* Physics, PxCooking* Cooking)
 
     {
         static PxVec3 WheelVertices[] = {
-            PxVec3(-5.f, -5.f, -5.f),
-            PxVec3(-5.f, -5.f,  5.f),
-            PxVec3(-5.f,  5.f, -5.f),
-            PxVec3(-5.f,  5.f,  5.f),
-            PxVec3( 5.f, -5.f, -5.f),
-            PxVec3( 5.f, -5.f,  5.f),
-            PxVec3( 5.f,  5.f, -5.f),
-            PxVec3( 5.f,  5.f,  5.f)
+            PxVec3(-1.f, -1.f, -1.f),
+            PxVec3(-1.f, -1.f,  1.f),
+            PxVec3(-1.f,  1.f, -1.f),
+            PxVec3(-1.f,  1.f,  1.f),
+            PxVec3( 1.f, -1.f, -1.f),
+            PxVec3( 1.f, -1.f,  1.f),
+            PxVec3( 1.f,  1.f, -1.f),
+            PxVec3( 1.f,  1.f,  1.f)
         };
 
     
@@ -484,19 +492,18 @@ void FVehicleManager::UpdateParameterTargetVehicle(float deltaTime)
         SteerVsForwardSpeedTable,
         carRawInputs,
         deltaTime,
-        false,
+        isAir,
         *focusVehicle
     );
-    
-    
+
 }
 
 void FVehicleManager::UpdateDigitalInput()
 {
     if (!(GetAsyncKeyState(VK_RBUTTON) & 0x8000))
     {
-        Inputs.bSteerLeftKey = !(!(GetAsyncKeyState('A') & 0x8000));
-        Inputs.bSteerRightKey = !(!(GetAsyncKeyState('D') & 0x8000));
+        Inputs.bSteerLeftKey = !(!(GetAsyncKeyState('D') & 0x8000));
+        Inputs.bSteerRightKey = !(!(GetAsyncKeyState('A') & 0x8000));
         Inputs.bAccelKey = !(!(GetAsyncKeyState('W') & 0x8000));
         Inputs.bBrakeKey = !(!(GetAsyncKeyState('S') & 0x8000));
         Inputs.bHandBrakeKey = !(!(GetAsyncKeyState('X') & 0x8000));
