@@ -190,32 +190,41 @@ void USkeletalMeshComponent::SetSkeletalMeshAsset(USkeletalMesh* InSkeletalMeshA
     {
         return;
     }
-    
+
     SkeletalMeshAsset = InSkeletalMeshAsset;
 
     InitAnim();
 
+    // 리셋
     BonePoseContext.Pose.Empty();
     RefBonePoseTransforms.Empty();
-    AABB = FBoundingBox(InSkeletalMeshAsset->GetRenderData()->BoundingBoxMin, SkeletalMeshAsset->GetRenderData()->BoundingBoxMax);
-    
+    ExcludedFromRagdoll.Empty();  // ✅ 본 고정 상태 초기화
+    RootBodyData.BodyIndex = INDEX_NONE;  // ✅ 루트 인덱스 초기화
+    RootBodyData.TransformToRoot = FTransform::Identity;
+
+    AABB = FBoundingBox(InSkeletalMeshAsset->GetRenderData()->BoundingBoxMin, InSkeletalMeshAsset->GetRenderData()->BoundingBoxMax);
+
     const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
     BonePoseContext.Pose.InitBones(RefSkeleton.RawRefBoneInfo.Num());
+
     for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
     {
         BonePoseContext.Pose[i] = RefSkeleton.RawRefBonePose[i];
         RefBonePoseTransforms.Add(RefSkeleton.RawRefBonePose[i]);
     }
-    
+
+    // 렌더 데이터 복사
     CPURenderData->Vertices = InSkeletalMeshAsset->GetRenderData()->Vertices;
     CPURenderData->Indices = InSkeletalMeshAsset->GetRenderData()->Indices;
     CPURenderData->ObjectName = InSkeletalMeshAsset->GetRenderData()->ObjectName;
     CPURenderData->MaterialSubsets = InSkeletalMeshAsset->GetRenderData()->MaterialSubsets;
-    SetSelectedBone(-1);
 
-    /* TODO : 기본적으로 PhysicAsset을 생성하는 대신 bSimulated 옵션이 켜질 때만 PhysicAsset 생성하기 */
+    SetSelectedBone(-1);
+    Bodies.Empty();
+    Constraints.Empty();
     OnCreatePhysicsState();
 }
+
 
 FTransform USkeletalMeshComponent::GetSocketTransform(FName SocketName) const
 {

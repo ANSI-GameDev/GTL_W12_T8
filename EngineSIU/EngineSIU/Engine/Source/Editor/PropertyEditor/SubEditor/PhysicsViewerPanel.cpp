@@ -7,6 +7,7 @@
 #include "PhysicsSettingsSerializer.h"
 #include "ReferenceSkeleton.h"
 #include "UnrealClient.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Misc/EnumClassFlags.h"
@@ -82,10 +83,27 @@ void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient
 
 void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
+    if (SkeletalMeshComponent)
+    {
+        // 기존 컴포넌트에 대한 정리 작업
+        SkeletalMeshComponent->Bodies.Empty();
+        // 만약 직접 할당/생성했다면: delete SkeletalMeshComponent;
+        // 이 경우 World에서 DetachComponent도 고려 가능
+    }
+
     SkeletalMeshComponent = InSkeletalMeshComponent;
+
     SkeletalMeshComponent->SetSelectedBone(-1);
     ToggleRagdollSimulation(bSimulateRagdoll);
+    if (SkeletalMeshComponent)
+    {
+        SkeletalMeshComponent->SetSelectedBone(INDEX_NONE);
+
+        // 래그돌 제외 목록 초기화
+        SkeletalMeshComponent->ExcludedFromRagdoll.Empty();
+    }
 }
+
 
 void PhysicsViewerPanel::SetPrimitiveDrawBatch(UPrimitiveDrawBatch* InPrimitiveDrawBatch)
 {
@@ -242,11 +260,13 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 {
                     CurrentIndex = i;
                     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(MeshNames[i]));
+                    // 초기화 등 필요한 작업
                 }
                 if (bSelected) ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
         }
+
         for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
         {
             if (RefSkeleton.GetParentIndex(BoneIndex) == INDEX_NONE)
@@ -876,6 +896,7 @@ void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
         if (bEnable)
         {
             Instance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
+
             Instance->RigidBody->setLinearVelocity({ 0, 0, 0 });
             Instance->RigidBody->setAngularVelocity({ 0, 0, 0 });
         }

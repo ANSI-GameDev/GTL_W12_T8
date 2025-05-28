@@ -201,7 +201,7 @@ void UPrimitiveComponent::PhysicsUpdate(float DeltaTime)
 void UPrimitiveComponent::DestroyComponent(bool bPromoteChildren)
 {
     USceneComponent::DestroyComponent(bPromoteChildren);
-
+    if (BodyInstance)
     BodyInstance->DestroyInPhysicsScene();
 }
 
