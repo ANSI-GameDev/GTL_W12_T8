@@ -36,7 +36,7 @@ namespace FPhysicsAssetUtils
         {
             const FName BoneName = RefSkeleton.GetBoneName(BoneIndex);
 
-            const int32 NewBodyIndex = CreateNewBody(PhysicsAsset, BoneName);
+            const int32 NewBodyIndex = CreateNewBody(PhysicsAsset, BoneName, BoneIndex);
             UBodySetup* NewBodySetup = PhysicsAsset->BodySetup[NewBodyIndex];
 
             CreateCollisionFromBoneInternal(NewBodySetup, SkelMesh, BoneIndex);
@@ -116,7 +116,7 @@ namespace FPhysicsAssetUtils
     }
 
 
-    int32 CreateNewBody(UPhysicsAsset* PhysAsset, FName InBoneName)
+    int32 CreateNewBody(UPhysicsAsset* PhysAsset, FName InBoneName, uint32 InBoneIndex)
     {
         if (PhysAsset == nullptr)
         {
@@ -132,6 +132,7 @@ namespace FPhysicsAssetUtils
 
         UBodySetup* NewBodySetup = FObjectFactory::ConstructObject<UBodySetup>(PhysAsset);
         NewBodySetup->BoneName = InBoneName;
+        NewBodySetup->BoneIndex = InBoneIndex;
         NewBodySetup->bConsiderForBounds = true;    // Bounds 계산에 포함
         NewBodySetup->bDoubleSidedGeometry = true;  // 양면 충돌 허용
         NewBodySetup->BuildScale = FVector(1.0f);

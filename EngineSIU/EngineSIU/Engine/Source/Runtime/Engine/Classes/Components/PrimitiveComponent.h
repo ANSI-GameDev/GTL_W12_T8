@@ -19,7 +19,7 @@ public:
 
     virtual void InitializeComponent() override;
     virtual void TickComponent(float DeltaTime) override;
-    virtual void PhysicsUpdate(float DeltaTime){};
+    virtual void PhysicsUpdate(float DeltaTime);
     void SetSimulatePhysics(bool bSimulate);
 
     bool IntersectRayTriangle(

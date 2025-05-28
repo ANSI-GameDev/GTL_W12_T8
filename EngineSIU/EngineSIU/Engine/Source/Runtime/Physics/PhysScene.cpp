@@ -119,8 +119,8 @@ void FPhysScene::InitPhysX()
 
 void FPhysScene::Simulate(float DeltaTime)
 {
-    gScene->simulate(DeltaTime);
-    gScene->fetchResults(true);
+    // gScene->simulate(DeltaTime);
+    // gScene->fetchResults(true);
     for (FBodyInstance* BodyInstance : BodyInstances)
     {
         if (BodyInstance->bSimulatePhysics)

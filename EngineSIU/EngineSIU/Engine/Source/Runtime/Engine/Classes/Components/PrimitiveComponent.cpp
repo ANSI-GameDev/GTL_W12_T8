@@ -4,6 +4,7 @@
 #include "Engine/OverlapInfo.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Actor.h"
+#include "PhysicsEngine/BodyInstance.h"
 #include "World/World.h"
 
 // 언리얼 엔진에서도 여기에서 FOverlapInfo의 생성자를 정의하고 있음.
@@ -183,10 +184,23 @@ void UPrimitiveComponent::TickComponent(float DeltaTime)
     Super::TickComponent(DeltaTime);
 }
 
+void UPrimitiveComponent::PhysicsUpdate(float DeltaTime)
+{
+    if (!BodyInstance)
+    {
+        return;
+    }
+    
+    //StaticMesh는 Rigidbody가 곧 내 위치
+    FTransform Transform = BodyInstance->GetWorldTransform();
+    SetWorldTransform(Transform);
+}
+
 void UPrimitiveComponent::SetSimulatePhysics(bool bSimulate)
 {
     
 }
+
 
 bool UPrimitiveComponent::IntersectRayTriangle(const FVector& RayOrigin, const FVector& RayDirection, const FVector& v0, const FVector& v1, const FVector& v2, float& OutHitDistance) const
 {

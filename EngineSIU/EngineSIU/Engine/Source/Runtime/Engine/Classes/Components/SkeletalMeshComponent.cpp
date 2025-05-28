@@ -78,6 +78,44 @@ void USkeletalMeshComponent::TickPose(float DeltaTime)
     TickAnimation(DeltaTime);
 }
 
+void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
+{
+    //bone돌면서 BodyInstance의 Transform으로 업데이트
+
+    //여기가 boneInit보다 먼저들어오니까 조심
+    
+    if (Bodies.Num() == 0)
+    {
+        return;
+    }
+
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    
+    for (FBodyInstance* BodyInstance : Bodies)
+    {
+        //아래꺼 변경하고 CPU 스키닝이나 GPU스키닝 변환 보고 처리해주기
+        //LocalTransform주면 됨
+        uint32 BoneIndex = BodyInstance->BodySetup->BoneIndex;
+        uint32 ParentIndex = RefSkeleton.RawRefBoneInfo[BoneIndex].ParentIndex;
+        // FTransform BodyInstanceTransform = BodyInstance->GetWorldTransform();
+        FTransform BodyInstanceWorldTransform = BodyInstance->GetWorldTransform();
+
+        //TODO: 자식글로벌도 업데이트 해줘야할거같은데, 그러면 자식을 갖고있어야함
+        BonePoseContext.GlobalPose[BoneIndex] = BodyInstanceWorldTransform;
+        
+        FTransform OriginPoseDebug = BonePoseContext.Pose[BoneIndex];
+
+        FTransform ParentWorldTransform = ParentIndex == INDEX_NONE ? GetComponentTransform() : BonePoseContext.GlobalPose[ParentIndex];
+
+        FTransform BodyInstanceRelativeTransform = BodyInstanceWorldTransform.GetRelativeTransform(ParentWorldTransform);
+        //worldtransform을 줘야하는데 relative를 가져오고 있었네
+        FTransform RefBoneTransform = RefSkeleton.RawRefBonePose[BoneIndex];
+        // OutPose.Pose[BoneIdx] = RefBoneTransform * DataModel->EvaluateBoneTrackTransform(BoneName, FrameTime, EAnimInterpolationType::Linear);
+
+        BonePoseContext.Pose[BoneIndex] = BodyInstanceRelativeTransform;
+    }
+}
+
 void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 {
     if (GetSkeletalMeshAsset())
@@ -93,6 +131,20 @@ void USkeletalMeshComponent::TickAnimInstances(float DeltaTime)
     if (AnimScriptInstance)
     {
         AnimScriptInstance->UpdateAnimation(DeltaTime, BonePoseContext);
+    }
+
+    UpdateGlobalPose();
+}
+
+void USkeletalMeshComponent::UpdateGlobalPose()
+{
+    //Bone돌면서 자기글로벌 = 자기 로컬 * 부모글로벌
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
+    {
+        int32 ParentIndex = RefSkeleton.GetRawRefBoneInfo()[i].ParentIndex;
+        FTransform ParentGlobalPose = ParentIndex == INDEX_NONE ? GetComponentTransform() : BonePoseContext.GlobalPose[ParentIndex];
+        BonePoseContext.GlobalPose[i] = BonePoseContext.Pose[i] * ParentGlobalPose;
     }
 }
 
@@ -161,10 +213,16 @@ void USkeletalMeshComponent::SetSkeletalMeshAsset(USkeletalMesh* InSkeletalMeshA
     
     const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
     BonePoseContext.Pose.InitBones(RefSkeleton.RawRefBoneInfo.Num());
+    BonePoseContext.GlobalPose.InitBones(RefSkeleton.RawRefBoneInfo.Num());
+
     for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
     {
         BonePoseContext.Pose[i] = RefSkeleton.RawRefBonePose[i];
         RefBonePoseTransforms.Add(RefSkeleton.RawRefBonePose[i]);
+
+        int32 ParentIndex = RefSkeleton.RawRefBoneInfo[i].ParentIndex;
+        FTransform ParentTransform = ParentIndex == INDEX_NONE ? GetComponentTransform() : RefSkeleton.RawRefBonePose[ParentIndex];
+        BonePoseContext.GlobalPose[i] = RefSkeleton.RawRefBonePose[i] * ParentTransform;
     }
     
     CPURenderData->Vertices = InSkeletalMeshAsset->GetRenderData()->Vertices;
@@ -535,8 +593,8 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
         FBodyInstance* NewBody = new FBodyInstance();
-        NewBody->InitBody(BodySetup, BoneWorldTransform.GetLocation(), PhysScene);
-
+        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
+        
         OutBodies.Add(NewBody);
 
         if (OutNameToBodyMap)
@@ -544,6 +602,13 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
             OutNameToBodyMap->Add(BodySetup->BoneName, NewBody);
         }
     }
+    //BoneIndex기준으로 소팅
+    std::sort(OutBodies.begin(), OutBodies.end(), [](const FBodyInstance* A, const FBodyInstance* B)
+    {
+        if (!A || !A->BodySetup) return false;
+        if (!B || !B->BodySetup) return true;
+        return A->BodySetup->BoneIndex < B->BodySetup->BoneIndex;
+    });
 }
 
 

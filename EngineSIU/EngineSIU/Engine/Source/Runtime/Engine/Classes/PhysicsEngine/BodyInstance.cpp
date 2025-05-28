@@ -21,14 +21,18 @@ void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
 }
 
-void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene)
-{
+void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene)
+{ //TODO: Position말고 Transform받아서 회전값도 적용
     if (!InBodySetup || !InScene)
     {
         UE_LOG(ELogLevel::Error, TEXT("FBodyInstance::InitBody : InBodySetup or InScene is nullptr"));
         return;
     }
 
+    MyScene = InScene;
+    
+    BodySetup = InBodySetup;
+    
     //등록하는 행위
     InScene->BodyInstances.Add(this);
 
@@ -44,7 +48,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     }
     
     // Body의 위치 = Body가 속한 Bone의 World Position
-    PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
+    PxTransform pose = PxTransform(InBodyWorldTransform.GetLocation().ToPxVec3(), InBodyWorldTransform.GetRotation().ToPxQuat());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
     // @@ TODO : TEst 용 추가
     //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
