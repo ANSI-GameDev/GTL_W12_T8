@@ -544,6 +544,9 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
 {
     const FVector ComponentScale3D = GetComponentTransform().GetScale3D();
 
+    TArray<FMatrix> GlobalMatrices;
+    GetCurrentGlobalBoneMatrices(GlobalMatrices);
+    //FString str;
     for (int32 i = 0; i < PhysAsset.BodySetup.Num(); ++i)
     {
         UBodySetup* BodySetup = PhysAsset.BodySetup[i];
@@ -562,11 +565,13 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         }
 
         /* 컴포넌트의 Scale을 적용하여 충돌 형상 정의하기 위함 */
+        //const FTransform BoneWorldTransform = FTransform::FromMatrix(GlobalMatrices[BoneIndex]);
         const FTransform BoneWorldTransform = RefSkeleton.GetRefWorldTransform(BoneIndex);
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
+        //str += FString::Printf(TEXT("%s,%s\n"), *BodySetup->BoneName.ToString(), *BoneWorldTransform.ToString());
         FBodyInstance* NewBody = new FBodyInstance();
-        NewBody->InitBody(BodySetup, BoneWorldTransform.GetLocation(), PhysScene);
+        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
 
         OutBodies.Add(NewBody);
 

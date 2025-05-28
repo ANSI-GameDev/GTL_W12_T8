@@ -80,8 +80,8 @@ public:
     void SetTransformRigidBody(FTransform MoveLocation);
     
     //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
-    void InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene);
-    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene, const FVector& InBodyWorldPosition);
+    void InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene);
+    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene, const FTransform& InBodyWorldTransform);
 
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }

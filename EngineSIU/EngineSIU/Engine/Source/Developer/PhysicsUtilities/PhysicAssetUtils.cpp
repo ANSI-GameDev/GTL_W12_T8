@@ -221,7 +221,8 @@ namespace FPhysicsAssetUtils
             //CapsuleHalfLength -= CapsuleRadius;
 
             SphylElem.Center = ThisWorld.GetLocation() - ElementTransform.GetLocation();
-            SphylElem.RQuat = ElementTransform.GetRotation();
+            //SphylElem.RQuat = ElementTransform.GetRotation();
+            SphylElem.RQuat = FQuat();
             SphylElem.Radius = CapsuleRadius;
             SphylElem.Length = CapsuleHalfLength * 2.f;  // PhysX는 전체 길이
 

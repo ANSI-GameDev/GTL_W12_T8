@@ -86,7 +86,7 @@ struct FTransform
     FMatrix ToMatrixWithScale() const;
     FMatrix ToMatrixNoScale() const;
     void SetFromMatrix(const FMatrix& InMatrix);
-    
+    static FTransform FromMatrix(const FMatrix& InMatrix);
     // 상대 변환 계산
     FTransform GetRelativeTransform(const FTransform& Other) const;
     FTransform GetRelativeTransformReverse(const FTransform& Other) const;
@@ -124,5 +124,5 @@ struct FTransform
 
     //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.inl"
     FTransform(const physx::PxTransform& InTransform);
-    physx::PxTransform ToPxTransform();
+    physx::PxTransform ToPxTransform() const;
 };
