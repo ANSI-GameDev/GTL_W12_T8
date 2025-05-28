@@ -4,8 +4,10 @@
 #include "FSkeletalMeshDebugger.h"
 #include "ImGuiSubWindow.h"
 #include "LineRenderPass.h"
+#include "PhysScene.h"
 #include "SubRenderer.h"
 #include "Animation/SkeletalMeshActor.h"
+#include "Engine/SkeletalMesh.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PropertyEditor/SkeletalMeshViewerPanel.h"
 #include "PropertyEditor/SubEditor/PhysicsViewerPanel.h"
@@ -77,19 +79,75 @@ void UPhysicsSubEngine::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     ViewportClient->Tick(DeltaTime);
-    FString str = ViewportClient->PerspectiveCamera.GetRotation().ToString();
-    // 물리 시뮬레이션 처리 (예: PhysicsWorld->StepSimulation(DeltaTime))
-    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
-    TArray<UBodySetup*> BodySetups = PhysicsAsset->BodySetup;
-    TArray<UPhysicsConstraintTemplate*> ConstraintTemplates = PhysicsAsset->ConstraintSetup;
 
+    /*
     if (PhysicsWorld)
     {
-        PhysicsWorld->Tick(DeltaTime);
+        // [1] 물리 시뮬레이션 수행
+        if (FPhysScene* PhysScene = PhysicsWorld->GetPhysicsScene())
+        {
+            PhysScene->TickPhysScene(DeltaTime);
+        }
+
+        // [2] Actor의 PhysicsUpdate 수행
+        if (ULevel* Level = PhysicsWorld->GetActiveLevel())
+        {
+            const TArray<AActor*>& Actors = Level->Actors;
+            for (AActor* Actor : Actors)
+            {
+                if (Actor && Actor->IsActorTickInEditor())
+                {
+                    Actor->PhysicsUpdate(DeltaTime);
+                }
+            }
+        }
+    }
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+    FBaseCompactPose& Pose = SkeletalMeshComponent->BonePoseContext.Pose;
+
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
+
+    for (FBodyInstance* BodyInst : SkeletalMeshComponent->Bodies)
+    {
+        if (!BodyInst || !BodyInst->BodySetup) continue;
+
+        FName BoneName = BodyInst->BodySetup->BoneName;
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+        if (BoneIndex == INDEX_NONE || !Pose.IsValidIndex(BoneIndex)) continue;
+
+        FTransform PhysicsWorld = BodyInst->GetWorldTransform();
+
+        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        FTransform ParentWorld = (ParentIndex != INDEX_NONE && Pose.IsValidIndex(ParentIndex))
+            ? Pose.GetBoneTransform(ParentIndex)
+            : FTransform::Identity;
+
+        FTransform LocalTransform = PhysicsWorld.GetRelativeTransform(ParentWorld);
+        Pose.SetBoneTransform(BoneIndex, LocalTransform);
+    }*/
+    if (PhysicsWorld)
+    {
+        FPhysScene* PhysScene = PhysicsWorld->GetPhysicsScene();
+
+        if (PhysScene)
+        {
+            PhysScene->TickPhysScene(DeltaTime);
+        }
+        ULevel* Level = PhysicsWorld->GetActiveLevel();
+        TArray CachedActors = Level->Actors;
+
+        for (AActor* Actor : CachedActors)
+        {
+            if (Actor)
+            {
+                Actor->PhysicsUpdate(DeltaTime); 
+            }
+        }
     }
 
     Render();
 }
+
 
 void UPhysicsSubEngine::Input(float DeltaTime)
 {

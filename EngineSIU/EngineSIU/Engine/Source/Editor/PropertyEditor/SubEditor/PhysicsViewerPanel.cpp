@@ -84,6 +84,7 @@ void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkel
 {
     SkeletalMeshComponent = InSkeletalMeshComponent;
     SkeletalMeshComponent->SetSelectedBone(-1);
+    ToggleRagdollSimulation(bSimulateRagdoll);
 }
 
 void PhysicsViewerPanel::SetPrimitiveDrawBatch(UPrimitiveDrawBatch* InPrimitiveDrawBatch)
@@ -813,32 +814,25 @@ void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
 
     USkeleton* Skeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton();
     const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
-    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
-
     const TArray<FTransform>& RefPose = Skeleton->GetReferencePose();
 
-    for (UBodySetup* BodySetup : PhysicsAsset->BodySetup)
+    for (FBodyInstance* Instance : SkeletalMeshComponent->Bodies)
     {
-        if (!BodySetup) continue;
-
-        int32 BoneIndex = RefSkeleton.FindBoneIndex(BodySetup->BoneName);
-        if (!RefPose.IsValidIndex(BoneIndex)) continue;
-
-        FBodyInstance* Instance = SkeletalMeshComponent->GetBodyInstance();
         if (!Instance) continue;
+
+        FName BoneName = Instance->BodySetup->BoneName;
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+        if (!RefPose.IsValidIndex(BoneIndex)) continue;
 
         if (bEnable)
         {
-            // 기존 위치에서 중력 적용 (레그돌)
-            //Instance->RigidBody->setRigidBodyFlags(physx::PxRigidBodyFlag::eKINEMATIC, false);
+            Instance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
             Instance->RigidBody->setLinearVelocity({ 0, 0, 0 });
             Instance->RigidBody->setAngularVelocity({ 0, 0, 0 });
         }
         else
         {
-            // 정지시키고 ref pose 위치로 복구
-            //Instance->RigidBody->setRigidBodyFlags(physx::PxRigidBodyFlag::eKINEMATIC, true);
-
+            Instance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
             FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
             Instance->SetTransformRigidBody(RefWorld);
         }
