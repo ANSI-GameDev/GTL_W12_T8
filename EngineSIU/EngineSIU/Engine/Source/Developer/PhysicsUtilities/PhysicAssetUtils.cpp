@@ -156,6 +156,7 @@ namespace FPhysicsAssetUtils
             UE_LOG(ELogLevel::Error, TEXT("Invalid parameters"));
             return false;
         }
+        if (BoneIndex == 0 || BoneIndex == 1) return true;
         //if (FConstraintInstance::IsEndEffectorJoint(bs->BoneName)) return true;
 
         const FReferenceSkeleton& RefSkeleton = skelMesh->GetSkeleton()->GetRefSkeleton();
