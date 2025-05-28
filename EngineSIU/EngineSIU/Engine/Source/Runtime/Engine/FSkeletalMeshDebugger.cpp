@@ -240,7 +240,7 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
         const FVector4 Color = (BoneName == SelectedBodyName) ? SelectedColor : DefaultColor;
 
         // --- Capsule (Sphyl) ---
-        for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
+        /*for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
             const FQuat FinalRot = Sphyl.RQuat;
             const FMatrix RotationMatrix = FinalRot.ToMatrix();
@@ -254,8 +254,23 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
             LocalBox.MaxLocation = BoxExtent;
 
             DrawBatch->AddOBBToBatch(LocalBox, Sphyl.Center, RotationMatrix, Color);
-        }
+        }*/
+        for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
+        {
+            const FQuat FinalRot = Sphyl.RQuat;
+            const FMatrix RotationMatrix = FinalRot.ToMatrix();
+            /*FVector StartLocal = FVector(0, 0, -Sphyl.Length * 0.5f);
+            FVector EndLocal = FVector(0, 0, +Sphyl.Length * 0.5f);*/
+            FVector StartLocal = FVector(-Sphyl.Length * 0.5f, 0, 0);
+            FVector EndLocal = FVector(+Sphyl.Length * 0.5f, 0, 0);
 
+            /*FVector StartWS = BoneMatrix.TransformPosition(FinalRot.RotateVector(StartLocal) + Sphyl.Center);
+            FVector EndWS = BoneMatrix.TransformPosition(FinalRot.RotateVector(EndLocal) + Sphyl.Center);*/
+            FVector StartWS = Sphyl.Center + FinalRot.RotateVector(StartLocal);
+            FVector EndWS = Sphyl.Center + FinalRot.RotateVector(EndLocal);
+
+            DrawBatch->AddCapsuleToBatch(StartWS, EndWS, Sphyl.Radius, 16, Color); // 16 세그먼트
+        }
         // --- Box ---
         for (const FKBoxElem& Box : BodySetup->AggGeom.BoxElems)
         {
@@ -269,11 +284,11 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
             DrawBatch->AddOBBToBatch(LocalBox, Box.Center, RotationMatrix, Color);
         }
 
-        /*// --- Sphere ---
+        // --- Sphere ---
         for (const FKSphereElem& Sphere : BodySetup->AggGeom.SphereElems)
         {
-            FVector CenterWS = Sphere.Center;
-            DrawBatch->AddSphereToBatch(CenterWS, Sphere.Radius, 16, 8, Color);
-        }*/
+            FVector CenterWS = BoneMatrix.TransformPosition(Sphere.Center);
+            DrawBatch->AddSphereToBatch(CenterWS, Sphere.Radius, 16, Color); // 16 세그먼트
+        }
     }
 }
