@@ -1525,6 +1525,7 @@ void PropertyEditorPanel::RenderForVehicleActor(AVehicle* VehicleActor) const
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
     if (ImGui::TreeNodeEx("Vehicle", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
     {
+        ImGui::Text("Wheel Rpm: %f", VehicleActor->GetWheelRpm());
         ImGui::Text("Current Gear: %d", VehicleActor->GetCurrentGearNum() - 1);
         if (ImGui::Button("Reset"))
         {

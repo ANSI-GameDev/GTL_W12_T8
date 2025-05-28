@@ -40,6 +40,7 @@ public:
     float ChassisMass;
     void ApplyModifiedChassis();
     void ResetPosition();
+    float GetWheelRpm();
 
     // Wheel
     FVector GetWheelPosition(int index);

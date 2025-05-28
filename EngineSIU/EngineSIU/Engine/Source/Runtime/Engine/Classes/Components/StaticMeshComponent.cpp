@@ -22,9 +22,16 @@ UObject* UStaticMeshComponent::Duplicate(UObject* InOuter)
 
 void UStaticMeshComponent::PhysicsUpdate(float DeltaTime)
 {
+    if (!BodyInstance)
+    {
+        return;
+    }
+    
     //StaticMesh는 Rigidbody가 곧 내 위치
-    FTransform Transform = BodyInstance->GetWorldTransform();
-    SetWorldTransform(Transform);
+    FTransform BodyTransform = BodyInstance->GetWorldTransform();
+    FVector Scale = GetRelativeScale3D();
+    BodyTransform.Scale3D = Scale;
+    SetWorldTransform(BodyTransform); 
 }
 
 void UStaticMeshComponent::GetProperties(TMap<FString, FString>& OutProperties) const

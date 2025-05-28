@@ -90,8 +90,10 @@ void AVehicle::Tick(float DeltaTime)
         PxQuat q = localPose.q;
         FRotator rotator(FQuat(q.x, q.y, q.z, q.w));
         rotator.Pitch = 0.f;
-        
-        FVector offset = FMatrix::CreateRotationMatrix(GetActorRotation()).TransformPosition(GetWheelPosition(i));
+
+        FVector CMOffset = Vehicle->getRigidDynamicActor()->getCMassLocalPose().p;
+        FVector WheelOffset = GetWheelPosition(i);
+        FVector offset = FMatrix::CreateRotationMatrix(GetActorRotation()).TransformPosition(CMOffset + WheelOffset);
         FMatrix matrix = FMatrix::CreateRotationMatrix(rotator);
         matrix *= FMatrix::CreateRotationMatrix(GetActorRotation());
         GEngineLoop.Renderer.PrimitiveDrawBatch->AddOBBToBatch(
@@ -178,70 +180,27 @@ void AVehicle::UpdateProperties()
 
 void AVehicle::ApplyModifiedChassis()
 {
-    FVector dim = ModifiedChassisAABBMax - ModifiedChassisAABBMin;
-    if (dim.X <= 0 || dim.Y <= 0 || dim.Z <= 0)
-    {
-        UE_LOG(ELogLevel::Error, "Can not resize Chassis");
-        return;
-    }
-    FPhysScene* Scene = GetWorld()->GetPhysicsScene();
-    PxRigidDynamic* chassisActor = Vehicle->getRigidDynamicActor();
-
-    PxVec3 offset = ((ModifiedChassisAABBMax + ModifiedChassisAABBMin) / 2).ToPxVec3();
-    PxVec3 halfExtents = ((ModifiedChassisAABBMax - ModifiedChassisAABBMin) / 2).ToPxVec3();
-    PxBoxGeometry box(halfExtents);
-    PxVec3 wheelCentreCMOffset[4];
+    
+    VehicleHelper::CreateVehicleData data = VehicleHelper::CreateVehicleData();
+    data.initPosition = GetActorLocation().ToPxVec3();
+    data.chassisAABB.min = ModifiedChassisAABBMin.ToPxVec3();
+    data.chassisAABB.max = ModifiedChassisAABBMax.ToPxVec3();
+    data.chassisCMOffset = ( (ModifiedChassisAABBMax + ModifiedChassisAABBMin).ToPxVec3() / 2.0f );
     for (int i = 0; i < 4; ++i)
     {
-        wheelCentreCMOffset[i] = GetWheelPosition(i).ToPxVec3() - offset;
+        data.wheelRadius[i] = GetWheelRadius(i);
+        data.wheelWidth[i] = GetWheelWidth(i);
+        data.wheelCentreOffsets[i] = GetWheelPosition(i).ToPxVec3();
     }
-    float suspSprungMasses[4];
-    PxVehicleComputeSprungMasses(4, wheelCentreCMOffset, offset, ChassisMass, 2, suspSprungMasses);
-    for (int i = 0; i < 4; i++)
-    {
-        PxVec3 suspensionForceAppCMOffset = PxVec3(wheelCentreCMOffset[i].x, wheelCentreCMOffset[i].y, 0.f);
-        PxVec3 tireForceAppCMOffset = PxVec3(wheelCentreCMOffset[i].x, wheelCentreCMOffset[i].z, 0.f);
-
-        // Vehicle->mWheelsSimData.setSuspensionData(i, suspensions[i]);
-        PxVehicleSuspensionData suspData = Vehicle->mWheelsSimData.getSuspensionData(i);
-        suspData.mSprungMass = suspSprungMasses[i];
-        Vehicle->mWheelsSimData.setSuspensionData(i, suspData);
-        Vehicle->mWheelsSimData.setWheelCentreOffset(i, wheelCentreCMOffset[i]);
-        Vehicle->mWheelsSimData.setSuspForceAppPointOffset(i, suspensionForceAppCMOffset);
-        Vehicle->mWheelsSimData.setTireForceAppPointOffset(i, tireForceAppCMOffset);
-    }
-
-    const PxMaterial* material = Scene->VehicleManager->GetVehicleMaterial();
-
-    PxShape* oldShape = nullptr;
-    chassisActor->getShapes(&oldShape, 1, 4);
-    chassisActor->detachShape(*oldShape);
-    // oldShape->release();
-
-    // new shape filters
-    PxFilterData chassisCollFilterData;
-    chassisCollFilterData.word0 = VehicleHelper::COLLISION_FLAG_CHASSIS;
-    chassisCollFilterData.word1 = VehicleHelper::COLLISION_FLAG_CHASSIS_AGAINST;
-    PxFilterData vehicleQueryFilterData;
-    vehicleQueryFilterData.word3 = 0x0000ffff;
-    PxShape* shape = Scene->gPhysics->createShape(box, *material);
-    shape->setQueryFilterData(vehicleQueryFilterData);
-    shape->setSimulationFilterData(chassisCollFilterData);
-    shape->setLocalPose(PxTransform(offset));
+    FPhysScene* phyScene = GetWorld()->GetPhysicsScene();
+    PxVehicleDrive4W* vehicle = phyScene->VehicleManager->CreateVehicle(data);
     
-    chassisActor->attachShape(*shape);
-    shape->release();
+    RemoveVehicle();
+    Vehicle = vehicle;
 
-    // MOI
-    const PxVec3 chassisDims = dim.ToPxVec3();
-    const PxVec3 chassisMOI(
-        (chassisDims.y * chassisDims.y + chassisDims.z * chassisDims.z) * ChassisMass / 12.0f,
-        (chassisDims.x * chassisDims.x + chassisDims.z * chassisDims.z) * ChassisMass / 12.0f,
-        (chassisDims.x * chassisDims.x + chassisDims.y * chassisDims.y) * ChassisMass / 12.0f
-    );
-    chassisActor->setMassSpaceInertiaTensor(chassisMOI);
-    
-    PxRigidBodyExt::updateMassAndInertia(*chassisActor, ChassisMass, &offset); 
+    FBodyInstance* vehicleBody = new FBodyInstance();
+    vehicleBody->InitBody(vehicle->getRigidDynamicActor(), StaticMeshComponent->GetComponentTransform().Translation, GetWorld()->GetPhysicsScene());
+    StaticMeshComponent->SetBodyInstance(vehicleBody);
 }
 
 void AVehicle::UpdateByModified()
@@ -266,5 +225,17 @@ void AVehicle::ResetPosition()
         Vehicle->getRigidDynamicActor()->setLinearVelocity(PxVec3(0.f, 0.f, 0.f));
         Vehicle->getRigidDynamicActor()->setAngularVelocity(PxVec3(0.f, 0.f, 0.f));
     }
+}
+
+float AVehicle::GetWheelRpm()
+{
+    float sum = 0.f;
+    for (int i = 0; i < 4; ++i)
+    {
+        sum += Vehicle->mWheelsDynData.getWheelRotationSpeed(i);
+    }
+    float avg = sum / 4;
+    float rpm = avg * 60;
+    return rpm;
 }
 

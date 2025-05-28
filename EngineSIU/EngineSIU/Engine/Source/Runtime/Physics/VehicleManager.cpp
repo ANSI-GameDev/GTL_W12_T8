@@ -142,8 +142,8 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(VehicleHelper::CreateVehicleDat
     PxVehicleWheelData wheels[4];
     for (int i = 0; i < 4; ++i)
     {
-        wheels[i].mWidth = data.wheelWidth;
-        wheels[i].mRadius = data.wheelRadius;
+        wheels[i].mWidth = data.wheelWidth[i];
+        wheels[i].mRadius = data.wheelRadius[i];
         wheels[i].mMOI = WheelMass * wheels[i].mRadius * wheels[i].mRadius / 2.0f;
         wheels[i].mMass = WheelMass;
     }

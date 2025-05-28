@@ -71,8 +71,8 @@ namespace VehicleHelper
         AABB chassisAABB;
         physx::PxVec3 chassisCMOffset;
         physx::PxVec3 wheelCentreOffsets[4];
-        float wheelRadius;
-        float wheelWidth;
+        float wheelRadius[4];
+        float wheelWidth[4];
 
         CreateVehicleData()
             : initPosition(physx::PxVec3(0, 0, 0))
@@ -84,8 +84,8 @@ namespace VehicleHelper
                 physx::PxVec3(-15, -10, -5),
                 physx::PxVec3(-15, 10, -5)
             }
-            , wheelRadius(1)
-            , wheelWidth(1)
+            , wheelRadius{1, 1, 1, 1}
+            , wheelWidth{1, 1, 1, 1}
         {}
     };
 
