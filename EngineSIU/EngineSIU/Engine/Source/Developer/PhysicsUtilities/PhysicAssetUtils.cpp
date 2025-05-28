@@ -136,8 +136,11 @@ namespace FPhysicsAssetUtils
         NewBodySetup->bDoubleSidedGeometry = true;  // 양면 충돌 허용
         NewBodySetup->BuildScale = FVector(1.0f);
 
+        /* Body Setup의 BoneIndex , */
         int32 BodySetupIndex = PhysAsset->BodySetup.Add(NewBodySetup);
         NewBodySetup->BoneName = InBoneName;
+        NewBodySetup->BoneIndex = PhysAsset->GetPreviewMesh()->GetSkeleton()->GetRefSkeleton().FindRawBoneIndex(InBoneName);
+        NewBodySetup->ParentBoneIndex = PhysAsset->GetPreviewMesh()->GetSkeleton()->GetRefSkeleton().GetParentIndex(NewBodySetup->BoneIndex);
 
         PhysAsset->UpdateBodySetupIndexMap();
         PhysAsset->UpdateBoundsBodiesArray();
@@ -152,6 +155,7 @@ namespace FPhysicsAssetUtils
             UE_LOG(ELogLevel::Error, TEXT("Invalid parameters"));
             return false;
         }
+        //if (FConstraintInstance::IsEndEffectorJoint(bs->BoneName)) return true;
 
         const FReferenceSkeleton& RefSkeleton = skelMesh->GetSkeleton()->GetRefSkeleton();
         // 원본은 RawRefBonePose 썼지만, 스켈레탈 메시 전체 참조 좌표계는 GetComposedRefPoseMatrix 로 꺼내도 됩니다.
@@ -163,14 +167,15 @@ namespace FPhysicsAssetUtils
 
         // 부모↔자식 벡터 계산
         int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        FTransform ParentWorld;
+        FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
         if (ParentIndex != INDEX_NONE)
         {
+            ParentWorld = RefSkeleton.GetRawRefBonePose()[ParentIndex];
             // (1) 월드 좌표계 위치 얻기
-            FTransform ParentWorld = RefSkeleton.GetRawRefBonePose()[ParentIndex];
             for (int32 P = RefSkeleton.GetParentIndex(ParentIndex); P != INDEX_NONE; P = RefSkeleton.GetParentIndex(P))
                 ParentWorld = RefSkeleton.GetRawRefBonePose()[P] * ParentWorld;
 
-            FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
             for (int32 T = RefSkeleton.GetParentIndex(BoneIndex); T != INDEX_NONE; T = RefSkeleton.GetParentIndex(T))
                 ThisWorld = RefSkeleton.GetRawRefBonePose()[T] * ThisWorld;
 
@@ -199,7 +204,6 @@ namespace FPhysicsAssetUtils
         }
         else // 자신이 root bone일 때
         {
-            FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
             ElementTransform = FTransform(FQuat::Identity, ThisWorld.GetLocation());
             BoxExtent = FVector::ZeroVector;
         }
@@ -216,7 +220,7 @@ namespace FPhysicsAssetUtils
             CapsuleHalfLength = FMath::Max(CapsuleHalfLength - CapsuleRadius, 0.7f);
             //CapsuleHalfLength -= CapsuleRadius;
 
-            SphylElem.Center = ElementTransform.GetLocation();
+            SphylElem.Center = ThisWorld.GetLocation() - ElementTransform.GetLocation();
             SphylElem.RQuat = ElementTransform.GetRotation();
             SphylElem.Radius = CapsuleRadius;
             SphylElem.Length = CapsuleHalfLength * 2.f;  // PhysX는 전체 길이

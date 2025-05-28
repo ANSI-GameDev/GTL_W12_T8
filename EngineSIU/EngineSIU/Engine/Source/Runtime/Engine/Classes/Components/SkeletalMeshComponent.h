@@ -36,6 +36,7 @@ public:
     virtual UObject* Duplicate(UObject* InOuter) override;
 
     virtual void TickComponent(float DeltaTime) override;
+    virtual void UpdatePosePhysics();
     virtual void TickPose(float DeltaTime) override;
     void TickAnimation(float DeltaTime);
     void TickAnimInstances(float DeltaTime);

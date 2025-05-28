@@ -123,6 +123,18 @@ public:
         return GetParentIndexInternal(BoneIndex, RawRefBoneInfo);
     }
 
+    FTransform GetRefWorldTransform(int32 BoneIndex) const
+    {
+        FTransform Result = RawRefBonePose[BoneIndex];
+        int32 ParentIdx = GetParentIndex(BoneIndex);
+        while (ParentIdx != INDEX_NONE)
+        {
+            Result = RawRefBonePose[ParentIdx] * Result;
+            ParentIdx = GetParentIndex(ParentIdx);
+        }
+        return Result;
+    }
+
     void Serialize(FArchive& Ar)
     {
         Ar << RawRefBoneInfo

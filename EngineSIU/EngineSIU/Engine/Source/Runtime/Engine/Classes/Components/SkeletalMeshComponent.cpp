@@ -65,8 +65,38 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
 
+    if (GetPhysicsAsset() && !Bodies.IsEmpty())
+    {
+        UpdatePosePhysics();
+    }
     TickPose(DeltaTime);
 }
+
+void USkeletalMeshComponent::UpdatePosePhysics()
+{
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    TArray<FMatrix> GlobalBoneMatrices;
+    GetCurrentGlobalBoneMatrices(GlobalBoneMatrices);
+
+    for (FBodyInstance* Body : Bodies)
+    {
+        if (!Body) continue;
+
+        //Body->UpdatePhysics();
+        const FTransform& WorldTransform = Body->WorldTransform;
+
+        int32 BoneIndex = RefSkeleton.FindRawBoneIndex(Body->GetBodySetup()->BoneName);
+        if (BoneIndex == INDEX_NONE) continue;
+
+        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        FTransform ParentWorld = (ParentIndex != INDEX_NONE) ? FTransform(GlobalBoneMatrices[ParentIndex]) : FTransform::Identity;
+
+        FTransform LocalTransform = WorldTransform.GetRelativeTransform(ParentWorld);
+
+        BonePoseContext.Pose[BoneIndex] = LocalTransform;
+    }
+}
+
 
 void USkeletalMeshComponent::TickPose(float DeltaTime)
 {
@@ -487,6 +517,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
         ConInst->ConstraintIndex = ConstraintIdx;
         ConInst->PhysScene = PhysScene;
 
+
         if (ConstraintSetup == nullptr)
         {
             continue;
@@ -531,7 +562,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         }
 
         /* 컴포넌트의 Scale을 적용하여 충돌 형상 정의하기 위함 */
-        const FTransform BoneWorldTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+        const FTransform BoneWorldTransform = RefSkeleton.GetRefWorldTransform(BoneIndex);
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
         FBodyInstance* NewBody = new FBodyInstance();
@@ -848,3 +879,4 @@ void USkeletalMeshComponent::SetLoopEndFrame(int32 InLoopEndFrame)
         SingleNodeInstance->SetLoopEndFrame(InLoopEndFrame);
     }
 }
+

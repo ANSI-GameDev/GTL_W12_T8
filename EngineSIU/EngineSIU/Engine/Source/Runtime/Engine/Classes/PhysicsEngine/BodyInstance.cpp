@@ -29,8 +29,10 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
         return;
     }
 
-   
-
+    /* 해당 Body Instance의 출처가 되는 BodySetupCore */
+    BodySetup = Cast<UBodySetupCore>(InBodySetup);
+    BoneIndex = InBodySetup->BoneIndex;
+    ParentBoneIndex = InBodySetup->ParentBoneIndex;
 
     //등록하는 행위
     InScene->BodyInstances.Add(this);
@@ -49,7 +51,9 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     // Body의 위치 = Body가 속한 Bone의 World Position
     PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
+    AttachShapes(InBodySetup->AggGeom, InScene, InBodyWorldPosition);
+    RigidBody->setSolverIterationCounts(8, 2);
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
 
     RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
     RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
@@ -60,7 +64,6 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     // Shape 생성
     RigidBody->setLinearVelocity(PxVec3(0, 0, 0));
     RigidBody->setAngularVelocity(PxVec3(0, 0, 0));
-    AttachShapes(InBodySetup->AggGeom, InScene);
 
     PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
 
@@ -68,7 +71,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     UpdatePhysics();
 }
 
-void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene)
+void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene , const FVector& InBodyWorldPosition)
 {
     for (FKBoxElem BoxGeom : InAggregateGeom.BoxElems)
     {
@@ -103,17 +106,36 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
 
         // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
         PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
-        RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
-        //RigidBody->setGlobalPose(ActorPose);
+        //RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
+        RigidBody->setGlobalPose(PxTransform(InBodyWorldPosition.ToPxVec3(), CapsuleRotation));
 
         // 4. Shape은 Actor 기준으로 위치 0으로 고정
         PxCapsuleGeometry Geometry(Radius, HalfLength);
         PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
-        Shape->setLocalPose(PxTransform(PxIdentity));
+        Shape->setLocalPose(PxTransform(/*CapsuleCenter,*/ PxIdentity));
+        Shape->setContactOffset(0.05f);  // 충돌 감지 시작 거리
+        Shape->setRestOffset(0.01f);     // solver에서 penetration 허용 오차
+
+        PxFilterData filterData;
+        filterData.word0 = BoneIndex;                  // 현재 본 index
+        filterData.word1 = ParentBoneIndex;            // 부모 본 index
+        filterData.word2 = 0;                          // 예비
+        filterData.word3 = 0;                          // 예비
+        Shape->setSimulationFilterData(filterData);
+
 
         RigidBody->attachShape(*Shape);
         Shape->release();
     }
+}
+
+UBodySetup* FBodyInstance::GetBodySetup() const
+{
+    if (UBodySetupCore* BodySetupCore = BodySetup)
+    {
+        return CastChecked<UBodySetup>(BodySetupCore);
+    }
+    return nullptr;
 }
 
 physx::PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const

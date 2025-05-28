@@ -81,6 +81,10 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         UE_LOG(ELogLevel::Error, TEXT("InitConstraint: Invalid input bodies or scene."));
         return;
     }
+    /*if (IsEndEffectorJoint(Body1->GetBodySetup()->BoneName) || IsEndEffectorJoint(Body2->GetBodySetup()->BoneName))
+    {
+        return;
+    }*/
 
     const PxTransform ChildWorldPose = Body1->RigidBody->getGlobalPose();
     const PxTransform ParentWorldPose = Body2->RigidBody->getGlobalPose();
@@ -93,7 +97,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     const PxQuat AlignToX = PxShortestRotation(PxVec3(1, 0, 0), JointDir);
 
     // 3. Anchor 위치는 자식의 현재 위치
-    const PxVec3 AnchorPos = ChildPos;
+    const PxVec3 AnchorPos = ParentPos;
     const PxTransform JointWorldPose(AnchorPos, AlignToX);
 
     // 4. 각각 로컬 프레임 계산
@@ -163,33 +167,35 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
 
     if (IsEndEffectorJoint(ConstraintBone1)) // 말단 본일 경우
     {
-        PxD6JointDrive AngularDrive(1000.0f, 50.0f, PX_MAX_F32, true); // 강한 복원력과 감쇠
-        Joint->setDrive(PxD6Drive::eSWING, AngularDrive);
-        Joint->setDrive(PxD6Drive::eTWIST, AngularDrive);
-        //PxD6JointDrive DampedDrive(
-        //    50.0f,          // stiffness (0이면 회전 복원 없음)
-        //    20.0f,         // damping (감쇠 강도, 값 높일수록 감속 강해짐)
-        //    PX_MAX_F32,    // force limit
-        //    true           // acceleration mode
-        //);
+        //PxD6JointDrive AngularDrive(1000.0f, 50.0f, PX_MAX_F32, true); // 강한 복원력과 감쇠
+        //Joint->setDrive(PxD6Drive::eSWING, AngularDrive);
+        //Joint->setDrive(PxD6Drive::eTWIST, AngularDrive);
+        PxD6JointDrive DampedDrive(
+            10.0f,          // stiffness (0이면 회전 복원 없음)
+            30.0f,         // damping (감쇠 강도, 값 높일수록 감속 강해짐)
+            1000.0f,    // force limit
+            true           // acceleration mode
+        );
 
-        //Joint->setDrive(PxD6Drive::eSLERP, DampedDrive);
+        Joint->setDrive(PxD6Drive::eSLERP, DampedDrive);
 
         // SLERP 드라이브를 쓰기 위해 twist/swing을 FREE로 설정
         Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, false);
         Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
         Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
         Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLIMITED);
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
 
-        Joint->setDrivePosition(PxTransform(PxIdentity));
+        //Joint->setDrivePosition(PxTransform(PxIdentity));
          //Joint->setDriveVelocity(PxVec3(0.f), PxVec3(0.f));
     }
 
-    // 6. mass scaling / 기타
-    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); // 보정 활성화
+    /* 제약(Joint)이 설정한 앵커 위치/회전에서 벗어났을 때, 일정 임계치 이상으로 틀어지면 자동으로 두 바디를 다시 끌어당겨 보정함 */
+    Joint->setProjectionLinearTolerance(0.1f);
+    Joint->setProjectionAngularTolerance(PxPi / 4.0f); // 관절이 한계를 넘었을 때 자동 보정
+    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); 
 }
 
 /* 두 Bone 간 RefPose 기준 상대 위치 계산 */
