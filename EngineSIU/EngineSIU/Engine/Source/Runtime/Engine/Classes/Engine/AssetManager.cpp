@@ -13,8 +13,10 @@
 #include "UObject/Casts.h"
 #include "Asset/SkeletalMeshAsset.h"
 #include "Asset/StaticMeshAsset.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Developer/PhysicsUtilities/PhysicAssetUtils.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PropertyEditor/SubEditor/PhysicsSettingsSerializer.h"
 #include "Serialization/MemoryArchive.h"
 #include "UObject/ObjectFactory.h"
 
@@ -301,14 +303,24 @@ void UAssetManager::AddToAssetMap(const FAssetLoadResult& Result, const FString&
 
         //TODO
         //이걸 여기서 초기화해도 되는지 확인 필요
+        /*if (SkeletalMesh->GetPhysicsAsset() == nullptr)SkeletalMesh->SetPhysicsAsset(new UPhysicsAsset());
+        FPhysicsAssetUtils::CreateFromSkeletalMesh(SkeletalMesh->GetPhysicsAsset(), SkeletalMesh);*/
         if (SkeletalMesh->GetPhysicsAsset() == nullptr)
         {
             UPhysicsAsset* NewPhysicAsset = new UPhysicsAsset();
             SkeletalMesh->SetPhysicsAsset(NewPhysicAsset);
             NewPhysicAsset->SetPreviewSkeletalMesh(SkeletalMesh);
+
+            // 🔍 JSON 로드 시도
+            FString MeshPath = Key; // e.g., "Contents/Asset/Human"
+            FPhysicsAssetUtils::CreateFromSkeletalMesh(SkeletalMesh->GetPhysicsAsset(), SkeletalMesh);
+
+            if (!PhysicsSettingsSerializer::LoadPhysicsSettings(SkeletalMesh,MeshPath))
+            {
+            }
         }
-        FPhysicsAssetUtils::CreateFromSkeletalMesh(SkeletalMesh->GetPhysicsAsset(), SkeletalMesh);
         SkeletalMeshMap.Add(Key, SkeletalMesh);
+
     }
 
     for (int32 i = 0; i < Result.StaticMeshes.Num(); ++i)

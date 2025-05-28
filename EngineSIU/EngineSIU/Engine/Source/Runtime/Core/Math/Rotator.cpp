@@ -221,3 +221,7 @@ float FRotator::NormalizeAxis(float Angle)
 
     return Angle;
 }
+FVector FRotator::Euler() const
+{
+    return FVector(Roll, Pitch, Yaw);
+}

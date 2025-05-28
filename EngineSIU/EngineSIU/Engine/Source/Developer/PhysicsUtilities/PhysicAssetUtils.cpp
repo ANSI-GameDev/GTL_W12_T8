@@ -165,24 +165,31 @@ namespace FPhysicsAssetUtils
         // fallback
         FVector BoxExtent(1.f);
         FVector BoxCenter = FVector::ZeroVector;
-
+        FVector LocalCenter = FVector::ZeroVector;
         // 부모↔자식 벡터 계산
         int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
         FTransform ParentWorld;
         FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+
         if (ParentIndex != INDEX_NONE)
         {
             ParentWorld = RefSkeleton.GetRawRefBonePose()[ParentIndex];
             // (1) 월드 좌표계 위치 얻기
             for (int32 P = RefSkeleton.GetParentIndex(ParentIndex); P != INDEX_NONE; P = RefSkeleton.GetParentIndex(P))
                 ParentWorld = RefSkeleton.GetRawRefBonePose()[P] * ParentWorld;
+            
 
             for (int32 T = RefSkeleton.GetParentIndex(BoneIndex); T != INDEX_NONE; T = RefSkeleton.GetParentIndex(T))
                 ThisWorld = RefSkeleton.GetRawRefBonePose()[T] * ThisWorld;
 
+
             FVector ParentPos = ParentWorld.GetLocation();
             FVector ThisPos = ThisWorld.GetLocation();
             FVector Dir = (ThisPos - ParentPos);
+
+            FTransform BoneWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
+            FVector WorldCenter = (RefSkeleton.GetRefWorldTransform(ParentIndex).GetLocation() + BoneWorld.GetLocation()) * 0.5f;
+            LocalCenter = BoneWorld.InverseTransformPosition(WorldCenter);
             float Length = Dir.Size();
             Dir = Dir.GetSafeNormal();
             if (Length < KINDA_SMALL_NUMBER)
@@ -190,7 +197,6 @@ namespace FPhysicsAssetUtils
                 Dir = FVector(0, 0, 1);
                 Length = 5.f;
             }
-
 
             // Z축에만 half-length를 실어줌
             BoxCenter = (ParentPos + ThisPos) * 0.5f;
@@ -215,10 +221,13 @@ namespace FPhysicsAssetUtils
             float CapsuleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
             CapsuleRadius = FMath::Max(CapsuleRadius, 1.f);
             float CapsuleHalfLength = BoxExtent.Z;
-            CapsuleHalfLength = FMath::Max(CapsuleHalfLength - CapsuleRadius, 0.7f);            
+            CapsuleHalfLength = FMath::Max(CapsuleHalfLength - CapsuleRadius, 0.7f);
 
-            SphylElem.Center = ThisWorld.GetLocation() - ElementTransform.GetLocation();
-            SphylElem.RQuat = FQuat(); 
+            SphylElem.Center = LocalCenter;
+            FTransform RefWorldTransform = RefSkeleton.GetRefWorldTransform(BoneIndex);
+            FQuat RefWorldRot = RefWorldTransform.GetRotation();
+            SphylElem.RQuat = RefWorldRot.Inverse() * ElementTransform.GetRotation();
+
             SphylElem.Radius = CapsuleRadius;
             SphylElem.Length = CapsuleHalfLength * 2.f;  // PhysX는 전체 길이
 
@@ -238,7 +247,7 @@ namespace FPhysicsAssetUtils
             const FVector Size = BoxElem.Extent;
             const float Volume = Size.X * Size.Y * Size.Z;
             bs->AggGeom.TotalVolume += Volume;
-
+            
             bs->AggGeom.BoxElems.Add(BoxElem);
         }
         else if (bs->GeomType == EFG_Sphere)

@@ -272,6 +272,34 @@ void FTransform::SetFromMatrix(const FMatrix& InMatrix)
     // 이동값 추출
     Translation = InMatrix.GetOrigin();
 }
+FTransform FTransform::FromMatrix(const FMatrix& InMatrix)
+{
+    // 행렬 복사본 생성
+    FMatrix M = InMatrix;
+    FTransform Result;
+    // 스케일 추출
+    Result.Scale3D = M.ExtractScaling();
+
+    // 음수 스케일링 처리
+    if (InMatrix.Determinant() < 0.f)
+    {
+        // 음수 행렬식은 음수 스케일이 있다는 의미입니다.
+        // X축을 따라 음수 스케일이 있다고 가정하고 변환을 수정합니다.
+        // 어떤 축을 선택하든 '외관'은 동일합니다.
+        Result.Scale3D.X = -Result.Scale3D.X;
+
+        // X축 방향 반전
+        M.SetAxis(0, -M.GetScaledAxis(EAxis::X));
+    }
+
+    // 스케일이 제거된 행렬에서 회전값 추출
+    Result.Rotation = FQuat(M);
+    Result.Rotation.Normalize();
+
+    // 이동값 추출
+    Result.Translation = InMatrix.GetOrigin();
+    return Result;
+}
 
 FTransform FTransform::GetRelativeTransform(const FTransform& Other) const
 {

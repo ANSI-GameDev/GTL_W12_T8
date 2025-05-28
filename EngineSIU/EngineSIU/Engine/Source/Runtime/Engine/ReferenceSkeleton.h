@@ -123,8 +123,7 @@ public:
     {
         return GetParentIndexInternal(BoneIndex, RawRefBoneInfo);
     }
-
-    FTransform GetRefWorldTransform(int32 BoneIndex) const
+    FTransform GetRefWorldTransform (int32 BoneIndex) const
     {
         FTransform Result = RawRefBonePose[BoneIndex];
         int32 ParentIdx = GetParentIndex(BoneIndex);

@@ -47,7 +47,7 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
     PhysicsViewerPanel* PhysicsPanel = reinterpret_cast<PhysicsViewerPanel*>(UnrealEditor->GetPhysicsSubPanel("PhysicsViewerPanel").get());
     PhysicsPanel->SetViewportClient(ViewportClient);
     PhysicsPanel->SetSkeletalMeshComponent(SkeletalMeshComponent);
-
+    PhysicsPanel->SetPrimitiveDrawBatch(SubRenderer->PrimitiveDrawBatch);
     // 필요한 컴포넌트 로딩이나 초기화 등
     SubRenderer->SetEnabledPass("Skeletal",true);
     ViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
@@ -62,6 +62,7 @@ void UPhysicsSubEngine::Tick(float DeltaTime)
     UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
     TArray<UBodySetup*> BodySetups = PhysicsAsset->BodySetup;
     TArray<UPhysicsConstraintTemplate*> ConstraintTemplates = PhysicsAsset->ConstraintSetup;
+
 
     Render();
 }

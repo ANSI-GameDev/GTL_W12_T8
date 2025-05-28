@@ -96,33 +96,35 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         RigidBody->attachShape(*Shape);
         Shape->release();
     }
+
     for (const FKSphylElem& CapsuleGeom : InAggregateGeom.SphylElems)
     {
         // 1. Shape 정보
         PxReal Radius = CapsuleGeom.Radius;
         PxReal HalfLength = CapsuleGeom.Length * 0.5f;
 
-        //PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
-        PxVec3 CapsuleCenter = PxVec3(0,0,0);
+        // 2. 캡슐 회전/위치
+        PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
         PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
-        PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0));
-
-        //// 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
+        PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0)); // Z축→Y축 보정
+        AdjustedRotation = CapsuleRotation;
+        // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
         //PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
-        ////RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
-        ////RigidBody->setGlobalPose(PxTransform(InBodyWorldPosition.ToPxVec3(), CapsuleRotation));
+        //RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
+        //RigidBody->setGlobalPose(InBodyWorldTransform.ToPxTransform());
 
-        //// 4. Shape은 Actor 기준으로 위치 0으로 고정
+        // 4. Shape은 Actor 기준으로 위치 0으로 고정
         PxCapsuleGeometry Geometry(Radius, HalfLength);
         PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
+        //Shape->setLocalPose(PxTransform(CapsuleCenter,CapsuleRotation));
         Shape->setLocalPose(PxTransform(CapsuleCenter, AdjustedRotation));
-        Shape->setContactOffset(10.25f);  // 충돌 감지 시작 거리 0.25f
-        Shape->setRestOffset(0.05f);     // solver에서 penetration 허용 오차
+
+        Shape->setContactOffset(0.05f);  // 충돌 감지 시작 거리
+        Shape->setRestOffset(0.01f);     // solver에서 penetration 허용 오차
 
         RigidBody->attachShape(*Shape);
         Shape->release();
     }
-
 }
 
 UBodySetup* FBodyInstance::GetBodySetup() const

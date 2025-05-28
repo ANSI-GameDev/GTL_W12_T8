@@ -79,15 +79,27 @@ void FLineRenderPass::DrawLineBatch(const FLinePrimitiveBatchArgs& BatchArgs) co
     Graphics->DeviceContext->IASetVertexBuffers(0, 1, &BatchArgs.VertexBuffer, &Stride, &Offset);
     Graphics->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
+    const UINT SphereSegments = BatchArgs.SphereSegmentCount;
+    const UINT CapsuleSegments = BatchArgs.CapsuleSegmentCount;
+
+    const UINT SphereLinesPerSphere = (SphereSegments - 1) * SphereSegments * 2 + SphereSegments * 2;
+
+
+    const UINT CapsuleLinesPerCapsule = CapsuleSegments + (CapsuleSegments - 1) * CapsuleSegments * 2 + CapsuleSegments*2;
+
     constexpr UINT VertexCountPerInstance = 2;
-    const UINT InstanceCount = BatchArgs.GridParam.NumGridLines + 3 +
-        (BatchArgs.BoundingBoxCount * 12) +
-        (BatchArgs.ConeCount * (2 * BatchArgs.ConeSegmentCount)) +
-        (12 * BatchArgs.OBBCount);
+    const UINT InstanceCount =
+        BatchArgs.GridParam.NumGridLines + 3 +
+        BatchArgs.BoundingBoxCount * 12 +
+        BatchArgs.ConeCount * (2 * BatchArgs.ConeSegmentCount) +
+        BatchArgs.OBBCount * 12 +
+        BatchArgs.SphereCount * SphereLinesPerSphere +
+        BatchArgs.CapsuleCount * CapsuleLinesPerCapsule;
 
     Graphics->DeviceContext->DrawInstanced(VertexCountPerInstance, InstanceCount, 0, 0);
     Graphics->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
+
 
 void FLineRenderPass::UpdateObjectConstant(const FMatrix& WorldMatrix, const FVector4& UUIDColor, bool bIsSelected) const
 {

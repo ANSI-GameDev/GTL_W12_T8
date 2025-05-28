@@ -1,4 +1,5 @@
 #pragma once
+#include "Axis.h"
 #include "MathUtility.h"
 #include "Rotator.h"
 #include "Serialization/Archive.h"
@@ -164,6 +165,9 @@ public:
     //사용할거면 cpp에서 #include "Developer/PhysicsUtilities/PxConvertHelper.h"
     FQuat(const physx::PxQuat& InQuat);
     physx::PxQuat ToPxQuat() const;
+    physx::PxQuat ToPxQuat();
+    FVector GetUnitAxis(EAxis::Type Axis) const;
+
 };
 
 inline FArchive& operator<<(FArchive& Ar, FQuat& Q)

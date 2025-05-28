@@ -16,6 +16,7 @@
 #include "UserInterface/Console.h"
 #include <Math/Color.h>
 #include "LightDefine.h"
+#include "Math/Quat.h"
 
 #define GOURAUD "LIGHTING_MODEL_GOURAUD"
 #define LAMBERT "LIGHTING_MODEL_LAMBERT"
@@ -197,6 +198,7 @@ struct FSimpleVertex
 
 struct FOBB {
     FVector4 corners[8];
+    FVector4 Color;
 };
 
 struct FRect
@@ -392,13 +394,33 @@ struct FCone
     int ConeSegmentCount; // 원뿔 밑면 분할 수
     float pad[3];
 };
+struct FSphere
+{
+    FVector Center;         // 중심
+    float Radius;          // 반지름
+    FVector4 Color;
+    int SegmentCount;      // 세그먼트 수 (위도/경도)
+    float Padding[3];
+};
+
+struct FCapsule
+{
+    FVector Start;
+    float Radius;
+    FVector End;
+    float Height;
+    FVector4 Color;
+    int SegmentCount;
+    FVector Padding;
+};
 
 struct FPrimitiveCounts
 {
     int BoundingBoxCount;
-    int pad;
+    int SphereCount;
     int ConeCount;
-    int pad1;
+    int CapsuleCount;
+    int OBBCount;
 };
 
 #define MAX_LIGHTS 16
@@ -525,6 +547,10 @@ struct FLinePrimitiveBatchArgs
     int ConeCount;
     int ConeSegmentCount;
     int OBBCount;
+    int SphereCount;        
+    int SphereSegmentCount; 
+    int CapsuleCount;       
+    int CapsuleSegmentCount;
 };
 
 struct FViewportSize
