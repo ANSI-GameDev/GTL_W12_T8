@@ -535,20 +535,10 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
         FBodyInstance* Body1 = NameToBodyMap.FindRef(Bone1Name);
         FBodyInstance* Body2 = NameToBodyMap.FindRef(Bone2Name);
 
-        /* TODO : 현재는 Scale 적용 코드 생략*/
-        // auto ScalePosition = [](const FBodyInstance* InBody, const float InScale, FVector& OutPosition)
-
-
         if (Body1 && Body2)
         {
             FConstraintInstance* NewConstraint = new FConstraintInstance();
-            FMatrix CompWorldInvMatrix = FMatrix::Inverse(GetWorldMatrix());
-            FTransform Body1Transform = Body1->WorldTransform;
-            Body1Transform.Translation = CompWorldInvMatrix.TransformPosition(Body1Transform.Translation);
-            FTransform Body2Transform = Body2->WorldTransform;
-            Body2Transform.Translation = CompWorldInvMatrix.TransformPosition(Body2Transform.Translation);
-            
-            ConInst->InitConstraint(Body1, Body2, Body1Transform, Body2Transform, GetWorld()->GetPhysicsScene());
+            ConInst->InitConstraint(Body1, Body2, Scale, OwningComponent);
         }
     }
 }
