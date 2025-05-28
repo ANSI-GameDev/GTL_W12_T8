@@ -531,7 +531,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         }
 
         /* 컴포넌트의 Scale을 적용하여 충돌 형상 정의하기 위함 */
-        const FTransform BoneWorldTransform = RefSkeleton.GetRawRefBonePose()[BoneIndex];
+        const FTransform BoneWorldTransform = RefSkeleton.GetRefWorldTransform(BoneIndex);
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
         FBodyInstance* NewBody = new FBodyInstance();
