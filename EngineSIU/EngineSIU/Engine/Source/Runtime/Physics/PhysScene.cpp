@@ -137,9 +137,6 @@ void FPhysScene::InitPhysX()
         shape->setSimulationFilterData(simFilterData);
         shape->setQueryFilterData(PxFilterData(0, 0, 0, 0xffff0000));
     }
-
-    VehicleManager->CreateVehicle(gPhysics, gScene, PxTransform(PxVec3(0.0f, 0.0f, 50.0f), PxQuat(PxIdentity)));
-    VehicleManager->TargetVehicleIndex = 0;
 }
 
 void FPhysScene::Simulate(float DeltaTime)

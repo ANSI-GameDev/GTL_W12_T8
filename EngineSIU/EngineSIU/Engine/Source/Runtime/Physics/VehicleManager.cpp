@@ -113,7 +113,7 @@ void FVehicleManager::Shutdown()
     SurfaceTirePairs->release();
 }
 
-void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const PxTransform& StartTransform)
+PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
 {
     /** Create Simulation Data */
     PxVehicleWheelsSimData* wheelsSimData = PxVehicleWheelsSimData::allocate(4);
@@ -296,10 +296,10 @@ void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const Px
     /** Create a Car */
     PxVehicleDrive4W* car = PxVehicleDrive4W::allocate(4);
     car->setup(Physics, vehicleActor, *wheelsSimData, driveSimData, 0);
-    {
-        PxSceneWriteLock scopedLock(*Scene);
-        Scene->addActor(*vehicleActor);
-    }
+    // {
+    //     PxSceneWriteLock scopedLock(*Scene);
+    //     Scene->addActor(*vehicleActor);
+    // }
 
     car->mWheelsSimData.setWheelShapeMapping(0, 0);
     car->mWheelsSimData.setWheelShapeMapping(1, 1);
@@ -311,10 +311,10 @@ void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const Px
     car->mWheelsSimData.setSceneQueryFilterData(3, vehicleQueryFilterData);
     car->setToRestState();
     car->mDriveDynData.forceGearChange(PxVehicleGearsData::eFIRST);
-    {
-        PxSceneWriteLock scopedLock(*Scene);
-        vehicleActor->setGlobalPose(StartTransform);
-    }
+    // {
+    //     PxSceneWriteLock scopedLock(*Scene);
+    //     vehicleActor->setGlobalPose(StartTransform);
+    // }
 
     Vehicles.Add(car);
     PxVehicleWheelQueryResult queryResult;
@@ -330,6 +330,8 @@ void FVehicleManager::CreateVehicle(PxPhysics* Physics, PxScene* Scene, const Px
     
     /** Release Resource */
     wheelsSimData->free();
+
+    return car;
 }
 
 void FVehicleManager::Update(const float deltaTime, PxScene* Scene)
@@ -502,8 +504,8 @@ void FVehicleManager::UpdateDigitalInput()
 {
     if (!(GetAsyncKeyState(VK_RBUTTON) & 0x8000))
     {
-        Inputs.bSteerLeftKey = !(!(GetAsyncKeyState('D') & 0x8000));
-        Inputs.bSteerRightKey = !(!(GetAsyncKeyState('A') & 0x8000));
+        Inputs.bSteerLeftKey = !(!(GetAsyncKeyState('A') & 0x8000));
+        Inputs.bSteerRightKey = !(!(GetAsyncKeyState('D') & 0x8000));
         Inputs.bAccelKey = !(!(GetAsyncKeyState('W') & 0x8000));
         Inputs.bBrakeKey = !(!(GetAsyncKeyState('S') & 0x8000));
         Inputs.bHandBrakeKey = !(!(GetAsyncKeyState('X') & 0x8000));

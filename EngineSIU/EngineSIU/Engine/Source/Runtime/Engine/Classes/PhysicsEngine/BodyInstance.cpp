@@ -3,6 +3,7 @@
 #include <PxPhysics.h>
 #include <PxRigidDynamic.h>
 #include <PxScene.h>
+#include <PxSceneLock.h>
 #include <extensions/PxRigidBodyExt.h>
 
 #include "AggregateGeom.h"
@@ -50,6 +51,27 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     
     PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
     InScene->gScene->addActor(*RigidBody);
+    UpdatePhysics();
+}
+
+void FBodyInstance::InitBody(PxRigidDynamic* InBody, const FVector& InBodyWorldPosition, FPhysScene* InScene)
+{
+    InScene->BodyInstances.Add(this);
+    if (RigidBody)
+    {
+        if (RigidBody->getScene())
+        {
+            RigidBody->getScene()->removeActor(*RigidBody);
+        }
+        RigidBody->release();
+    }
+    RigidBody = InBody;
+    
+    {
+        PxSceneWriteLock scopedLock(*InScene->gScene);
+        InScene->gScene->addActor(*RigidBody);
+        RigidBody->setGlobalPose(PxTransform(InBodyWorldPosition.ToPxVec3()));
+    }
     UpdatePhysics();
 }
 

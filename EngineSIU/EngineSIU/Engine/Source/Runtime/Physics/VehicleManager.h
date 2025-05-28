@@ -77,7 +77,7 @@ public:
 public:
     void InitPhysXVehicle(physx::PxPhysics* Physics, physx::PxCooking* Cooking);
     void Shutdown();
-    void CreateVehicle(physx::PxPhysics* Physics, physx::PxScene* Scene, const physx::PxTransform& StartTransform);
+    physx::PxVehicleDrive4W* CreateVehicle(physx::PxPhysics* Physics);
     void Update(float deltaTime, physx::PxScene* Scene);
     void SuspensionRaycasts(physx::PxScene* scene);
 

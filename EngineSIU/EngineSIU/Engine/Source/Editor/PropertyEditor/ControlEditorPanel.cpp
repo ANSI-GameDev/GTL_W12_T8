@@ -58,6 +58,7 @@
 #include <Particles/ParticleModules/ParticleModuleSize.h>
 #include <Particles/ParticleModules/ParticleModuleVelocity.h>
 
+#include "Actors/Vehicle.h"
 #include "SubWindow/PhysicsSubEngine.h"
 
 ControlEditorPanel::ControlEditorPanel()
@@ -379,6 +380,7 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
             {.Label = "SkeletalMeshActor", .OBJ = OBJ_SKELETALMESH},
             {.Label = "SequencerPlayer", .OBJ = OBJ_SEQUENCERPLAYER},
             {.Label = "ParticleSystem", .OBJ = OBJ_PARTICLESYSTEM},
+            {.Label = "Vehicle", .OBJ = OBJ_VEHICLE},
 
         };
 
@@ -554,6 +556,14 @@ void ControlEditorPanel::CreateModifyButton(const ImVec2 ButtonSize, ImFont* Ico
 
                     break;
                 }
+                case OBJ_VEHICLE:
+                {
+                    AVehicle* Vehicle = World->SpawnActor<AVehicle>();
+                    Vehicle->SetActorLabel(TEXT("OBJ_VEHICLE"));
+                    Vehicle->InitVehicle();
+                    SpawnedActor = Vehicle;
+                }
+                break;
                 case OBJ_CAMERA:
                 case OBJ_PLAYER:
                 case OBJ_END:

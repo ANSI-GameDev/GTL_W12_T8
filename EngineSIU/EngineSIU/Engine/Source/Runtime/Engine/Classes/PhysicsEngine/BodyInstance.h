@@ -1,4 +1,6 @@
 #pragma once
+#include <PxRigidBody.h>
+
 #include "Engine/EngineTypes.h"
 #include "AggregateGeom.h"
 #include "PhysicsCore/BodyInstanceCore.h"
@@ -76,6 +78,7 @@ public:
     
     //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
     void InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene);
+    void InitBody(physx::PxRigidDynamic* InBody, const FVector& InBodyWorldPosition, FPhysScene* InScene);
     void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
 
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
