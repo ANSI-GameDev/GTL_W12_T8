@@ -38,6 +38,8 @@ public:
     virtual void TickComponent(float DeltaTime) override;
     virtual void TickPose(float DeltaTime) override;
     virtual void PhysicsUpdate(float DeltaTime) override;
+    virtual void DestroyComponent(bool bPromoteChildren) override;
+    
     void TickAnimation(float DeltaTime);
     void TickAnimInstances(float DeltaTime);
 

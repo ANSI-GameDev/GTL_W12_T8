@@ -115,6 +115,21 @@ void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
     }
 }
 
+void USkeletalMeshComponent::DestroyComponent(bool bPromoteChildren)
+{
+    USceneComponent::DestroyComponent(bPromoteChildren);
+
+    if (Bodies.Num() == 0)
+    {
+        return;
+    }
+
+    for (FBodyInstance* Body : Bodies)
+    {
+        Body->DestroyInPhysicsScene();
+    }
+}
+
 void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 {
     if (GetSkeletalMeshAsset())
