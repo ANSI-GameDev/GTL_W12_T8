@@ -7,6 +7,7 @@
 
 #include "World/World.h"
 #include "Actors/Player.h"
+#include "Actors/Vehicle.h"
 #include "Animation/AnimationAsset.h"
 #include "Animation/AnimSequence.h"
 #include "Animation/AnimSingleNodeInstance.h"
@@ -120,6 +121,11 @@ void PropertyEditorPanel::Render()
                 ImGui::EndCombo();
             }
         }
+    }
+
+    if (AVehicle* Vehicle = Cast<AVehicle>(SelectedActor))
+    {
+        RenderForVehicleActor(Vehicle);
     }
     
     if (UAmbientLightComponent* LightComponent = GetTargetComponent<UAmbientLightComponent>(SelectedActor, SelectedComponent))
@@ -1511,6 +1517,57 @@ void PropertyEditorPanel::RenderCreateMaterialView()
     }
 
     ImGui::End();
+}
+
+void PropertyEditorPanel::RenderForVehicleActor(AVehicle* VehicleActor) const
+{
+    
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+    if (ImGui::TreeNodeEx("Vehicle Gear", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Text("Current Gear: %d", VehicleActor->GetCurrentGearNum() - 1);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Vehicle Chassis", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        FImGuiWidget::DrawVec3Control("Box Min", VehicleActor->ModifiedChassisAABBMin);
+        FImGuiWidget::DrawVec3Control("Box Max", VehicleActor->ModifiedChassisAABBMin);
+        FImGuiWidget::DrawDragFloat("Box Mass", VehicleActor->ChassisMass);
+        if (ImGui::Button("Apply"))
+        {
+            VehicleActor->ApplyModifiedChassis();
+        }
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNodeEx("Vehicle Wheel", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) // 트리 노드 생성
+    {
+        const char* WheelName[4] = {
+            "FrontLeft",
+            "FrontRight",
+            "RearLeft",
+            "RearRight"
+        };
+        ImGui::Combo("Wheel", &VehicleActor->SelectedWheelIndex, WheelName, 4);
+        const int index = VehicleActor->SelectedWheelIndex;
+        {
+            FVector pos = VehicleActor->GetWheelPosition(index);
+            FImGuiWidget::DrawVec3Control("Centre Offset", pos);
+            VehicleActor->SetWheelPosition(index, pos);
+        }
+        {
+            float width = VehicleActor->GetWheelWidth(index);
+            FImGuiWidget::DrawDragFloat("Width", width, 0, 100);
+            VehicleActor->SetWheelWidth(index, width);
+        }
+        {
+            float radius = VehicleActor->GetWheelRadius(index);
+            FImGuiWidget::DrawDragFloat("Radius", radius, 0, 100);
+            VehicleActor->SetWheelRadius(index, radius);
+        }
+        ImGui::TreePop();
+    }
+
+    ImGui::PopStyleColor();
 }
 
 void PropertyEditorPanel::OnResize(HWND hWnd)

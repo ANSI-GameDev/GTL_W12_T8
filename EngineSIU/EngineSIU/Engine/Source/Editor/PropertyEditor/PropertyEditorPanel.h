@@ -9,6 +9,7 @@
 #include "Math/Rotator.h"
 #include "UObject/Casts.h"
 
+class AVehicle;
 class USkeletalMeshComponent;
 class USpringArmComponent;
 class UShapeComponent;
@@ -84,6 +85,8 @@ private:
 
     void RenderForShapeComponent(UShapeComponent* ShapeComponent) const;
     void RenderForSpringArmComponent(USpringArmComponent* SpringArmComponent) const;
+
+    void RenderForVehicleActor(AVehicle* VehicleActor) const;
     
     template<typename T>
         requires std::derived_from<T, UActorComponent>

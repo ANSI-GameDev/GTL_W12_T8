@@ -81,6 +81,8 @@ public:
     void Update(float deltaTime, physx::PxScene* Scene);
     void SuspensionRaycasts(physx::PxScene* scene);
 
+public:
+    const physx::PxMaterial* GetVehicleMaterial();
 private:
     // Cached simulation data of focus vehicle
     physx::PxVehicleWheelsSimData* VehicleSimData;

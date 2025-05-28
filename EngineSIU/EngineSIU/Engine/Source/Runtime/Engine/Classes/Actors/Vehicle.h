@@ -14,8 +14,44 @@ public:
     UPROPERTY_WITH_FLAGS(
         EditAnywhere,
         bool, Targeted
-    );
+    )
 
+    UPROPERTY_WITH_FLAGS(
+        EditAnywhere,
+        float, EngineTorqueMax
+    )
+
+    UPROPERTY_WITH_FLAGS(
+        EditAnywhere,
+        float, EngineRotSpeedMax
+    )
+
+    UPROPERTY_WITH_FLAGS(
+        EditAnywhere,
+        float, GearSwitchTime
+    )
+    
+    /** UI */
+    int SelectedWheelIndex = 0;
+    FVector ModifiedChassisAABBMin;
+    FVector ModifiedChassisAABBMax;
+    float ChassisMass;
+    void ApplyModifiedChassis();
+
+    // Wheel
+    FVector GetWheelPosition(int index);
+    float GetWheelRadius(int index);
+    float GetWheelWidth(int index);
+    void SetWheelPosition(int index, FVector position);
+    void SetWheelRadius(int index, float radius);
+    void SetWheelWidth(int index, float width);
+
+    // Gear
+    uint32 GetCurrentGearNum();
+    
 private:
+    physx::PxVehicleWheelsSimData& GetWheelSimData();
     physx::PxVehicleDrive4W* Vehicle;
+
+    void UpdateProperties();
 };

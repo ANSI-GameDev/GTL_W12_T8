@@ -363,6 +363,11 @@ void FVehicleManager::SuspensionRaycasts(PxScene* scene)
     PxVehicleSuspensionRaycasts(RaycastBatchQuery, Vehicles.Num(), Vehicles.GetData(), WheelCapacity, RaycastQueryResults); 
 }
 
+const physx::PxMaterial* FVehicleManager::GetVehicleMaterial()
+{
+    return VehicleMaterial;
+}
+
 VehicleHelper::AABB FVehicleManager::ComputeMeshAABB(const PxConvexMesh* mesh)
 {
     const PxU32 numChassisVerts = mesh->getNbVertices();
