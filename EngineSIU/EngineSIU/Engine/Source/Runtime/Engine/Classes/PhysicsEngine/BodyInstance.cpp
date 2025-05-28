@@ -21,7 +21,7 @@ void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
 }
 
-void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, FPhysScene* InScene)
+void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorldPosition, const FQuat& InBodyWorldRotation, FPhysScene* InScene)
 {
     if (!InBodySetup || !InScene)
     {
@@ -49,12 +49,12 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     }
     
     // Body의 위치 = Body가 속한 Bone의 World Position
-    PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3());
+    PxTransform pose = PxTransform(InBodyWorldPosition.ToPxVec3(), InBodyWorldRotation.ToPxQuat());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
-    AttachShapes(InBodySetup->AggGeom, InScene, InBodyWorldPosition);
+    AttachShapes(InBodySetup->AggGeom, InScene, pose);
     RigidBody->setSolverIterationCounts(8, 2);
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
-    RigidBody->setMaxDepenetrationVelocity(5.f);
+    RigidBody->setMaxDepenetrationVelocity(2.f);
 
     RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
     RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
@@ -75,7 +75,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     UpdatePhysics();
 }
 
-void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene , const FVector& InBodyWorldPosition)
+void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, const FPhysScene* InScene , const PxTransform& InBodyPxTransform)
 {
     for (FKBoxElem BoxGeom : InAggregateGeom.BoxElems)
     {
@@ -97,40 +97,33 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         RigidBody->attachShape(*Shape);
         Shape->release();
     }
-
     for (const FKSphylElem& CapsuleGeom : InAggregateGeom.SphylElems)
     {
         // 1. Shape 정보
         PxReal Radius = CapsuleGeom.Radius;
         PxReal HalfLength = CapsuleGeom.Length * 0.5f;
 
-        // 2. 캡슐 회전/위치
-        PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
+        //PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
+        PxVec3 CapsuleCenter = PxVec3(0,0,0);
         PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
+        PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0));
 
-        // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
-        PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
-        //RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
-        RigidBody->setGlobalPose(PxTransform(InBodyWorldPosition.ToPxVec3(), CapsuleRotation));
+        //// 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
+        //PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
+        ////RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
+        ////RigidBody->setGlobalPose(PxTransform(InBodyWorldPosition.ToPxVec3(), CapsuleRotation));
 
-        // 4. Shape은 Actor 기준으로 위치 0으로 고정
+        //// 4. Shape은 Actor 기준으로 위치 0으로 고정
         PxCapsuleGeometry Geometry(Radius, HalfLength);
         PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
-        Shape->setLocalPose(PxTransform(/*CapsuleCenter,*/ PxIdentity));
+        Shape->setLocalPose(PxTransform(CapsuleCenter, AdjustedRotation));
         Shape->setContactOffset(10.25f);  // 충돌 감지 시작 거리 0.25f
         Shape->setRestOffset(0.05f);     // solver에서 penetration 허용 오차
-
-        PxFilterData filterData;
-        filterData.word0 = BoneIndex;                  // 현재 본 index
-        filterData.word1 = ParentBoneIndex;            // 부모 본 index
-        filterData.word2 = 0;                          // 예비
-        filterData.word3 = 0;                          // 예비
-        Shape->setSimulationFilterData(filterData);
-
 
         RigidBody->attachShape(*Shape);
         Shape->release();
     }
+
 }
 
 UBodySetup* FBodyInstance::GetBodySetup() const
