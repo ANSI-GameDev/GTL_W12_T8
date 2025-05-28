@@ -50,12 +50,13 @@ void UWorld::InitializeNewWorld()
     NewPhysScene->InitPhysX();
     SetPhysicsScene(NewPhysScene);
 
-    ACubeActor* Platform = SpawnActor<ACubeActor>();
-    Platform->SetActorScale(FVector(40, 40, 0.01f));
-    Platform->InitBodyInstance();
-    Platform->SetActorLabel(TEXT("OBJ_PLATFORM"));
-    Platform->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도    
-    Platform->SetKinematic(true);
+    //ACubeActor* Platform = SpawnActor<ACubeActor>();
+    //Platform->SetActorScale(FVector(100, 100, 40.f));
+    //Platform->SetActorLocation(FVector(0, 0, -60.f));
+    //Platform->InitBodyInstance();
+    //Platform->SetActorLabel(TEXT("OBJ_PLATFORM"));
+    //Platform->SetActorTickInEditor(true); // TODO: 콜리전 테스트 용도    
+    //Platform->SetKinematic(true);
     
     ADirectionalLight* LightActor = SpawnActor<ADirectionalLight>();
     LightActor->SetActorRotation(FRotator(50, 50, 0));

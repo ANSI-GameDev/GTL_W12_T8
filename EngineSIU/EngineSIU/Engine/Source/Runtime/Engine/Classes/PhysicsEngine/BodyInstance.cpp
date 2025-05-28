@@ -79,7 +79,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
     AttachShapes(InBodySetup->AggGeom, InScene);
     RigidBody->setSolverIterationCounts(8, 2);
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
-    RigidBody->setMaxDepenetrationVelocity(2.f);
+    RigidBody->setMaxDepenetrationVelocity(5.f);
 
     RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
     RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
@@ -92,7 +92,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
     RigidBody->setAngularVelocity(PxVec3(0, 0, 0));
 
     float Volume = InBodySetup->AggGeom.TotalVolume;
-    float Mass = FMath::Max(Volume * 10.f, 0.01f);
+    float Mass = FMath::Max(Volume * 10.f, 0.01f);  
     PxRigidBodyExt::updateMassAndInertia(*RigidBody, Mass);
     //PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
 
@@ -122,35 +122,67 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         RigidBody->attachShape(*Shape);
         Shape->release();
     }
+	// 코드 상단 혹은 전역에 collision 그룹 정의
+	constexpr PxU32 CAPSULE_COLLISION_GROUP = (1 << 1);
+	constexpr PxU32 ALL_COLLISION_GROUPS = 0xFFFFFFFF;
 
-    for (const FKSphylElem& CapsuleGeom : InAggregateGeom.SphylElems)
-    {
-        // 1. Shape 정보
-        PxReal Radius = CapsuleGeom.Radius;
-        PxReal HalfLength = CapsuleGeom.Length * 0.5f;
+	// …in your loop over FKSphylElem…
+	for (const FKSphylElem& CapsuleGeom : InAggregateGeom.SphylElems)
+	{
+		// 1) Capsule 생성
+		PxReal Radius = CapsuleGeom.Radius;
+		PxReal HalfLength = CapsuleGeom.Length * 0.5f;
+		PxCapsuleGeometry Geometry(Radius, HalfLength);
 
-        // 2. 캡슐 회전/위치
-        PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
-        PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
-        PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0)); // Z축→Y축 보정
-        AdjustedRotation = CapsuleRotation;
-        // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
-        //PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
-        //RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
-        //RigidBody->setGlobalPose(InBodyWorldTransform.ToPxTransform());
+		PxVec3  Center = CapsuleGeom.Center.ToPxVec3();
+		PxQuat  LocalRotation = CapsuleGeom.RQuat.ToPxQuat();
+		PxTransform ShapePose(Center, LocalRotation);
 
-        // 4. Shape은 Actor 기준으로 위치 0으로 고정
-        PxCapsuleGeometry Geometry(Radius, HalfLength);
-        PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
-        //Shape->setLocalPose(PxTransform(CapsuleCenter,CapsuleRotation));
-        Shape->setLocalPose(PxTransform(CapsuleCenter, AdjustedRotation));
+		// 2) Shape 생성
+		PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
+		Shape->setLocalPose(ShapePose);
+		Shape->setContactOffset(0.8f);
+		Shape->setRestOffset(0.05f);
 
-        Shape->setContactOffset(0.05f);  // 충돌 감지 시작 거리
-        Shape->setRestOffset(0.01f);     // solver에서 penetration 허용 오차
+		// 3) 필터 설정: 같은 그룹(CAPSULE_COLLISION_GROUP)에 속한 것들끼리는 충돌하지 않도록
+		PxFilterData fd;
+		fd.word0 = CAPSULE_COLLISION_GROUP;             // this shape's own group
+		fd.word1 = ALL_COLLISION_GROUPS ^ CAPSULE_COLLISION_GROUP;
+		//      → collide with every group except CAPSULE_COLLISION_GROUP
+		fd.word2 = 0;
+		fd.word3 = 0;
+		Shape->setSimulationFilterData(fd);
+		Shape->setQueryFilterData(fd);  // 레이캐스트/오버랩에서도 동일 그룹 무시
 
-        RigidBody->attachShape(*Shape);
-        Shape->release();
-    }
+		// 4) Actor에 부착
+		RigidBody->attachShape(*Shape);
+		Shape->release();
+	}
+    //for (const FKSphylElem& CapsuleGeom : InAggregateGeom.SphylElems)
+    //{
+    //    // 1. Shape 정보
+    //    PxReal Radius = CapsuleGeom.Radius;
+    //    PxReal HalfLength = CapsuleGeom.Length * 0.5f;
+
+    //    // 2. 캡슐 회전/위치
+    //    PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
+    //    PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
+    //    PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0)); // Z축→Y축 보정
+    //    AdjustedRotation = CapsuleRotation;
+
+    //    // 4. Shape은 Actor 기준으로 위치 0으로 고정
+    //    PxCapsuleGeometry Geometry(Radius, HalfLength);
+    //    PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
+    //    //Shape->setLocalPose(PxTransform(CapsuleCenter,CapsuleRotation));
+    //    Shape->setLocalPose(PxTransform(CapsuleCenter, AdjustedRotation));
+
+    //    Shape->setContactOffset(0.05f);  // 충돌 감지 시작 거리
+    //    Shape->setRestOffset(0.01f);     // solver에서 penetration 허용 오차
+
+    //    RigidBody->attachShape(*Shape);
+    //    Shape->release();
+    //    // filter
+    //}
 }
 
 UBodySetup* FBodyInstance::GetBodySetup() const

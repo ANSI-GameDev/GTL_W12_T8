@@ -40,7 +40,7 @@ void FPhysScene::InitPhysX()
     gMaterial = gPhysics->createMaterial(0.5f, 0.5f, 0.6f);
     
     PxSceneDesc SceneDesc(gPhysics->getTolerancesScale());
-    SceneDesc.gravity = PxVec3(0.0f, 0.0f, -9.81f);
+    SceneDesc.gravity = PxVec3(0.0f, 0.0f, -981.f);
     SceneDesc.cpuDispatcher = gDispatcher;
     SceneDesc.filterShader = PxDefaultSimulationFilterShader;
     SceneDesc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
@@ -113,6 +113,21 @@ void FPhysScene::InitPhysX()
     //attachShape후에 호출 (걍 마지막에 호출
     // PxRigidBodyExt::updateMassAndInertia(*rigidBody, 10.0f);
     // obj.UpdateFromPhysics();
+
+
+    // 2. 동일 위치에 두꺼운 박스 고정체 추가
+    PxVec3 BoxPosition(0.0f, 0.0f, -120.0f); // 높이 20짜리 박스가 절반 위로 튀어나오게 설정
+    PxTransform BoxTransform(BoxPosition);
+
+    PxRigidStatic* rigidStaticBox = gPhysics->createRigidStatic(BoxTransform);
+
+    PxVec3 HalfExtents(500.0f, 500.0f, 100.0f); // 두께가 20인 박스 (Z축 기준)
+    PxBoxGeometry ThickBox(HalfExtents);
+
+    PxShape* BoxShape = gPhysics->createShape(ThickBox, *gMaterial);
+    rigidStaticBox->attachShape(*BoxShape);
+
+    gScene->addActor(*rigidStaticBox);
 
     
 }

@@ -97,7 +97,7 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     const PxQuat AlignToX = PxShortestRotation(PxVec3(1, 0, 0), JointDir);
 
     // 3. Anchor 위치는 자식의 현재 위치
-    const PxVec3 AnchorPos = ParentPos;
+    const PxVec3 AnchorPos = ChildPos;
     const PxTransform JointWorldPose(AnchorPos, AlignToX);
 
     // 4. 각각 로컬 프레임 계산
@@ -123,9 +123,9 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, !ProfileInstance.bDisableCollision);
 
     // 5. DOF 제한 설정
-    //Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
-    //Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
-    //Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
+    /*Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
+    Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
+    Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);*/
 
     //Joint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE);
     //Joint->setMotion(PxD6Axis::eY, PxD6Motion::eFREE);
@@ -186,9 +186,9 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
         Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
         Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLOCKED);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
 
         //Joint->setDrivePosition(PxTransform(PxIdentity));
          //Joint->setDriveVelocity(PxVec3(0.f), PxVec3(0.f));
