@@ -112,9 +112,9 @@ public:
     void InitArticulated(FPhysScene* PhysScene);
 
     /* BodyInstance 생성 함수 호출 및 ConstraintInstance 생성 */
-    void InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FBodyInstance*>& OutBodies, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) const;
+    void InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) ;
     /* BodyInstance 생성 함수 */ 
-    void InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, TArray<FBodyInstance*>& OutBodies, TMap<FName, FBodyInstance*>* OutNameToBodyMap, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/)const;
+    void InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/);
 
     //private로 옮겨야 함
     FPoseContext BonePoseContext;
@@ -143,7 +143,7 @@ public:
     } RootBodyData;
 
     TArray<FTransform> RefBonePoseTransforms;
-    TArray<struct FBodyInstance*> Bodies;
+    TMap<FName , struct FBodyInstance*> Bodies;
     TArray<struct FConstraintInstance*> Constraints;
 
     TSubclassOf<UAnimInstance> AnimClass;    

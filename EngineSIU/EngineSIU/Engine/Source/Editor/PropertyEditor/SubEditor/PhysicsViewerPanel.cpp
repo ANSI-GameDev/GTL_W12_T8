@@ -816,8 +816,9 @@ void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
     const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
     const TArray<FTransform>& RefPose = Skeleton->GetReferencePose();
 
-    for (FBodyInstance* Instance : SkeletalMeshComponent->Bodies)
+    for (auto Body : SkeletalMeshComponent->Bodies)
     {
+        FBodyInstance* Instance = Body.Value;
         if (!Instance) continue;
 
         FName BoneName = Instance->BodySetup->BoneName;

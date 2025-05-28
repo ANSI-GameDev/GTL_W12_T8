@@ -91,8 +91,9 @@ void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
 
     const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
     
-    for (FBodyInstance* BodyInstance : Bodies)
+    for (auto Body : Bodies)
     {
+        FBodyInstance* BodyInstance = Body.Value;
         //아래꺼 변경하고 CPU 스키닝이나 GPU스키닝 변환 보고 처리해주기
         //LocalTransform주면 됨
         uint32 BoneIndex = BodyInstance->BodySetup->BoneIndex;
@@ -484,27 +485,18 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
     
 
     /* 아래 함수에서 모든 Bodies=BodyInst[] BodySetup으로부터 생성 및 Constraints=ConstraintInst[] 생성 */
-    InstantiatePhysicsAsset_Internal(*PhysicsAsset, Scale3D, Bodies, Constraints, PhysScene, this, RootBodyIndex);
-
-    for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
-    {
-        FBodyInstance* Body = Bodies[BodyIndex];
-        if (!Body) continue;
-
-        // PhysX에서 쓸 Body(Actor) 이름과 Object, ID 맵핑
-    }
+    InstantiatePhysicsAsset_Internal(*PhysicsAsset, Scale3D, Constraints, PhysScene, this, RootBodyIndex);
 
     // SetRootBodyIndex(RootBodyIndex);
 }
 
-void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FBodyInstance*>& OutBodies, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) const
+void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) 
 {
     const float ActualScale = Scale3D.GetAbsMin(); // Scale3D 반영한 BuildScale용 
     const float Scale = ActualScale == 0.f ? KINDA_SMALL_NUMBER : ActualScale;
 
-    TMap<FName, FBodyInstance*> NameToBodyMap;
 
-    InstantiatePhysicsAssetBodies_Internal(PhysAsset, OutBodies, &NameToBodyMap, PhysScene, OwningComponent, UseRootBodyIndex);
+    InstantiatePhysicsAssetBodies_Internal(PhysAsset, PhysScene, OwningComponent, UseRootBodyIndex);
 
     int32 NumOutConstraints = PhysAsset.ConstraintSetup.Num();
     OutConstraints.AddZeroed(NumOutConstraints);
@@ -532,8 +524,8 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
         }
         FName Bone1Name = ConstraintSetup->DefaultInstance.ConstraintBone1;
         FName Bone2Name = ConstraintSetup->DefaultInstance.ConstraintBone2;
-        FBodyInstance* Body1 = NameToBodyMap.FindRef(Bone1Name);
-        FBodyInstance* Body2 = NameToBodyMap.FindRef(Bone2Name);
+        FBodyInstance* Body1 = Bodies.FindRef(Bone1Name);
+        FBodyInstance* Body2 = Bodies.FindRef(Bone2Name);
 
         if (Body1 && Body2)
         {
@@ -544,7 +536,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
 }
 
 /* 각 BodySetup에 대해 BodyInstance 생성 */
-void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, TArray<FBodyInstance*>& OutBodies, TMap<FName, FBodyInstance*>* OutNameToBodyMap, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/)const
+void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/)
 {
     const FVector ComponentScale3D = GetComponentTransform().GetScale3D();
 
@@ -576,21 +568,8 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         //str += FString::Printf(TEXT("%s,%s\n"), *BodySetup->BoneName.ToString(), *BoneWorldTransform.ToString());
         FBodyInstance* NewBody = new FBodyInstance();
         NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
-
-        OutBodies.Add(NewBody);
-
-        if (OutNameToBodyMap)
-        {
-            OutNameToBodyMap->Add(BodySetup->BoneName, NewBody);
-        }
+        Bodies[BodySetup->BoneName] = NewBody;
     }
-    //BoneIndex기준으로 소팅
-    std::sort(OutBodies.begin(), OutBodies.end(), [](const FBodyInstance* A, const FBodyInstance* B)
-    {
-        if (!A || !A->BodySetup) return false;
-        if (!B || !B->BodySetup) return true;
-        return A->BodySetup->BoneIndex < B->BodySetup->BoneIndex;
-    });
 }
 
 
