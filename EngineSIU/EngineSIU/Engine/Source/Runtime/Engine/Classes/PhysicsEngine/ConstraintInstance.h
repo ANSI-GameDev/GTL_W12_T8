@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BodyInstance.h"
 #include "ConstraintTypes.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -56,6 +56,16 @@ struct FConstraintInstanceBase
     FPhysScene* PhysScene;
 };
 
+namespace physx
+{
+    class PxRigidActor;
+    class PxScene;
+    class PxD6Joint;
+    class PxRigidDynamic;
+    class PxVec3;
+    class PxMat44;
+    class PxTransform;
+}
 /* 실제 시뮬레이션에 사용되는 물리 엔진 레벨의 Constraint 데이터
  * 런타임에 UPhysicsConstraintTemplate의 DefaultInstance로부터 복사되어 생성
  */
@@ -74,6 +84,10 @@ public:
     float GetLinearLimit() const;
     void UpdateLinearLimit();
     void UpdateAngularLimit();
+
+    /* 테스트 : 말단 관절 확인용*/
+    static bool IsEndEffectorJoint(const FName& BoneName);
+
     void InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, USkeletalMeshComponent* OwningComponent);
     FTransform CalculateDefaultChildTransform() const;
     FTransform CalculateDefaultParentTransform(const UPhysicsAsset* PhysicsAsset) const;
@@ -84,6 +98,7 @@ public:
     FName ConstraintBone1;
     FName ConstraintBone2;
 
+    physx::PxD6Joint* PxJoint = nullptr; // 위 Constraint에 해당하는 PhysX 엔진의 Joint 객체
     
 private:
     float LastKnownScale; // 초기화 당시 컴포넌트의 Scale

@@ -430,3 +430,17 @@ bool FQuat::IsIdentity() const
 {
     return X == 0.0f && Y == 0.0f && Z == 0.0f && W == 1.0f;
 }
+FVector FQuat::GetUnitAxis(EAxis::Type Axis) const
+{
+    switch (Axis)
+    {
+    case EAxis::X:
+        return RotateVector(FVector::XAxisVector);
+    case EAxis::Y:
+        return RotateVector(FVector::YAxisVector);
+    case EAxis::Z:
+        return RotateVector(FVector::ZAxisVector);
+    default:
+        return FVector::ZeroVector;
+    }
+}

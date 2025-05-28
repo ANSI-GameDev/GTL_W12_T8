@@ -31,6 +31,11 @@ void UPhysicsAsset::UpdateBoundsBodiesArray()
     }
 }
 
+void UPhysicsAsset::SetPreviewSkeletalMesh(USkeletalMesh* InPreviewMesh)
+{
+    PreviewSkeletalMesh = InPreviewMesh;    
+}
+
 
 const TArray<FName>& UPhysicsAsset::GetConstraintProfileNames() const
 {

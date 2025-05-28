@@ -14,7 +14,7 @@ inline PxVec3 FVector::ToPxVec3() const
 }
 
 inline FTransform::FTransform(const physx::PxTransform& InTransform) : Translation(InTransform.p), Rotation(InTransform.q), Scale3D(FVector::OneVector) {}
-inline PxTransform FTransform::ToPxTransform()
+inline PxTransform FTransform::ToPxTransform() const
 {
     return {this->Translation.ToPxVec3(), this->Rotation.ToPxQuat()};
 }
@@ -30,20 +30,7 @@ inline PxQuat FQuat::ToPxQuat()
     PxQuat quat = { this->X, this->Y, this->Z, this->W };
     return quat;
 }
-FVector FQuat::GetUnitAxis(EAxis::Type Axis) const
-{
-    switch (Axis)
-    {
-    case EAxis::X:
-        return RotateVector(FVector::XAxisVector);
-    case EAxis::Y:
-        return RotateVector(FVector::YAxisVector);
-    case EAxis::Z:
-        return RotateVector(FVector::ZAxisVector);
-    default:
-        return FVector::ZeroVector;
-    }
-}
+
 
 
 

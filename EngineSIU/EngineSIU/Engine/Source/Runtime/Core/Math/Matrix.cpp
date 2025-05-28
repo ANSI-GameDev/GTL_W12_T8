@@ -3,6 +3,7 @@
 #include <cmath>
 #include "MathSSE.h"
 #include "MathUtility.h"
+#include "Plane.h"
 #include "Quat.h"
 #include "Rotator.h"
 #include "Vector.h"
@@ -590,4 +591,32 @@ FMatrix FMatrix::MakeLookAtLH(const FVector& Eye, const FVector& Target, const F
     Result[3][2] = Eye.Z;
 
     return Result;
+}
+
+namespace FRotationMatrix
+{
+    FQuat MakeFromXY(const FVector& XAxis, const FVector& YAxis)
+    {
+        FVector NewX = XAxis.GetSafeNormal();
+        FVector Norm = YAxis.GetSafeNormal();
+
+        // 두 벡터가 거의 평행한 경우: 보조 벡터로 Z 또는 X축 사용
+        if (FMath::IsNearlyEqual(FMath::Abs(FVector::DotProduct(NewX, Norm)), 1.f))
+        {
+            Norm = (FMath::Abs(NewX.Z) < (1.f - KINDA_SMALL_NUMBER)) ? FVector(0, 0, 1.f) : FVector(1, 0, 0);
+        }
+
+        FVector NewZ = FVector::CrossProduct(NewX, Norm).GetSafeNormal();
+        FVector NewY = FVector::CrossProduct(NewZ, NewX); // 직교 보정된 Y
+
+        // 행렬 직접 구성 (row-major 방식)
+        FMatrix RotationMatrix;
+        RotationMatrix.M[0][0] = NewX.X; RotationMatrix.M[0][1] = NewY.X; RotationMatrix.M[0][2] = NewZ.X; RotationMatrix.M[0][3] = 0.f;
+        RotationMatrix.M[1][0] = NewX.Y; RotationMatrix.M[1][1] = NewY.Y; RotationMatrix.M[1][2] = NewZ.Y; RotationMatrix.M[1][3] = 0.f;
+        RotationMatrix.M[2][0] = NewX.Z; RotationMatrix.M[2][1] = NewY.Z; RotationMatrix.M[2][2] = NewZ.Z; RotationMatrix.M[2][3] = 0.f;
+        RotationMatrix.M[3][0] = 0.f;    RotationMatrix.M[3][1] = 0.f;    RotationMatrix.M[3][2] = 0.f;    RotationMatrix.M[3][3] = 1.f;
+
+        return FQuat(RotationMatrix);
+    }
+
 }

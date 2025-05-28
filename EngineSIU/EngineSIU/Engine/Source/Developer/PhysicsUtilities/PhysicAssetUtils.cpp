@@ -52,7 +52,7 @@ namespace FPhysicsAssetUtils
                 const FName ParentName = RefSkeleton.GetBoneName(ParentIndex);
 
                 /* "pelvis_abdomen" : pelvis와 abdomen을 잇는 Joint 이름*/
-                const FName ConstraintName = FName(*FString::Printf(TEXT("%s_%s_Constraint"), *ChildName.ToString(), *ParentName.ToString()));
+                const FName ConstraintName = FName(*FString::Printf(TEXT("%s->%s_Constraint"), *ChildName.ToString(), *ParentName.ToString()));
 
                 UPhysicsConstraintTemplate* CS = nullptr;
                 int32 NewConstraintIndex = CreateNewConstraint(PhysicsAsset, ConstraintName, CS, ParentName, ChildName);
@@ -136,8 +136,11 @@ namespace FPhysicsAssetUtils
         NewBodySetup->bDoubleSidedGeometry = true;  // 양면 충돌 허용
         NewBodySetup->BuildScale = FVector(1.0f);
 
+        /* Body Setup의 BoneIndex , */
         int32 BodySetupIndex = PhysAsset->BodySetup.Add(NewBodySetup);
         NewBodySetup->BoneName = InBoneName;
+        NewBodySetup->BoneIndex = PhysAsset->GetPreviewMesh()->GetSkeleton()->GetRefSkeleton().FindRawBoneIndex(InBoneName);
+        NewBodySetup->ParentBoneIndex = PhysAsset->GetPreviewMesh()->GetSkeleton()->GetRefSkeleton().GetParentIndex(NewBodySetup->BoneIndex);
 
         PhysAsset->UpdateBodySetupIndexMap();
         PhysAsset->UpdateBoundsBodiesArray();
@@ -152,6 +155,7 @@ namespace FPhysicsAssetUtils
             UE_LOG(ELogLevel::Error, TEXT("Invalid parameters"));
             return false;
         }
+        //if (FConstraintInstance::IsEndEffectorJoint(bs->BoneName)) return true;
 
         const FReferenceSkeleton& RefSkeleton = skelMesh->GetSkeleton()->GetRefSkeleton();
         // 원본은 RawRefBonePose 썼지만, 스켈레탈 메시 전체 참조 좌표계는 GetComposedRefPoseMatrix 로 꺼내도 됩니다.
@@ -163,14 +167,15 @@ namespace FPhysicsAssetUtils
 
         // 부모↔자식 벡터 계산
         int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        FTransform ParentWorld;
+        FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
         if (ParentIndex != INDEX_NONE)
         {
+            ParentWorld = RefSkeleton.GetRawRefBonePose()[ParentIndex];
             // (1) 월드 좌표계 위치 얻기
-            FTransform ParentWorld = RefSkeleton.GetRawRefBonePose()[ParentIndex];
             for (int32 P = RefSkeleton.GetParentIndex(ParentIndex); P != INDEX_NONE; P = RefSkeleton.GetParentIndex(P))
                 ParentWorld = RefSkeleton.GetRawRefBonePose()[P] * ParentWorld;
 
-            FTransform ThisWorld = RefSkeleton.GetRawRefBonePose()[BoneIndex];
             for (int32 T = RefSkeleton.GetParentIndex(BoneIndex); T != INDEX_NONE; T = RefSkeleton.GetParentIndex(T))
                 ThisWorld = RefSkeleton.GetRawRefBonePose()[T] * ThisWorld;
 
@@ -179,25 +184,28 @@ namespace FPhysicsAssetUtils
             FVector Dir = (ThisPos - ParentPos);
             float Length = Dir.Size();
             Dir = Dir.GetSafeNormal();
-            //if (Length < KINDA_SMALL_NUMBER)
-            //{
-            //    Dir = FVector(0, 0, 1);
-            //    Length = 10.f;
-            //}
-            //else
-            //{
-            //    Dir /= Length;
-            //}
+            if (Length < KINDA_SMALL_NUMBER)
+            {
+                Dir = FVector(0, 0, 1);
+                Length = 5.f;
+            }
+
 
             // Z축에만 half-length를 실어줌
             BoxCenter = (ParentPos + ThisPos) * 0.5f;
             BoxExtent = FVector(1.f, 1.f, Length * 0.5f);
 
+            /* Y+를 Z+로 보정하고 (PhysX Y축 캡슐을 Z축 기준으로 회전) //[미사용] Z축 기준으로 본 방향을 향하도록 회전시킴*/
             FQuat CapsuleDirRotation = FQuat::FindBetweenNormals(FVector(1, 0, 0), Dir);
-            FQuat PhysX_YtoZ_Rotation = FQuat(FVector(1, 0, 0), PI / 2); // 90도 회전 (X축 기준)
-            FQuat FinalRotation = CapsuleDirRotation*PhysX_YtoZ_Rotation;
+            //FQuat PhysX_YtoZ_Rotation = FQuat(FVector(1, 0, 0), PI / 2); // 90도 회전 (X축 기준)
+            //FQuat FinalRotation = CapsuleDirRotation/**PhysX_YtoZ_Rotation*/;
 
-            ElementTransform = FTransform(FinalRotation, BoxCenter);
+            ElementTransform = FTransform(CapsuleDirRotation, BoxCenter);
+        }
+        else // 자신이 root bone일 때
+        {
+            ElementTransform = FTransform(FQuat::Identity, ThisWorld.GetLocation());
+            BoxExtent = FVector::ZeroVector;
         }
 
         // --- 이제 GeomType 별로 추가 ---
@@ -209,10 +217,12 @@ namespace FPhysicsAssetUtils
             float CapsuleRadius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
             CapsuleRadius = FMath::Max(CapsuleRadius, 1.f);
             float CapsuleHalfLength = BoxExtent.Z;
-            CapsuleHalfLength = FMath::Max(CapsuleHalfLength, 1.f);
+            CapsuleHalfLength = FMath::Max(CapsuleHalfLength - CapsuleRadius, 0.7f);
+            //CapsuleHalfLength -= CapsuleRadius;
 
-            SphylElem.Center = ElementTransform.GetLocation();
-            SphylElem.RQuat = ElementTransform.GetRotation();
+            SphylElem.Center = ThisWorld.GetLocation() - ElementTransform.GetLocation();
+            //SphylElem.RQuat = ElementTransform.GetRotation();
+            SphylElem.RQuat = FQuat();
             SphylElem.Radius = CapsuleRadius;
             SphylElem.Length = CapsuleHalfLength * 2.f;  // PhysX는 전체 길이
 

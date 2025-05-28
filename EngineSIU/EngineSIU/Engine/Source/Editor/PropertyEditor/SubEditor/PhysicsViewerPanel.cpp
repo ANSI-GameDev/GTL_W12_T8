@@ -555,14 +555,18 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         // World Position (Current Pose)
         TArray<FMatrix> GlobalMatrices;
         SkeletalMeshComponent->GetCurrentGlobalBoneMatrices(GlobalMatrices);
+
         if (GlobalMatrices.IsValidIndex(BoneIndex))
         {
-            FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
-            FVector WorldPos = BoneMatrix.GetOrigin();
-            FRotator WorldRot = BoneMatrix.ToQuat().Rotator();
+            const FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
+            const FVector WorldPos = BoneMatrix.GetOrigin();
+            const FQuat WorldQuat = BoneMatrix.ToQuat();
+            const FRotator WorldRot = WorldQuat.Rotator();
+
             ImGui::SeparatorText("World Transform (Current)");
             ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
-            ImGui::Text("World Rotation: (%.1f, %.1f, %.1f)", WorldRot.Roll, WorldRot.Yaw, WorldRot.Pitch);
+            ImGui::Text("World Rotation (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", WorldRot.Roll, WorldRot.Pitch, WorldRot.Yaw);
+            ImGui::Text("World Rotation (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", WorldQuat.X, WorldQuat.Y, WorldQuat.Z, WorldQuat.W);
         }
 
         const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
@@ -570,14 +574,16 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         {
             ImGui::SeparatorText("RefSkeleton Transform");
 
-            // World
             const FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
             const FVector RefWorldPos = RefWorld.GetTranslation();
-            const FRotator RefWorldRot = RefWorld.GetRotation().Rotator();
+            const FQuat RefWorldQuat = RefWorld.GetRotation();
+            const FRotator RefWorldRot = RefWorldQuat.Rotator();
 
             ImGui::Text("Ref World Pos: (%.2f, %.2f, %.2f)", RefWorldPos.X, RefWorldPos.Y, RefWorldPos.Z);
-            ImGui::Text("Ref World Rot: (%.1f, %.1f, %.1f)", RefWorldRot.Roll, RefWorldRot.Yaw, RefWorldRot.Pitch);
+            ImGui::Text("Ref World Rot (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", RefWorldRot.Roll, RefWorldRot.Pitch, RefWorldRot.Yaw);
+            ImGui::Text("Ref World Rot (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", RefWorldQuat.X, RefWorldQuat.Y, RefWorldQuat.Z, RefWorldQuat.W);
         }
+
 
     }
 

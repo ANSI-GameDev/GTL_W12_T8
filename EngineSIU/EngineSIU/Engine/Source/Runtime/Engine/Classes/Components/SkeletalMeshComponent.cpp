@@ -65,8 +65,38 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
 
+    if (GetPhysicsAsset() && !Bodies.IsEmpty())
+    {
+        UpdatePosePhysics();
+    }
     TickPose(DeltaTime);
 }
+
+void USkeletalMeshComponent::UpdatePosePhysics()
+{
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    TArray<FMatrix> GlobalBoneMatrices;
+    GetCurrentGlobalBoneMatrices(GlobalBoneMatrices);
+
+    for (FBodyInstance* Body : Bodies)
+    {
+        if (!Body) continue;
+
+        //Body->UpdatePhysics();
+        const FTransform& WorldTransform = Body->WorldTransform;
+
+        int32 BoneIndex = RefSkeleton.FindRawBoneIndex(Body->GetBodySetup()->BoneName);
+        if (BoneIndex == INDEX_NONE) continue;
+
+        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        FTransform ParentWorld = (ParentIndex != INDEX_NONE) ? FTransform(GlobalBoneMatrices[ParentIndex]) : FTransform::Identity;
+
+        FTransform LocalTransform = WorldTransform.GetRelativeTransform(ParentWorld);
+
+        BonePoseContext.Pose[BoneIndex] = LocalTransform;
+    }
+}
+
 
 void USkeletalMeshComponent::TickPose(float DeltaTime)
 {
@@ -460,7 +490,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 
 void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FBodyInstance*>& OutBodies, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) const
 {
-    const float ActualScale = Scale3D.GetAbsMin(); // Scale3D의
+    const float ActualScale = Scale3D.GetAbsMin(); // Scale3D 반영한 BuildScale용 
     const float Scale = ActualScale == 0.f ? KINDA_SMALL_NUMBER : ActualScale;
 
     TMap<FName, FBodyInstance*> NameToBodyMap;
@@ -486,6 +516,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
 
         ConInst->ConstraintIndex = ConstraintIdx;
         ConInst->PhysScene = PhysScene;
+
 
         if (ConstraintSetup == nullptr)
         {
@@ -513,6 +544,9 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
 {
     const FVector ComponentScale3D = GetComponentTransform().GetScale3D();
 
+    TArray<FMatrix> GlobalMatrices;
+    GetCurrentGlobalBoneMatrices(GlobalMatrices);
+    //FString str;
     for (int32 i = 0; i < PhysAsset.BodySetup.Num(); ++i)
     {
         UBodySetup* BodySetup = PhysAsset.BodySetup[i];
@@ -531,11 +565,13 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         }
 
         /* 컴포넌트의 Scale을 적용하여 충돌 형상 정의하기 위함 */
+        //const FTransform BoneWorldTransform = FTransform::FromMatrix(GlobalMatrices[BoneIndex]);
         const FTransform BoneWorldTransform = RefSkeleton.GetRefWorldTransform(BoneIndex);
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
+        //str += FString::Printf(TEXT("%s,%s\n"), *BodySetup->BoneName.ToString(), *BoneWorldTransform.ToString());
         FBodyInstance* NewBody = new FBodyInstance();
-        NewBody->InitBody(BodySetup, BoneWorldTransform.GetLocation(), PhysScene);
+        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
 
         OutBodies.Add(NewBody);
 
@@ -848,3 +884,4 @@ void USkeletalMeshComponent::SetLoopEndFrame(int32 InLoopEndFrame)
         SingleNodeInstance->SetLoopEndFrame(InLoopEndFrame);
     }
 }
+
