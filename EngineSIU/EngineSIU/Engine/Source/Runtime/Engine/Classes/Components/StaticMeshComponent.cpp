@@ -8,7 +8,6 @@
 #include "UObject/ObjectFactory.h"
 
 #include "GameFramework/Actor.h"
-#include "PhysicsEngine/BodyInstance.h"
 
 UObject* UStaticMeshComponent::Duplicate(UObject* InOuter)
 {
@@ -18,13 +17,6 @@ UObject* UStaticMeshComponent::Duplicate(UObject* InOuter)
     NewComponent->SelectedSubMeshIndex = SelectedSubMeshIndex;
 
     return NewComponent;
-}
-
-void UStaticMeshComponent::PhysicsUpdate(float DeltaTime)
-{
-    //StaticMesh는 Rigidbody가 곧 내 위치
-    FTransform Transform = BodyInstance->GetWorldTransform();
-    SetWorldTransform(Transform);
 }
 
 void UStaticMeshComponent::GetProperties(TMap<FString, FString>& OutProperties) const

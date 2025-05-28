@@ -39,10 +39,6 @@ struct FBodyInstance : public FBodyInstanceCore
     int32 InstanceBodyIndex;
     int16 InstanceBoneIndex;
 
-    /* 임시 사용 Temp 변수 */
-    int32 BoneIndex;
-    int32 ParentBoneIndex;
-
     ECollisionEnabled::Type CollisionEnabled;
     
     /** Current scale of physics - used to know when and how physics must be rescaled to match current transform of OwnerComponent. */
@@ -71,22 +67,23 @@ struct FBodyInstance : public FBodyInstanceCore
     EDOFMode::Type DOFMode;
     /** [Physx Only] Constraint used to allow for easy DOF setup per bodyinstance */
     FConstraintInstance* DOFConstraint;
-    UBodySetupCore* BodySetup;
 public:
     // void ApplyForce(FVector Force);
     // void ApplyTorque(FVector Torque);
     // void AddImpulse(FVector Impulse);
 
-    void SetTransformRigidBody(FTransform MoveLocation);
-    
+    void SetTransformRigidBody(FTransform NewTransform);
+    void SetRigidbodyKinematic(bool bIsKinematic);
+
     //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
     void InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene);
-    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene, const FTransform& InBodyWorldTransform);
-
+    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
+    void DestroyInPhysicsScene();
+    
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
-    UBodySetup* GetBodySetup() const;
     physx::PxRigidDynamic* GetPxRigidBoDynamic() const;
+    UBodySetup* GetBodySetup() const;
 
     uint8 bUseCCD : 1;
 
@@ -109,6 +106,4 @@ public:
     void SetbEnableGravity(bool b){ bEnableGravity = b; }
     
     void UpdatePhysics();
-
-
 };

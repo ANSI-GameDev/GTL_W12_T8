@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/Material/PhysicsConstraintComponent.h"
 #include "GameFramework/Actor.h"
 #include "UnrealEd/EditorPanel.h"
 #include "Math/Rotator.h"
@@ -64,6 +65,7 @@ private:
     /* Static Mesh Settings */
     void RenderForStaticMesh(UStaticMeshComponent* StaticMeshComp) const;
     void RenderForSkeletalMesh(USkeletalMeshComponent* SkeletalMeshComp) const;
+    void RenderForConstraintComponent(UPhysicsConstraintComponent* ConstraintComponent) const;
 
     void RenderForAmbientLightComponent(UAmbientLightComponent* AmbientLightComponent) const;
     void RenderForDirectionalLightComponent(UDirectionalLightComponent* DirectionalLightComponent) const;

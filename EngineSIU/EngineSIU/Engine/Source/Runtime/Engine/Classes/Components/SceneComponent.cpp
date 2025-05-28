@@ -216,7 +216,7 @@ void USceneComponent::SetWorldLocation(const FVector& InLocation)
         NewRelativeMatrix = NewRelativeMatrix * FMatrix::Inverse(ParentMatrix);
     }
     FVector NewRelativeLocation = NewRelativeMatrix.GetTranslationVector();
-    RelativeLocation = NewRelativeLocation;
+    SetRelativeLocation(NewRelativeLocation);
 }
 
 void USceneComponent::SetWorldRotation(const FRotator& InRotation)
@@ -348,9 +348,19 @@ void USceneComponent::DetachFromComponent(USceneComponent* Target)
     Target->AttachChildren.Remove(this);
 }
 
+void USceneComponent::SetRelativeLocation(const FVector& InLocation)
+{
+    RelativeLocation = InLocation;
+}
+
 void USceneComponent::SetRelativeRotation(const FRotator& InRotation)
 {
-    SetRelativeRotation(InRotation.GetNormalized().Quaternion());
+    USceneComponent::SetRelativeRotation(InRotation.GetNormalized().Quaternion());
+}
+
+void USceneComponent::SetRelativeScale3D(const FVector& InScale)
+{
+    RelativeScale3D = InScale;
 }
 
 void USceneComponent::SetRelativeRotation(const FQuat& InQuat)
@@ -363,10 +373,9 @@ void USceneComponent::SetRelativeRotation(const FQuat& InQuat)
 
 void USceneComponent::SetRelativeTransform(const FTransform& InTransform)
 {
-    RelativeLocation = InTransform.GetTranslation();
-    RelativeRotation = InTransform.GetRotation().GetNormalized().Rotator();
-    RelativeScale3D = InTransform.GetScale3D();
-
+    USceneComponent::SetRelativeLocation(InTransform.GetTranslation());
+    USceneComponent::SetRelativeRotation(InTransform.GetRotation().GetNormalized().Rotator());
+    USceneComponent::SetRelativeScale3D(InTransform.GetScale3D());
     UpdateOverlaps();
 }
 

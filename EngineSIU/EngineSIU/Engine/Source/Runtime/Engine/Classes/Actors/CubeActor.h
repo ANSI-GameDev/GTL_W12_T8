@@ -1,23 +1,20 @@
 #pragma once
+#include "Engine/StaticMeshActor.h"
 #include "GameFramework/Actor.h"
 
 class UBoxComponent;
 
 
-class ACubeActor : public AActor
+class ACubeActor : public AStaticMeshActor
 {
-    DECLARE_CLASS(ACubeActor, AActor)
+    DECLARE_CLASS(ACubeActor, AStaticMeshActor)
 
 public:
     ACubeActor();
+    
+    void InitBodyInstance() override;
+    void SetKinematic(bool bIsKinematic);
 
-    UBoxComponent* GetShapeComponent() const;
-
-protected:
-    UPROPERTY(
-        VisibleAnywhere,
-        UBoxComponent*, BoxComponent, = nullptr
-    );
-
+    virtual void Tick(float DeltaTime) override;
 };
 

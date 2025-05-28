@@ -1,9 +1,13 @@
 #include "PhysicsViewerPanel.h"
 
+#include <PxRigidBody.h>
+#include <PxRigidDynamic.h>
+
 #include "FSkeletalMeshDebugger.h"
 #include "PhysicsSettingsSerializer.h"
 #include "ReferenceSkeleton.h"
 #include "UnrealClient.h"
+#include "Animation/SkeletalMeshActor.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Misc/EnumClassFlags.h"
@@ -79,9 +83,27 @@ void PhysicsViewerPanel::SetViewportClient(std::shared_ptr<FEditorViewportClient
 
 void PhysicsViewerPanel::SetSkeletalMeshComponent(USkeletalMeshComponent* InSkeletalMeshComponent)
 {
+    if (SkeletalMeshComponent)
+    {
+        // 기존 컴포넌트에 대한 정리 작업
+        SkeletalMeshComponent->Bodies.Empty();
+        // 만약 직접 할당/생성했다면: delete SkeletalMeshComponent;
+        // 이 경우 World에서 DetachComponent도 고려 가능
+    }
+
     SkeletalMeshComponent = InSkeletalMeshComponent;
+
     SkeletalMeshComponent->SetSelectedBone(-1);
+    ToggleRagdollSimulation(bSimulateRagdoll);
+    if (SkeletalMeshComponent)
+    {
+        SkeletalMeshComponent->SetSelectedBone(INDEX_NONE);
+
+        // 래그돌 제외 목록 초기화
+        SkeletalMeshComponent->ExcludedFromRagdoll.Empty();
+    }
 }
+
 
 void PhysicsViewerPanel::SetPrimitiveDrawBatch(UPrimitiveDrawBatch* InPrimitiveDrawBatch)
 {
@@ -238,11 +260,13 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 {
                     CurrentIndex = i;
                     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(MeshNames[i]));
+                    // 초기화 등 필요한 작업
                 }
                 if (bSelected) ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
         }
+
         for (int32 BoneIndex = 0; BoneIndex < RefSkeleton.GetRawBoneNum(); ++BoneIndex)
         {
             if (RefSkeleton.GetParentIndex(BoneIndex) == INDEX_NONE)
@@ -550,6 +574,27 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
         if (bChanged)
         {
             Pose.SetBoneTransform(BoneIndex, BoneTransform);
+            // Shape 위치도 함께 반영
+            if (SkeletalMeshComponent && SkeletalMeshComponent->Bodies.Contains(SelectedName))
+            {
+                FBodyInstance* BodyInstance = SkeletalMeshComponent->Bodies[SelectedName];
+                if (BodyInstance && BodyInstance->RigidBody && BodyInstance->bSimulatePhysics == false)
+                {
+                    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
+
+                    // [1] 부모 트랜스폼 누적
+                    FTransform WorldTransform = BoneTransform;
+                    int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+                    while (ParentIndex != INDEX_NONE && Pose.IsValidIndex(ParentIndex))
+                    {
+                        WorldTransform = Pose.GetBoneTransform(ParentIndex) * WorldTransform;
+                        ParentIndex = RefSkeleton.GetParentIndex(ParentIndex);
+                    }
+
+                    // [2] 적용
+                    BodyInstance->SetTransformRigidBody(WorldTransform);
+                }
+            }
         }
 
         // World Position (Current Pose)
@@ -558,32 +603,35 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
         if (GlobalMatrices.IsValidIndex(BoneIndex))
         {
-            const FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
-            const FVector WorldPos = BoneMatrix.GetOrigin();
-            const FQuat WorldQuat = BoneMatrix.ToQuat();
-            const FRotator WorldRot = WorldQuat.Rotator();
+            if (ImGui::TreeNode("World Transform (Current)")) {
+                const FMatrix BoneMatrix = GlobalMatrices[BoneIndex];
+                const FVector WorldPos = BoneMatrix.GetOrigin();
+                const FQuat WorldQuat = BoneMatrix.ToQuat();
+                const FRotator WorldRot = WorldQuat.Rotator();
 
-            ImGui::SeparatorText("World Transform (Current)");
-            ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
-            ImGui::Text("World Rotation (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", WorldRot.Roll, WorldRot.Pitch, WorldRot.Yaw);
-            ImGui::Text("World Rotation (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", WorldQuat.X, WorldQuat.Y, WorldQuat.Z, WorldQuat.W);
+                ImGui::Text("World Position: (%.2f, %.2f, %.2f)", WorldPos.X, WorldPos.Y, WorldPos.Z);
+                ImGui::Text("World Rotation (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", WorldRot.Roll, WorldRot.Pitch, WorldRot.Yaw);
+                ImGui::Text("World Rotation (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", WorldQuat.X, WorldQuat.Y, WorldQuat.Z, WorldQuat.W);
+                ImGui::TreePop();
+            }
         }
 
         const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
         if (RefSkeleton.IsValidRawIndex(BoneIndex))
         {
-            ImGui::SeparatorText("RefSkeleton Transform");
+            if (ImGui::TreeNode("RefSkeleton Transform")) {
 
-            const FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
-            const FVector RefWorldPos = RefWorld.GetTranslation();
-            const FQuat RefWorldQuat = RefWorld.GetRotation();
-            const FRotator RefWorldRot = RefWorldQuat.Rotator();
+                const FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
+                const FVector RefWorldPos = RefWorld.GetTranslation();
+                const FQuat RefWorldQuat = RefWorld.GetRotation();
+                const FRotator RefWorldRot = RefWorldQuat.Rotator();
 
-            ImGui::Text("Ref World Pos: (%.2f, %.2f, %.2f)", RefWorldPos.X, RefWorldPos.Y, RefWorldPos.Z);
-            ImGui::Text("Ref World Rot (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", RefWorldRot.Roll, RefWorldRot.Pitch, RefWorldRot.Yaw);
-            ImGui::Text("Ref World Rot (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", RefWorldQuat.X, RefWorldQuat.Y, RefWorldQuat.Z, RefWorldQuat.W);
+                ImGui::Text("Ref World Pos: (%.2f, %.2f, %.2f)", RefWorldPos.X, RefWorldPos.Y, RefWorldPos.Z);
+                ImGui::Text("Ref World Rot (Euler): (Roll=%.1f, Pitch=%.1f, Yaw=%.1f)", RefWorldRot.Roll, RefWorldRot.Pitch, RefWorldRot.Yaw);
+                ImGui::Text("Ref World Rot (Quat): (X=%.3f, Y=%.3f, Z=%.3f, W=%.3f)", RefWorldQuat.X, RefWorldQuat.Y, RefWorldQuat.Z, RefWorldQuat.W);
+                ImGui::TreePop();
+            }
         }
-
 
     }
 
@@ -596,6 +644,26 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
         UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
         if (!BodySetup) return;
+        FBodyInstance* BodyInstance = SkeletalMeshComponent->Bodies[BodySetup->BoneName];
+        bool bAffectByRagdoll = BodyInstance->bSimulatePhysics;
+        if (ImGui::Checkbox("Affect by Ragdoll", &bAffectByRagdoll))
+        {
+            BodyInstance->SetbSimulatePhysics(bAffectByRagdoll);
+
+            if (bAffectByRagdoll)
+            {
+                SkeletalMeshComponent->ExcludedFromRagdoll.Remove(BodySetup->BoneName);
+                BodyInstance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
+            }
+            else
+            {
+                SkeletalMeshComponent->ExcludedFromRagdoll.Add(BodySetup->BoneName);
+                BodyInstance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+                /*FTransform PoseT = SkeletalMeshComponent->BonePoseContext.Pose[BoneIndex];
+                FTransform ParentWorld = SkeletalMeshComponent->GetParentWorldTransform(BoneIndex);
+                BodyInstance->SetTransformRigidBody(PoseT * ParentWorld);*/
+            }
+        }
 
         ImGui::SeparatorText("Body Collision Shapes");
 
@@ -791,4 +859,55 @@ void PhysicsViewerPanel::DrawShowFlags()
 
         ImGui::EndPopup();
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Start Ragdoll", ImVec2(120, 32)))
+    {
+        ToggleRagdollSimulation(true);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Stop Ragdoll", ImVec2(120, 32)))
+    {
+        ToggleRagdollSimulation(false);
+    }
+
+}
+void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
+{
+    if (!SkeletalMeshComponent || !SkeletalMeshComponent->GetPhysicsAsset())
+        return;
+
+    USkeleton* Skeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton();
+    const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
+    const TArray<FTransform>& RefPose = Skeleton->GetReferencePose();
+
+    for (auto& Pair : SkeletalMeshComponent->Bodies)
+    {
+        const FName& BoneName = Pair.Key;
+        FBodyInstance* Instance = Pair.Value;
+        if (!Instance) continue;
+
+        // ❗ 제외된 본은 건너뛴다
+        if (SkeletalMeshComponent->ExcludedFromRagdoll.Contains(BoneName))
+            continue;
+
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+        if (!RefPose.IsValidIndex(BoneIndex)) continue;
+
+        if (bEnable)
+        {
+            Instance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
+
+            Instance->RigidBody->setLinearVelocity({ 0, 0, 0 });
+            Instance->RigidBody->setAngularVelocity({ 0, 0, 0 });
+        }
+        else
+        {
+            Instance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+            FTransform RefWorld = RefSkeleton.GetRefWorldTransform(BoneIndex);
+            Instance->SetTransformRigidBody(RefWorld);
+        }
+    }
+
+
+    bSimulateRagdoll = bEnable;
 }

@@ -71,6 +71,13 @@ FVector FTransform::InverseTransformDirection(const FVector& V) const
     return Rotation.Inverse().RotateVector(V);
 }
 
+void FTransform::ConcatenateRotation(const FQuat& DeltaRotation)
+{
+    // 현재 회전에 추가 회전을 곱하여 누적
+    Rotation = Rotation * DeltaRotation;
+    Rotation.Normalize();
+}
+
 FVector FTransform::GetLocation() const
 {
     return GetTranslation();
@@ -465,6 +472,15 @@ FTransform FTransform::operator*(float Scale) const
     Result.Rotation = Rotation * Scale;
     Result.Translation = Translation * Scale;
     return Result;
+}
+
+bool FTransform::operator==(const FTransform& Other) const
+{
+    if (Translation != Other.Translation)   {   return false; }
+    if (Rotation != Other.Rotation)         {   return false; }
+    if (Scale3D != Other.Scale3D)           {   return false; }
+
+    return true;
 }
 
 FVector FTransform::TransformPosition(const FVector& V) const

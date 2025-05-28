@@ -4,7 +4,10 @@
 #include "FSkeletalMeshDebugger.h"
 #include "ImGuiSubWindow.h"
 #include "LineRenderPass.h"
+#include "PhysScene.h"
 #include "SubRenderer.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Engine/SkeletalMesh.h"
 #include "PhysicsEngine/PhysicsAsset.h"
 #include "PropertyEditor/SkeletalMeshViewerPanel.h"
 #include "PropertyEditor/SubEditor/PhysicsViewerPanel.h"
@@ -21,14 +24,37 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
     ViewportClient->SetCameraSpeed(5.0f);*/
     EditorPlayer = FObjectFactory::ConstructObject<AEditorPlayer>(this);
     EditorPlayer->SetCoordMode(CDM_LOCAL);
-    SkeletalMeshComponent = FObjectFactory::ConstructObject<USkeletalMeshComponent>(this);
+
+    
+    
+
+
+    
+    // 필요한 컴포넌트 로딩이나 초기화 등
+    SubRenderer->SetEnabledPass("Skeletal",true);
+    ViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
+
+    FWorldContext& PhysicsWorldContext = GEngine->CreateNewWorldContext(EWorldType::PhysicsViewer);
+    PhysicsWorld = UWorld::CreateWorld(this, EWorldType::PhysicsViewer, FString("PhysicsViewerWorld"));
+    PhysicsWorldContext.SetCurrentWorld(PhysicsWorld);
+    PhysicsWorld->WorldType = EWorldType::PhysicsViewer;
+
+    ASkeletalMeshActor* SkeletalActor = PhysicsWorld->SpawnActor<ASkeletalMeshActor>();
+    SkeletalActor->SetActorLabel(TEXT("OBJ_SKELETON"));
+
+    SkeletalMeshComponent = SkeletalActor->AddComponent<USkeletalMeshComponent>();
+    SkeletalActor->SetRootComponent(SkeletalMeshComponent);
+
     FName SkeletalMeshName = "Contents/Asset/Human";
     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(SkeletalMeshName.ToString()));
 
+    /*SkeletalMeshComponent = FObjectFactory::ConstructObject<USkeletalMeshComponent>(this);
+    FName SkeletalMeshName = "Contents/Asset/Human";
+    SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(SkeletalMeshName.ToString()));*/
     //TODO 
     //Comp 세팅 함수 만들고 옮겨야함
     const FBoundingBox& Bounds = SkeletalMeshComponent->GetBoundingBox();
-    FVector Center = (Bounds.MaxLocation+Bounds.MinLocation)/2.0f;
+    FVector Center = (Bounds.MaxLocation + Bounds.MinLocation) / 2.0f;
     // 카메라 거리 조절용 상수
     const float CameraDistance = 200.0f;
 
@@ -41,31 +67,87 @@ void UPhysicsSubEngine::Initialize(HWND& hWnd, FGraphicsDevice* InGraphics, FDXD
     //FRotator ViewRotation = FRotator(Direction);
 
     ViewportClient->PerspectiveCamera.SetLocation(EyeLocation);
-    ViewportClient->PerspectiveCamera.SetRotation(FVector(180,0,-180));
-
+    ViewportClient->PerspectiveCamera.SetRotation(FVector(180, 0, -180));
 
     PhysicsViewerPanel* PhysicsPanel = reinterpret_cast<PhysicsViewerPanel*>(UnrealEditor->GetPhysicsSubPanel("PhysicsViewerPanel").get());
     PhysicsPanel->SetViewportClient(ViewportClient);
     PhysicsPanel->SetSkeletalMeshComponent(SkeletalMeshComponent);
     PhysicsPanel->SetPrimitiveDrawBatch(SubRenderer->PrimitiveDrawBatch);
-    // 필요한 컴포넌트 로딩이나 초기화 등
-    SubRenderer->SetEnabledPass("Skeletal",true);
-    ViewportClient->SetViewMode(EViewModeIndex::VMI_Unlit);
 }
 
 void UPhysicsSubEngine::Tick(float DeltaTime)
 {
     Input(DeltaTime);
     ViewportClient->Tick(DeltaTime);
-    FString str = ViewportClient->PerspectiveCamera.GetRotation().ToString();
-    // 물리 시뮬레이션 처리 (예: PhysicsWorld->StepSimulation(DeltaTime))
-    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
-    TArray<UBodySetup*> BodySetups = PhysicsAsset->BodySetup;
-    TArray<UPhysicsConstraintTemplate*> ConstraintTemplates = PhysicsAsset->ConstraintSetup;
 
+    /*
+    if (PhysicsWorld)
+    {
+        // [1] 물리 시뮬레이션 수행
+        if (FPhysScene* PhysScene = PhysicsWorld->GetPhysicsScene())
+        {
+            PhysScene->TickPhysScene(DeltaTime);
+        }
+
+        // [2] Actor의 PhysicsUpdate 수행
+        if (ULevel* Level = PhysicsWorld->GetActiveLevel())
+        {
+            const TArray<AActor*>& Actors = Level->Actors;
+            for (AActor* Actor : Actors)
+            {
+                if (Actor && Actor->IsActorTickInEditor())
+                {
+                    Actor->PhysicsUpdate(DeltaTime);
+                }
+            }
+        }
+    }
+    UPhysicsAsset* PhysicsAsset = SkeletalMeshComponent->GetPhysicsAsset();
+    FBaseCompactPose& Pose = SkeletalMeshComponent->BonePoseContext.Pose;
+
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshComponent->GetSkeletalMeshAsset()->GetSkeleton()->GetRefSkeleton();
+
+    for (FBodyInstance* BodyInst : SkeletalMeshComponent->Bodies)
+    {
+        if (!BodyInst || !BodyInst->BodySetup) continue;
+
+        FName BoneName = BodyInst->BodySetup->BoneName;
+        int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+        if (BoneIndex == INDEX_NONE || !Pose.IsValidIndex(BoneIndex)) continue;
+
+        FTransform PhysicsWorld = BodyInst->GetWorldTransform();
+
+        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
+        FTransform ParentWorld = (ParentIndex != INDEX_NONE && Pose.IsValidIndex(ParentIndex))
+            ? Pose.GetBoneTransform(ParentIndex)
+            : FTransform::Identity;
+
+        FTransform LocalTransform = PhysicsWorld.GetRelativeTransform(ParentWorld);
+        Pose.SetBoneTransform(BoneIndex, LocalTransform);
+    }*/
+    if (PhysicsWorld)
+    {
+        FPhysScene* PhysScene = PhysicsWorld->GetPhysicsScene();
+
+        if (PhysScene)
+        {
+            PhysScene->TickPhysScene(DeltaTime);
+        }
+        ULevel* Level = PhysicsWorld->GetActiveLevel();
+        TArray CachedActors = Level->Actors;
+
+        for (AActor* Actor : CachedActors)
+        {
+            if (Actor)
+            {
+                Actor->PhysicsUpdate(DeltaTime); 
+            }
+        }
+    }
 
     Render();
 }
+
 
 void UPhysicsSubEngine::Input(float DeltaTime)
 {

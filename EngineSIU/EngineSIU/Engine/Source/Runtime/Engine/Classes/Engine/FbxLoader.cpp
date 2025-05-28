@@ -624,6 +624,8 @@ void FFbxLoader::CollectBoneData(FbxNode* Node, FReferenceSkeleton& OutReference
     // 뼈 정보 추가
     FMeshBoneInfo BoneInfo(BoneName, ParentIndex);
     RefBoneInfo.Add(BoneInfo);
+    if (ParentIndex!=-1)
+    RefBoneInfo[ParentIndex].ChildIndex.Add(CurrentIndex);
 
     // 레퍼런스 포즈
     FTransform BoneTransform;

@@ -16,6 +16,7 @@ struct FAnimationBaseContext
 struct FPoseContext : public FAnimationBaseContext
 {
     FCompactPose Pose;
+    FCompactPose GlobalPose;
     // FBlendedCurve Curve;
 
     FPoseContext(UAnimInstance* InAnimInstance)

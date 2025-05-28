@@ -65,38 +65,8 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
 
-    if (GetPhysicsAsset() && !Bodies.IsEmpty())
-    {
-        UpdatePosePhysics();
-    }
     TickPose(DeltaTime);
 }
-
-void USkeletalMeshComponent::UpdatePosePhysics()
-{
-    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
-    TArray<FMatrix> GlobalBoneMatrices;
-    GetCurrentGlobalBoneMatrices(GlobalBoneMatrices);
-
-    for (FBodyInstance* Body : Bodies)
-    {
-        if (!Body) continue;
-
-        //Body->UpdatePhysics();
-        const FTransform& WorldTransform = Body->WorldTransform;
-
-        int32 BoneIndex = RefSkeleton.FindRawBoneIndex(Body->GetBodySetup()->BoneName);
-        if (BoneIndex == INDEX_NONE) continue;
-
-        int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
-        FTransform ParentWorld = (ParentIndex != INDEX_NONE) ? FTransform(GlobalBoneMatrices[ParentIndex]) : FTransform::Identity;
-
-        FTransform LocalTransform = WorldTransform.GetRelativeTransform(ParentWorld);
-
-        BonePoseContext.Pose[BoneIndex] = LocalTransform;
-    }
-}
-
 
 void USkeletalMeshComponent::TickPose(float DeltaTime)
 {
@@ -106,6 +76,46 @@ void USkeletalMeshComponent::TickPose(float DeltaTime)
     }
 
     TickAnimation(DeltaTime);
+}
+
+void USkeletalMeshComponent::PhysicsUpdate(float DeltaTime)
+{
+    //bone돌면서 BodyInstance의 Transform으로 업데이트
+
+    //여기가 boneInit보다 먼저들어오니까 조심
+    
+    if (Bodies.Num() == 0)
+    {
+        return;
+    }
+
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    
+    for (auto Body : Bodies)
+    {
+        FBodyInstance* BodyInstance = Body.Value;
+        //아래꺼 변경하고 CPU 스키닝이나 GPU스키닝 변환 보고 처리해주기
+        //LocalTransform주면 됨
+        uint32 BoneIndex = BodyInstance->BodySetup->BoneIndex;
+        uint32 ParentIndex = RefSkeleton.RawRefBoneInfo[BoneIndex].ParentIndex;
+        // FTransform BodyInstanceTransform = BodyInstance->GetWorldTransform();
+        FTransform BodyInstanceWorldTransform = BodyInstance->GetWorldTransform();
+        
+        TArray<FMatrix> GlobalPoseMatrix;
+        GetCurrentGlobalBoneMatrices(GlobalPoseMatrix);
+
+        FTransform ParentGlobalTransform = FTransform::Identity;
+        if (ParentIndex != INDEX_NONE)
+        {
+            ParentGlobalTransform.SetFromMatrix(GlobalPoseMatrix[ParentIndex]);
+        }
+        FTransform ParentWorldTransform = ParentGlobalTransform * GetComponentTransform();
+        FTransform ParentWorldInvTransform = ParentWorldTransform.Inverse();
+        
+        FTransform LocalTransform = ParentWorldInvTransform * BodyInstanceWorldTransform;
+        
+        BonePoseContext.Pose[BoneIndex] = LocalTransform ;
+    }
 }
 
 void USkeletalMeshComponent::TickAnimation(float DeltaTime)
@@ -180,32 +190,41 @@ void USkeletalMeshComponent::SetSkeletalMeshAsset(USkeletalMesh* InSkeletalMeshA
     {
         return;
     }
-    
+
     SkeletalMeshAsset = InSkeletalMeshAsset;
 
     InitAnim();
 
+    // 리셋
     BonePoseContext.Pose.Empty();
     RefBonePoseTransforms.Empty();
-    AABB = FBoundingBox(InSkeletalMeshAsset->GetRenderData()->BoundingBoxMin, SkeletalMeshAsset->GetRenderData()->BoundingBoxMax);
-    
+    ExcludedFromRagdoll.Empty();  // ✅ 본 고정 상태 초기화
+    RootBodyData.BodyIndex = INDEX_NONE;  // ✅ 루트 인덱스 초기화
+    RootBodyData.TransformToRoot = FTransform::Identity;
+
+    AABB = FBoundingBox(InSkeletalMeshAsset->GetRenderData()->BoundingBoxMin, InSkeletalMeshAsset->GetRenderData()->BoundingBoxMax);
+
     const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
     BonePoseContext.Pose.InitBones(RefSkeleton.RawRefBoneInfo.Num());
+
     for (int32 i = 0; i < RefSkeleton.RawRefBoneInfo.Num(); ++i)
     {
         BonePoseContext.Pose[i] = RefSkeleton.RawRefBonePose[i];
         RefBonePoseTransforms.Add(RefSkeleton.RawRefBonePose[i]);
     }
-    
+
+    // 렌더 데이터 복사
     CPURenderData->Vertices = InSkeletalMeshAsset->GetRenderData()->Vertices;
     CPURenderData->Indices = InSkeletalMeshAsset->GetRenderData()->Indices;
     CPURenderData->ObjectName = InSkeletalMeshAsset->GetRenderData()->ObjectName;
     CPURenderData->MaterialSubsets = InSkeletalMeshAsset->GetRenderData()->MaterialSubsets;
-    SetSelectedBone(-1);
 
-    /* TODO : 기본적으로 PhysicAsset을 생성하는 대신 bSimulated 옵션이 켜질 때만 PhysicAsset 생성하기 */
+    SetSelectedBone(-1);
+    Bodies.Empty();
+    Constraints.Empty();
     OnCreatePhysicsState();
 }
+
 
 FTransform USkeletalMeshComponent::GetSocketTransform(FName SocketName) const
 {
@@ -475,27 +494,18 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
     
 
     /* 아래 함수에서 모든 Bodies=BodyInst[] BodySetup으로부터 생성 및 Constraints=ConstraintInst[] 생성 */
-    InstantiatePhysicsAsset_Internal(*PhysicsAsset, Scale3D, Bodies, Constraints, PhysScene, this, RootBodyIndex);
-
-    for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
-    {
-        FBodyInstance* Body = Bodies[BodyIndex];
-        if (!Body) continue;
-
-        // PhysX에서 쓸 Body(Actor) 이름과 Object, ID 맵핑
-    }
+    InstantiatePhysicsAsset_Internal(*PhysicsAsset, Scale3D, Constraints, PhysScene, this, RootBodyIndex);
 
     // SetRootBodyIndex(RootBodyIndex);
 }
 
-void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FBodyInstance*>& OutBodies, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) const
+void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsset& PhysAsset, const FVector& Scale3D, TArray<FConstraintInstance*>& OutConstraints, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/) 
 {
     const float ActualScale = Scale3D.GetAbsMin(); // Scale3D 반영한 BuildScale용 
     const float Scale = ActualScale == 0.f ? KINDA_SMALL_NUMBER : ActualScale;
 
-    TMap<FName, FBodyInstance*> NameToBodyMap;
 
-    InstantiatePhysicsAssetBodies_Internal(PhysAsset, OutBodies, &NameToBodyMap, PhysScene, OwningComponent, UseRootBodyIndex);
+    InstantiatePhysicsAssetBodies_Internal(PhysAsset, PhysScene, OwningComponent, UseRootBodyIndex);
 
     int32 NumOutConstraints = PhysAsset.ConstraintSetup.Num();
     OutConstraints.AddZeroed(NumOutConstraints);
@@ -517,19 +527,14 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
         ConInst->ConstraintIndex = ConstraintIdx;
         ConInst->PhysScene = PhysScene;
 
-
         if (ConstraintSetup == nullptr)
         {
             continue;
         }
         FName Bone1Name = ConstraintSetup->DefaultInstance.ConstraintBone1;
         FName Bone2Name = ConstraintSetup->DefaultInstance.ConstraintBone2;
-        FBodyInstance* Body1 = NameToBodyMap.FindRef(Bone1Name);
-        FBodyInstance* Body2 = NameToBodyMap.FindRef(Bone2Name);
-
-        /* TODO : 현재는 Scale 적용 코드 생략*/
-        // auto ScalePosition = [](const FBodyInstance* InBody, const float InScale, FVector& OutPosition)
-
+        FBodyInstance* Body1 = Bodies.FindRef(Bone1Name);
+        FBodyInstance* Body2 = Bodies.FindRef(Bone2Name);
 
         if (Body1 && Body2)
         {
@@ -540,7 +545,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
 }
 
 /* 각 BodySetup에 대해 BodyInstance 생성 */
-void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, TArray<FBodyInstance*>& OutBodies, TMap<FName, FBodyInstance*>* OutNameToBodyMap, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/)const
+void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysicsAsset& PhysAsset, FPhysScene* PhysScene /*= nullptr*/, USkeletalMeshComponent* OwningComponent /*= nullptr*/, int32 UseRootBodyIndex /*= INDEX_NONE*/)
 {
     const FVector ComponentScale3D = GetComponentTransform().GetScale3D();
 
@@ -572,13 +577,7 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         //str += FString::Printf(TEXT("%s,%s\n"), *BodySetup->BoneName.ToString(), *BoneWorldTransform.ToString());
         FBodyInstance* NewBody = new FBodyInstance();
         NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
-
-        OutBodies.Add(NewBody);
-
-        if (OutNameToBodyMap)
-        {
-            OutNameToBodyMap->Add(BodySetup->BoneName, NewBody);
-        }
+        Bodies[BodySetup->BoneName] = NewBody;
     }
 }
 

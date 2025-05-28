@@ -54,8 +54,8 @@ private:
 public:
     UPrimitiveDrawBatch* PrimitiveDrawBatch = nullptr;
 private:
-    float Width = 800.0f;
-    float Height = 600.0f;
+    float Width = 1920;
+    float Height = 1080;
     EPhysicsDebugDisplay DebugDisplayFlags =
         EPhysicsDebugDisplay::Bone |
         EPhysicsDebugDisplay::Body |
@@ -68,4 +68,8 @@ private:
     EPhysicsSelectionType SelectedType = EPhysicsSelectionType::None;
     FName SelectedName;
     //int SelectedBoneIndex = -1;
+
+private:
+    bool bSimulateRagdoll = false; // 상태 저장
+    void ToggleRagdollSimulation(bool bEnable);
 };

@@ -10,7 +10,7 @@ class AStaticMeshActor : public AActor
 
 public:
     AStaticMeshActor();
-
+    virtual void InitBodyInstance(){}
     UStaticMeshComponent* GetStaticMeshComponent() const;
 
 protected:

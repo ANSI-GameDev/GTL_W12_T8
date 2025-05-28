@@ -40,6 +40,7 @@ struct FTransform
     FQuat GetRotation() const { return Rotation; }
     FRotator Rotator() const { return Rotation.Rotator(); }
     void SetRotation(const FQuat& InRotation) { Rotation = InRotation; }
+    void ConcatenateRotation(const FQuat& DeltaRotation);
     
     // 위치 관련 함수들
     FVector GetTranslation() const { return Translation; }
@@ -66,6 +67,7 @@ struct FTransform
     // 변환 연산자들과 함수들
     FTransform operator*(const FTransform& Other) const;
     FTransform operator*(float Scale) const;
+    bool operator==(const FTransform& Other) const;
     
     void Blend(const FTransform& Atom1, const FTransform& Atom2, float Alpha);
     FTransform BlendWith(const FTransform& Other, float Alpha) const;

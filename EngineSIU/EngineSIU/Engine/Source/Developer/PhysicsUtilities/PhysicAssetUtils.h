@@ -20,6 +20,6 @@ namespace FPhysicsAssetUtils
     int32 CreateNewConstraint(UPhysicsAsset* PhysAsset, FName InConstraintName, UPhysicsConstraintTemplate* InConstraintSetup, FName ParentBone, FName ChildBone);
     void DestroyConstraint(UPhysicsAsset* PhysAsset, int32 ConstraintIndex);
 
-    int32 CreateNewBody(UPhysicsAsset* PhysAsset, FName InBoneName);
+    int32 CreateNewBody(UPhysicsAsset* PhysAsset, FName InBoneName, uint32 InBoneIndex);
 
 }

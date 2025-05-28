@@ -14,26 +14,53 @@ using namespace physx;
 
 #define SCOPED_READ_LOCK(scene) PxSceneReadLock scopedReadLock(scene);
 
-void FBodyInstance::SetTransformRigidBody(FTransform MoveLocation)
+void FBodyInstance::SetTransformRigidBody(FTransform NewTransform)
 {
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-    RigidBody->setKinematicTarget(MoveLocation.ToPxTransform());
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, false);
+    if (WorldTransform == NewTransform)
+    {
+        return;
+    }
+
+    if (RigidBody->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
+    {
+        RigidBody->setKinematicTarget(NewTransform.ToPxTransform());
+        WorldTransform = NewTransform;
+        return;
+    }
+    
+    LinearVelocity = (NewTransform.Translation - WorldTransform.Translation);
+    RigidBody->setLinearVelocity(LinearVelocity.ToPxVec3());
+    
+    FQuat DeltaQuat = NewTransform.Rotation * WorldTransform.Rotation.Inverse();
+
+    FVector Axis;
+    float Angle;
+    DeltaQuat.ToAxisAndAngle(Axis, Angle);
+
+    float DeltaTime = 1.f / 60.f;
+    AngularVelocity = Axis * (Angle / DeltaTime);
+    
+    RigidBody->setAngularVelocity(AngularVelocity.ToPxVec3());
+}
+
+void FBodyInstance::SetRigidbodyKinematic(bool bIsKinematic)
+{
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, bIsKinematic);
+    BodySetup->PhysicsType = bIsKinematic ? PhysType_Kinematic : PhysType_Default;
 }
 
 void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene)
-{
+{ //TODO: Position말고 Transform받아서 회전값도 적용
     if (!InBodySetup || !InScene)
     {
         UE_LOG(ELogLevel::Error, TEXT("FBodyInstance::InitBody : InBodySetup or InScene is nullptr"));
         return;
     }
 
-    /* 해당 Body Instance의 출처가 되는 BodySetupCore */
-    BodySetup = Cast<UBodySetupCore>(InBodySetup);
-    BoneIndex = InBodySetup->BoneIndex;
-    ParentBoneIndex = InBodySetup->ParentBoneIndex;
-
+    MyScene = InScene;
+    
+    BodySetup = InBodySetup;
+    
     //등록하는 행위
     InScene->BodyInstances.Add(this);
 
@@ -41,37 +68,37 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
     // TODO : Joint 정보 또한 제거 필요
     if (RigidBody)
     {
-        if (RigidBody->getScene())
-        {
-            RigidBody->getScene()->removeActor(*RigidBody);
-        }
-        RigidBody->release();
+        DestroyInPhysicsScene();
     }
     
     // Body의 위치 = Body가 속한 Bone의 World Position
-    PxTransform pose = InBodyWorldTransform.ToPxTransform();
+    PxTransform pose = PxTransform(InBodyWorldTransform.GetLocation().ToPxVec3(), InBodyWorldTransform.GetRotation().ToPxQuat());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
-    AttachShapes(InBodySetup->AggGeom, InScene, InBodyWorldTransform);
+    AttachShapes(InBodySetup->AggGeom, InScene);
     RigidBody->setSolverIterationCounts(8, 2);
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
+    RigidBody->setMaxDepenetrationVelocity(2.f);
 
     RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
     RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
 
     // @@ TODO : TEst 용 추가
-    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+    //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
     // Shape 생성
     RigidBody->setLinearVelocity(PxVec3(0, 0, 0));
     RigidBody->setAngularVelocity(PxVec3(0, 0, 0));
 
-    PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
+    float Volume = InBodySetup->AggGeom.TotalVolume;
+    float Mass = FMath::Max(Volume * 10.f, 0.01f);
+    PxRigidBodyExt::updateMassAndInertia(*RigidBody, Mass);
+    //PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
 
     InScene->gScene->addActor(*RigidBody);
     UpdatePhysics();
 }
 
-void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene , const FTransform& InBodyWorldTransform)
+void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene)
 {
     for (FKBoxElem BoxGeom : InAggregateGeom.BoxElems)
     {
@@ -104,7 +131,7 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
         PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
         PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0)); // Z축→Y축 보정
-
+        AdjustedRotation = CapsuleRotation;
         // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
         //PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
         //RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
@@ -118,14 +145,6 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
 
         Shape->setContactOffset(0.05f);  // 충돌 감지 시작 거리
         Shape->setRestOffset(0.01f);     // solver에서 penetration 허용 오차
-
-        PxFilterData filterData;
-        filterData.word0 = BoneIndex;                  // 현재 본 index
-        filterData.word1 = ParentBoneIndex;            // 부모 본 index
-        filterData.word2 = 0;                          // 예비
-        filterData.word3 = 0;                          // 예비
-        Shape->setSimulationFilterData(filterData);
-
 
         RigidBody->attachShape(*Shape);
         Shape->release();
@@ -141,7 +160,7 @@ UBodySetup* FBodyInstance::GetBodySetup() const
     return nullptr;
 }
 
-physx::PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
+PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
 {
     if (!RigidBody)
     {
@@ -152,9 +171,32 @@ physx::PxRigidDynamic* FBodyInstance::GetPxRigidBoDynamic() const
     return RigidBody;
 }
 
+
+void FBodyInstance::DestroyInPhysicsScene()
+{
+    if (!RigidBody)
+    {
+        return;
+    }
+    
+    if (RigidBody->getScene())
+    {
+        RigidBody->getScene()->removeActor(*RigidBody);
+    }
+
+    MyScene->BodyInstances.Remove(this);
+    RigidBody->release();
+    RigidBody = nullptr;
+}
+
 void FBodyInstance::UpdatePhysics()
 {
-    PxTransform t = RigidBody->getGlobalPose();
+    if (!RigidBody)
+    {
+        return;
+    }
     
-    WorldTransform = FTransform(t);
+    WorldTransform = FTransform(RigidBody->getGlobalPose());
+    LinearVelocity = FVector(RigidBody->getLinearVelocity());
+    AngularVelocity = FVector(RigidBody->getAngularVelocity());
 }

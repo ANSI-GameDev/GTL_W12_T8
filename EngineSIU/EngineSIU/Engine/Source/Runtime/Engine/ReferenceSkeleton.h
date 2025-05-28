@@ -12,7 +12,8 @@ struct FMeshBoneInfo
 
     // INDEX_NONE if this is the root bone. 
     int32 ParentIndex;
-
+    TArray<int32> ChildIndex;
+    
     FMeshBoneInfo() : Name(NAME_None), ParentIndex(INDEX_NONE) {}
 
     FMeshBoneInfo(const FName& InName, int32 InParentIndex)
