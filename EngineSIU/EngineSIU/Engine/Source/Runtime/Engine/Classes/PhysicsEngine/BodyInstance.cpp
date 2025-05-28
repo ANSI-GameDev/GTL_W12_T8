@@ -49,7 +49,7 @@ void FBodyInstance::SetRigidbodyKinematic(bool bIsKinematic)
     BodySetup->PhysicsType = bIsKinematic ? PhysType_Kinematic : PhysType_Default;
 }
 
-void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene)
+void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene, FTransform DefaultBodyTransform)
 { //TODO: Position말고 Transform받아서 회전값도 적용
     if (!InBodySetup || !InScene)
     {
@@ -60,6 +60,8 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
     MyScene = InScene;
     
     BodySetup = InBodySetup;
+
+    OriginTransform = DefaultBodyTransform;
     
     //등록하는 행위
     InScene->BodyInstances.Add(this);
@@ -195,8 +197,12 @@ void FBodyInstance::UpdatePhysics()
     {
         return;
     }
+
+    //Scale을 그대로 넘기기 위함
+    FTransform RigidBodyWorldTransform = RigidBody->getGlobalPose();
+    RigidBodyWorldTransform.Scale3D = OriginTransform.Scale3D;
     
-    WorldTransform = FTransform(RigidBody->getGlobalPose());
+    WorldTransform = RigidBodyWorldTransform;
     LinearVelocity = FVector(RigidBody->getLinearVelocity());
     AngularVelocity = FVector(RigidBody->getAngularVelocity());
 }

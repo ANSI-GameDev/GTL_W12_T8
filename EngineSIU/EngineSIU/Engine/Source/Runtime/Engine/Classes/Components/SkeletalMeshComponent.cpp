@@ -574,8 +574,9 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
         //str += FString::Printf(TEXT("%s,%s\n"), *BodySetup->BoneName.ToString(), *BoneWorldTransform.ToString());
+        
         FBodyInstance* NewBody = new FBodyInstance();
-        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
+        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene, BoneWorldTransform);
 
         OutBodies.Add(NewBody);
 

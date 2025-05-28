@@ -26,7 +26,7 @@ void ASphereActor::InitBodyInstance()
     UWorld* world = GetWorld();
     
     FBodyInstance* SphereBody = new FBodyInstance();
-    SphereBody->InitBody(BodySetup, StaticMeshComponent->GetComponentTransform(), world->GetPhysicsScene());
+    SphereBody->InitBody(BodySetup, StaticMeshComponent->GetComponentTransform(), world->GetPhysicsScene(), GetRootComponent()->GetComponentTransform());
     StaticMeshComponent->SetBodyInstance(SphereBody);
     
 }

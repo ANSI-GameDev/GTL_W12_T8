@@ -26,7 +26,7 @@ void ACapsuleActor::InitBodyInstance()
     UWorld* world = GetWorld();
     
     FBodyInstance* CapsuleBody = new FBodyInstance();
-    CapsuleBody->InitBody(BodySetup, CapsuleComponent->GetComponentTransform(), world->GetPhysicsScene());
+    CapsuleBody->InitBody(BodySetup, CapsuleComponent->GetComponentTransform(), world->GetPhysicsScene(), GetRootComponent()->GetComponentTransform());
     CapsuleComponent->SetBodyInstance(CapsuleBody);
     
 }
