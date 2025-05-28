@@ -159,4 +159,5 @@ private:
 public:
     void SetSelectedBone(int32 BoneIndex) { SelectedBoneIndex = BoneIndex; }
     int32 GetSelectedBone() const { return SelectedBoneIndex; }
+    TSet<FName> ExcludedFromRagdoll;
 };

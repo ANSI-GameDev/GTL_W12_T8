@@ -600,6 +600,27 @@ void PhysicsViewerPanel::RenderSelectedProperty(FBaseCompactPose& Pose)
 
         UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
         if (!BodySetup) return;
+        FBodyInstance* BodyInstance = SkeletalMeshComponent->Bodies[BodySetup->BoneName];
+        bool bAffectByRagdoll = BodyInstance->bSimulatePhysics;
+        if (ImGui::Checkbox("Affect by Ragdoll", &bAffectByRagdoll))
+        {
+            BodyInstance->SetbSimulatePhysics(bAffectByRagdoll);
+
+            if (bAffectByRagdoll)
+            {
+                SkeletalMeshComponent->ExcludedFromRagdoll.Remove(BodySetup->BoneName);
+                BodyInstance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, false);
+            }
+            else
+            {
+                SkeletalMeshComponent->ExcludedFromRagdoll.Add(BodySetup->BoneName);
+                BodyInstance->RigidBody->setRigidBodyFlag(physx::PxRigidBodyFlag::eKINEMATIC, true);
+                /*FTransform PoseT = SkeletalMeshComponent->BonePoseContext.Pose[BoneIndex];
+                FTransform ParentWorld = SkeletalMeshComponent->GetParentWorldTransform(BoneIndex);
+                BodyInstance->SetTransformRigidBody(PoseT * ParentWorld);*/
+            }
+        }
+
 
         ImGui::SeparatorText("Body Collision Shapes");
 
@@ -816,12 +837,16 @@ void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
     const FReferenceSkeleton& RefSkeleton = Skeleton->GetRefSkeleton();
     const TArray<FTransform>& RefPose = Skeleton->GetReferencePose();
 
-    for (auto Body : SkeletalMeshComponent->Bodies)
+    for (auto& Pair : SkeletalMeshComponent->Bodies)
     {
-        FBodyInstance* Instance = Body.Value;
+        const FName& BoneName = Pair.Key;
+        FBodyInstance* Instance = Pair.Value;
         if (!Instance) continue;
 
-        FName BoneName = Instance->BodySetup->BoneName;
+        // ❗ 제외된 본은 건너뛴다
+        if (SkeletalMeshComponent->ExcludedFromRagdoll.Contains(BoneName))
+            continue;
+
         int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
         if (!RefPose.IsValidIndex(BoneIndex)) continue;
 
@@ -838,6 +863,7 @@ void PhysicsViewerPanel::ToggleRagdollSimulation(bool bEnable)
             Instance->SetTransformRigidBody(RefWorld);
         }
     }
+
 
     bSimulateRagdoll = bEnable;
 }
