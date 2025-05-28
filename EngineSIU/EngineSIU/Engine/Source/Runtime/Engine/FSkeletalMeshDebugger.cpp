@@ -261,9 +261,10 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
         for (const FKSphylElem& Sphyl : BodySetup->AggGeom.SphylElems)
         {
             const FQuat FinalRot = Sphyl.RQuat;
-            const FVector StartLocal = FVector(0, 0, -Sphyl.Length * 0.5f); // Z축 기준
-            const FVector EndLocal = FVector(0, 0, Sphyl.Length * 0.5f);
-
+            /*const FVector StartLocal = FVector(0, 0, -Sphyl.Length * 0.5f); // Z축 기준
+            const FVector EndLocal = FVector(0, 0, Sphyl.Length * 0.5f);*/
+            const FVector StartLocal = FVector( -Sphyl.Length * 0.5f, 0,0); // Z축 기준
+            const FVector EndLocal = FVector(Sphyl.Length * 0.5f, 0, 0);
             // 1. RQuat 적용된 오프셋 위치
             const FVector LocalOffsetStart = FinalRot.RotateVector(StartLocal);
             const FVector LocalOffsetEnd = FinalRot.RotateVector(EndLocal);
@@ -271,12 +272,12 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
             // [A] 흰색 캡슐: 물리 기준 위치 (RQuat, Center 포함)
             const FVector StartWS_Phys = RefMatrix.TransformPosition(Sphyl.Center + LocalOffsetStart);
             const FVector EndWS_Phys = RefMatrix.TransformPosition(Sphyl.Center + LocalOffsetEnd);
-            DrawBatch->AddCapsuleToBatch(StartWS_Phys, EndWS_Phys, Sphyl.Radius, 16, FVector4(1.f, 1.f, 1.f, 1.f));
+            DrawBatch->AddCapsuleToBatch(StartWS_Phys, EndWS_Phys, Sphyl.Radius, 16, Color);
 
             // [B] 기본 색 캡슐: 애니메이션 기준 위치 (Center/RQuat 무시)
-            const FVector StartWS_BoneOnly = RefMatrix.TransformPosition(StartLocal);
+            /*const FVector StartWS_BoneOnly = RefMatrix.TransformPosition(StartLocal);
             const FVector EndWS_BoneOnly = RefMatrix.TransformPosition(EndLocal);
-            DrawBatch->AddCapsuleToBatch(StartWS_BoneOnly, EndWS_BoneOnly, Sphyl.Radius, 16, Color);
+            DrawBatch->AddCapsuleToBatch(StartWS_BoneOnly, EndWS_BoneOnly, Sphyl.Radius, 16, Color);*/
         }
 
 

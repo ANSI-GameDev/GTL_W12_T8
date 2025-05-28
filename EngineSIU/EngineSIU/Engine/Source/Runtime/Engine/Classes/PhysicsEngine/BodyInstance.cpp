@@ -104,7 +104,7 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
         PxVec3 CapsuleCenter = CapsuleGeom.Center.ToPxVec3();
         PxQuat CapsuleRotation = CapsuleGeom.RQuat.ToPxQuat();
         PxQuat AdjustedRotation = CapsuleRotation * PxQuat(PxPi / 2, PxVec3(0, 1, 0)); // Z축→Y축 보정
-
+        AdjustedRotation = CapsuleRotation;
         // 3. Actor 자체를 이동시킴 (ShapePose가 아닌 ActorPose)
         //PxTransform ActorPose(CapsuleCenter, CapsuleRotation);
         //RigidBody = InScene->gPhysics->createRigidDynamic(ActorPose);
