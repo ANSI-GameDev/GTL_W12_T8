@@ -74,52 +74,130 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
 void USkeletalMeshComponent::UpdatePosePhysics()
 {
-	const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
+    if (!SkeletalMeshAsset || !SkeletalMeshAsset->GetSkeleton() || Bodies.IsEmpty())
+    {
+        return;
+    }
 
-	for (FBodyInstance* Body : Bodies)
-	{
-		if (!Body || !Body->RigidBody)
-			continue;
+    const FReferenceSkeleton& RefSkeleton = SkeletalMeshAsset->GetSkeleton()->GetRefSkeleton();
 
-		const FTransform& BodyWorldTransform = Body->WorldTransform;
-		const FName& BoneName = Body->GetBodySetup()->BoneName;
+    // 임시: 현재 프레임의 애니메이션 기반 글로벌 본 트랜스폼 (월드 공간)
+    // 이 배열은 루프 내에서 필요에 따라 채워지거나, 루프 시작 전에 미리 계산될 수 있습니다.
+    // 여기서는 각 본의 물리 결과를 적용할 때, 해당 본의 "애니메이션" 부모 트랜스폼을 참조하기 위해 사용합니다.
+    TArray<FTransform> TempAnimGlobalBoneTransforms;
+    TempAnimGlobalBoneTransforms.SetNum(RefSkeleton.GetRawBoneNum());
 
-		int32 BoneIndex = RefSkeleton.FindRawBoneIndex(BoneName);
-		if (BoneIndex == INDEX_NONE)
-			continue;
+    // 1단계: 현재 애니메이션 포즈를 기반으로 글로벌 트랜스폼 계산 (또는 이전 프레임의 최종 포즈)
+    // 이 부분은 GetCurrentGlobalBoneMatrices와 유사하게 BonePoseContext.Pose를 사용하여 계산합니다.
+    // (정확성을 위해 GetCurrentGlobalBoneMatrices를 직접 호출하거나 해당 로직을 여기에 통합)
+    for (int32 BoneIdx = 0; BoneIdx < RefSkeleton.GetRawBoneNum(); ++BoneIdx)
+    {
+        const FTransform& BoneLocalAnimTransform = BonePoseContext.Pose[BoneIdx]; // 현재 애니메이션 로컬 포즈
+        int32 ParentIdx = RefSkeleton.GetParentIndex(BoneIdx);
+        if (ParentIdx != INDEX_NONE)
+        {
+            TempAnimGlobalBoneTransforms[BoneIdx] = BoneLocalAnimTransform * TempAnimGlobalBoneTransforms[ParentIdx];
+        }
+        else
+        {
+            TempAnimGlobalBoneTransforms[BoneIdx] = BoneLocalAnimTransform;
+        }
+        // 스케일은 여기서도 정규화해주는 것이 좋습니다.
+        TempAnimGlobalBoneTransforms[BoneIdx].NormalizeRotation();
+        TempAnimGlobalBoneTransforms[BoneIdx].SetScale3D(FVector::OneVector); // 애니메이션 포즈의 스케일도 1로 가정
+    }
 
-		int32 ParentIndex = RefSkeleton.GetParentIndex(BoneIndex);
-		FTransform ParentWorldTransform = FTransform::Identity;
 
-		// ✅ 부모가 있을 경우 물리 결과에서 부모 WorldTransform 찾기
-		if (ParentIndex != INDEX_NONE)
-		{
-			for (FBodyInstance* ParentBody : Bodies)
-			{
-				if (ParentBody && ParentBody->GetBodySetup()->BoneName == RefSkeleton.GetBoneName(ParentIndex))
-				{
-					ParentWorldTransform = ParentBody->WorldTransform;
-					break;
-				}
-			}
-		}
+    // 각 FBodyInstance (물리 바디)에 대해 반복
+    for (FBodyInstance* Body : Bodies)
+    {
+        if (!Body || !Body->RigidBody || !Body->GetBodySetup()) // 유효성 검사
+        {
+            continue;
+        }
 
-		// ✅ 자식의 로컬 트랜스폼 계산
-		FTransform LocalTransform = BodyWorldTransform.GetRelativeTransform(ParentWorldTransform);
-		//FQuat DeltaRot = FQuat(FVector(1, 0, 0), FMath::DegreesToRadians(-90));
-		//LocalTransform.ConcatenateRotation(DeltaRot);
+        // 1. 물리 바디의 현재 월드 트랜스폼 가져오기
+        // Body->WorldTransform은 PhysX 시뮬레이션 결과로 이미 업데이트되었다고 가정합니다.
+        const FTransform& PhysicsBodyWorldTransform_FromSim = Body->WorldTransform;
+        const FName& BoneName = Body->GetBodySetup()->BoneName;
+        int32 CurrentBoneIndex = RefSkeleton.FindRawBoneIndex(BoneName);
 
-		// ✅ 방어적 조치: Scale이 터지는 경우 Clamp
-		FVector Scale = LocalTransform.GetScale3D();
-		if (Scale.GetMin() < 0.01f || Scale.GetMax() > 100.0f)
-		{
-            UE_LOG(ELogLevel::Warning, TEXT("Abnormal scale in bone %s: %s"), *BoneName.ToString(), *Scale.ToString());
-			LocalTransform.SetScale3D(FVector(1.0f));
-		}
+        if (CurrentBoneIndex == INDEX_NONE)
+        {
+            continue;
+        }
 
-		// ✅ 최종 Pose에 기록
-		BonePoseContext.Pose[BoneIndex] = LocalTransform;
-	}
+        // --- 여기서부터가 핵심 수정 ---
+
+        // 2. 현재 본(CurrentBoneIndex)의 "애니메이션" 또는 "레퍼런스" 월드 트랜스폼 가져오기
+        // 이것은 물리 시뮬레이션 전, 이 본이 *있어야 할* 위치와 회전을 나타냅니다.
+        // TempAnimGlobalBoneTransforms는 위에서 계산한, 현재 애니메이션에 따른 글로벌 트랜스폼입니다.
+        const FTransform& OriginalBoneWorldTransform_Anim = TempAnimGlobalBoneTransforms[CurrentBoneIndex];
+
+        FTransform NewBoneWorldTransform;
+        NewBoneWorldTransform.SetRotation(PhysicsBodyWorldTransform_FromSim.GetRotation()); // 물리 바디의 월드 회전을 가져옴
+        NewBoneWorldTransform.NormalizeRotation(); // 회전 정규화
+
+
+        // 스케일은 항상 1로 설정하여 엿가락 방지
+        NewBoneWorldTransform.SetScale3D(FVector::OneVector);
+
+        // 4. 부모 본의 월드 트랜스폼 결정
+        FTransform ParentFinalWorldTransform = FTransform::Identity;
+        int32 ParentBoneIndex = RefSkeleton.GetParentIndex(CurrentBoneIndex);
+
+        if (ParentBoneIndex != INDEX_NONE)
+        {
+            // 부모 본이 물리 시뮬레이션 대상인지 확인
+            bool bParentIsSimulated = false;
+            for (FBodyInstance* TempParentBody : Bodies)
+            {
+                if (TempParentBody && TempParentBody->GetBodySetup()->BoneName == RefSkeleton.GetBoneName(ParentBoneIndex))
+                {
+                    ParentFinalWorldTransform = TempAnimGlobalBoneTransforms[ParentBoneIndex]; // 또는 부모의 물리결과가 반영된 값
+                    bParentIsSimulated = true; // 이 플래그는 아래 로직에 영향 줄 수 있음
+                    break;
+                }
+            }
+            if (!bParentIsSimulated)
+            {
+                // 부모가 물리 시뮬레이션 대상이 아니면, 애니메이션 포즈의 월드 트랜스폼 사용
+                ParentFinalWorldTransform = TempAnimGlobalBoneTransforms[ParentBoneIndex];
+            }
+        }
+        ParentFinalWorldTransform.SetScale3D(FVector::OneVector); // 부모 스케일도 1로.
+
+
+        // 5. 새로운 로컬 트랜스폼 계산
+        //    만약 물리 바디의 위치를 직접 사용하지 않는다면, 현재 본의 애니메이션/레퍼런스 로컬 트랜스폼에서
+        //    회전만 물리 결과로 대체하는 방식을 사용합니다.
+        FTransform CurrentBoneLocalAnimTransform = RefSkeleton.GetRawRefBonePose()[CurrentBoneIndex]; // 레퍼런스 포즈 또는 애니메이션 로컬 포즈
+        if (BonePoseContext.Pose.IsValidIndex(CurrentBoneIndex)) { // 애니메이션이 적용된 로컬 포즈 사용
+            CurrentBoneLocalAnimTransform = BonePoseContext.Pose[CurrentBoneIndex];
+        }
+
+
+        // 옵션 1: 물리 바디의 월드 "회전"만 가져와서, 현재 본의 "원래 로컬 위치"와 결합
+        FTransform NewFinalBoneLocalTransform;
+        // 현재 본의 "애니메이션/레퍼런스" 로컬 위치를 유지
+        NewFinalBoneLocalTransform.SetTranslation(CurrentBoneLocalAnimTransform.GetTranslation());
+        FQuat PhysicsLocalRotation = ParentFinalWorldTransform.GetRotation().Inverse() * PhysicsBodyWorldTransform_FromSim.GetRotation();
+        NewFinalBoneLocalTransform.SetRotation(PhysicsLocalRotation);
+        NewFinalBoneLocalTransform.NormalizeRotation();
+        NewFinalBoneLocalTransform.SetScale3D(FVector::OneVector); // 로컬 스케일은 항상 1
+
+
+        // NaN 및 유효성 검사
+        if (NewFinalBoneLocalTransform.ContainsNaN() || !NewFinalBoneLocalTransform.IsRotationNormalized())
+        {
+            // UE_LOG(ELogLevel::Warning, TEXT("UpdatePosePhysics: Invalid local transform for bone %s. Resetting to ref pose local."), *BoneName.ToString());
+            BonePoseContext.Pose[CurrentBoneIndex] = RefSkeleton.GetRawRefBonePose()[CurrentBoneIndex];
+        }
+        else
+        {
+            BonePoseContext.Pose[CurrentBoneIndex] = NewFinalBoneLocalTransform;
+        }
+    }
 }
 
 
