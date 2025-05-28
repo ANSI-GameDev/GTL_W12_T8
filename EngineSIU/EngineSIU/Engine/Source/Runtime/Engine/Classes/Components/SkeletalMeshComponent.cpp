@@ -535,10 +535,6 @@ void USkeletalMeshComponent::InstantiatePhysicsAsset_Internal(const UPhysicsAsse
         FBodyInstance* Body1 = NameToBodyMap.FindRef(Bone1Name);
         FBodyInstance* Body2 = NameToBodyMap.FindRef(Bone2Name);
 
-        /* TODO : 현재는 Scale 적용 코드 생략*/
-        // auto ScalePosition = [](const FBodyInstance* InBody, const float InScale, FVector& OutPosition)
-
-
         if (Body1 && Body2)
         {
             FConstraintInstance* NewConstraint = new FConstraintInstance();
@@ -578,8 +574,9 @@ void USkeletalMeshComponent::InstantiatePhysicsAssetBodies_Internal(const UPhysi
         BodySetup->ApplyWorldScale(ComponentScale3D);
 
         //str += FString::Printf(TEXT("%s,%s\n"), *BodySetup->BoneName.ToString(), *BoneWorldTransform.ToString());
+        
         FBodyInstance* NewBody = new FBodyInstance();
-        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene);
+        NewBody->InitBody(BodySetup, BoneWorldTransform, PhysScene, BoneWorldTransform);
 
         OutBodies.Add(NewBody);
 

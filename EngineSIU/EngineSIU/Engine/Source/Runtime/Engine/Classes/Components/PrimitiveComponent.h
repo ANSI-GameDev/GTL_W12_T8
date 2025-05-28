@@ -20,7 +20,14 @@ public:
     virtual void InitializeComponent() override;
     virtual void TickComponent(float DeltaTime) override;
     virtual void PhysicsUpdate(float DeltaTime);
+    virtual void DestroyComponent(bool bPromoteChildren = false) override;
     void SetSimulatePhysics(bool bSimulate);
+
+    virtual void SetRelativeTransform(const FTransform& InTransform) override;
+    virtual void SetRelativeLocation(const FVector& InLocation) override;
+    virtual void SetRelativeRotation(const FRotator& InRotation) override;
+    virtual void SetRelativeRotation(const FQuat& InQuat) override;
+    virtual void SetRelativeScale3D(const FVector& InScale) override;
 
     bool IntersectRayTriangle(
         const FVector& RayOrigin, const FVector& RayDirection,
@@ -110,7 +117,7 @@ protected:
 
     void ClearComponentOverlaps(bool bDoNotifies, bool bSkipNotifySelf);
     
-    FBodyInstance* BodyInstance;
+    FBodyInstance* BodyInstance = nullptr;
 private:
     FString m_Type;
 

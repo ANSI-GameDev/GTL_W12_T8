@@ -1,8 +1,5 @@
 #include "Cube.h"
 
-#include "Components/BoxComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 
 #include "Engine/FObjLoader.h"
@@ -16,7 +13,7 @@ ACube::ACube()
     StaticMeshComponent->SetStaticMesh(FObjManager::CreateStaticMesh(L"Contents/Reference/Reference.obj"));
 }
 
-void ACube::InitCube()
+void ACube::InitBodyInstance()
 {
     SetActorLocation(FVector(0, 0, 10));
 
@@ -33,7 +30,7 @@ void ACube::InitCube()
     UWorld* world = GetWorld();
     
     FBodyInstance* CubeBody = new FBodyInstance();
-    CubeBody->InitBody(BodySetup, StaticMeshComponent->GetComponentTransform(), world->GetPhysicsScene());
+    CubeBody->InitBody(BodySetup, StaticMeshComponent->GetComponentTransform(), world->GetPhysicsScene(), GetRootComponent()->GetComponentTransform());
     StaticMeshComponent->SetBodyInstance(CubeBody);
     
 }

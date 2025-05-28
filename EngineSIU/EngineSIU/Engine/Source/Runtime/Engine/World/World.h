@@ -7,9 +7,6 @@
 #include "Level.h"
 #include "Actors/Player.h"
 #include "GameFramework/PlayerController.h"
-#include "Camera/CameraComponent.h"
-#include "Camera/PlayerCameraManager.h"
-#include "Engine/Engine.h"
 #include "Engine/EventManager.h"
 #include "UObject/UObjectIterator.h"
 
@@ -87,8 +84,12 @@ public:
     void SetPhysicsScene(FPhysScene* InScene);
 
 public:
-    double TimeSeconds;
+    double TimeSeconds = 0;
 
+    //test용
+    double SpawnTime = 0;
+    uint8 SpawnType : 1 = 0;
+    
 protected:
     
     FString WorldName = "DefaultWorld";

@@ -41,11 +41,11 @@ public:
     void DetachFromComponent(USceneComponent* Target);
     
 public:
-    void SetRelativeLocation(const FVector& InLocation) { RelativeLocation = InLocation; }
-    void SetRelativeRotation(const FRotator& InRotation);
-    void SetRelativeRotation(const FQuat& InQuat);
-    void SetRelativeScale3D(const FVector& InScale) { RelativeScale3D = InScale; }
-    void SetRelativeTransform(const FTransform& InTransform);
+    virtual void SetRelativeLocation(const FVector& InLocation);
+    virtual void SetRelativeRotation(const FRotator& InRotation);
+    virtual void SetRelativeRotation(const FQuat& InQuat);
+    virtual void SetRelativeScale3D(const FVector& InScale);
+    virtual void SetRelativeTransform(const FTransform& InTransform);
     
     FVector GetRelativeLocation() const { return RelativeLocation; }
     FRotator GetRelativeRotation() const { return RelativeRotation; }

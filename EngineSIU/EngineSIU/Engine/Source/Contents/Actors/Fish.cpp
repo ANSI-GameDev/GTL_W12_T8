@@ -11,6 +11,7 @@
 #include "SoundManager.h"
 #include "TriggerBox.h"
 #include "Contents/Objects/DamageCameraShake.h"
+#include "Engine/Engine.h"
 #include "GameFramework/GameMode.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "World/World.h"

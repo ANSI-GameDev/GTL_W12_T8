@@ -29,7 +29,7 @@ namespace EDOFMode
         None
     };
 }
-
+struct FReferenceSkeleton;
 struct FConstraintInstance;
 struct FBodyInstance : public FBodyInstanceCore
 {
@@ -49,6 +49,8 @@ struct FBodyInstance : public FBodyInstanceCore
     
     FTransform WorldTransform;
 
+    FTransform OriginTransform;
+    
     FVector LinearVelocity;
     FVector AngularVelocity;
     FVector COMNudge;
@@ -72,16 +74,20 @@ public:
     // void ApplyTorque(FVector Torque);
     // void AddImpulse(FVector Impulse);
 
-    void SetTransformRigidBody(FTransform MoveLocation);
-    
-    //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
-    void InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene);
-    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
+    void SetTransformRigidBody(FTransform NewTransform);
+    void SetRigidbodyKinematic(bool bIsKinematic);
 
+    //해당 BodyInstance를 PhysScene에 등록시켜주는 작업
+    void InitBody(
+        UBodySetup* InBodySetup, const FTransform& InBodyWorldTransform, FPhysScene* InScene, FTransform DefaultBodyTransform
+    );
+    void AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysScene* InScene);
+    void DestroyInPhysicsScene();
+    
     void SetWorldTransform(const FTransform& T) { WorldTransform = T; }
     FTransform GetWorldTransform() const { return WorldTransform; }
-    UBodySetup* GetBodySetup() const;
     physx::PxRigidDynamic* GetPxRigidBoDynamic() const;
+    UBodySetup* GetBodySetup() const;
 
     uint8 bUseCCD : 1;
 

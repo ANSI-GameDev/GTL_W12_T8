@@ -19,7 +19,6 @@ UObject* UStaticMeshComponent::Duplicate(UObject* InOuter)
     return NewComponent;
 }
 
-
 void UStaticMeshComponent::GetProperties(TMap<FString, FString>& OutProperties) const
 {
     Super::GetProperties(OutProperties);
