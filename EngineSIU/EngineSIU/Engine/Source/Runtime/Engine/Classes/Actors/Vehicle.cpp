@@ -1,6 +1,7 @@
 ﻿#include "Vehicle.h"
 
 #include <PxPhysics.h>
+#include <PxScene.h>
 #include <extensions/PxRigidBodyExt.h>
 
 
@@ -37,6 +38,8 @@ void AVehicle::InitVehicle()
     
     ModifiedChassisAABBMin = FVector(-20, -10, -5);
     ModifiedChassisAABBMax = FVector(20, 10, 5);
+
+    StaticMeshComponent
 }
 
 void AVehicle::Tick(float DeltaTime)
@@ -62,6 +65,15 @@ void AVehicle::Tick(float DeltaTime)
         }
     }
 
+}
+
+void AVehicle::Destroyed()
+{
+    AStaticMeshActor::Destroyed();
+    FPhysScene* phyScene = GetWorld()->GetPhysicsScene();
+    phyScene->gScene->removeActor(*Vehicle->getRigidDynamicActor());
+    phyScene->VehicleManager->RemoveVehicle(Vehicle);
+    Vehicle->free();
 }
 
 FVector AVehicle::GetWheelPosition(int index)
@@ -125,6 +137,12 @@ void AVehicle::UpdateProperties()
 
 void AVehicle::ApplyModifiedChassis()
 {
+    FVector dim = ModifiedChassisAABBMax - ModifiedChassisAABBMin;
+    if (dim.X <= 0 || dim.Y <= 0 || dim.Z <= 0)
+    {
+        UE_LOG(ELogLevel::Error, "Can not resize Chassis");
+        return;
+    }
     FPhysScene* Scene = GetWorld()->GetPhysicsScene();
     PxRigidDynamic* chassisActor = Vehicle->getRigidDynamicActor();
 
@@ -135,15 +153,15 @@ void AVehicle::ApplyModifiedChassis()
     const PxMaterial* material = Scene->VehicleManager->GetVehicleMaterial();
 
     PxShape* oldShape = nullptr;
-    chassisActor->getShapes(&oldShape, 1);
+    chassisActor->getShapes(&oldShape, 1, 4);
     chassisActor->detachShape(*oldShape);
-    oldShape->release();
+    // oldShape->release();
 
     PxShape* shape = Scene->gPhysics->createShape(box, *material);
     shape->setLocalPose(PxTransform(offset));
     chassisActor->attachShape(*shape);
     shape->release();
 
-    // 질량/관성 업데이트
     PxRigidBodyExt::updateMassAndInertia(*chassisActor, ChassisMass); 
 }
+

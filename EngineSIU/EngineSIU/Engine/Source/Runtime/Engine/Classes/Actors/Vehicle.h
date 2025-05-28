@@ -10,6 +10,7 @@ public:
     AVehicle();
     void InitVehicle();
     void Tick(float DeltaTime) override;
+    void Destroyed() override;
 
     UPROPERTY_WITH_FLAGS(
         EditAnywhere,

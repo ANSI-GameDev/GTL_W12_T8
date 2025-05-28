@@ -1531,7 +1531,7 @@ void PropertyEditorPanel::RenderForVehicleActor(AVehicle* VehicleActor) const
     if (ImGui::TreeNodeEx("Vehicle Chassis", ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen))
     {
         FImGuiWidget::DrawVec3Control("Box Min", VehicleActor->ModifiedChassisAABBMin);
-        FImGuiWidget::DrawVec3Control("Box Max", VehicleActor->ModifiedChassisAABBMin);
+        FImGuiWidget::DrawVec3Control("Box Max", VehicleActor->ModifiedChassisAABBMax);
         FImGuiWidget::DrawDragFloat("Box Mass", VehicleActor->ChassisMass);
         if (ImGui::Button("Apply"))
         {

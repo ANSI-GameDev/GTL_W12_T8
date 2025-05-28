@@ -75,7 +75,7 @@ void FVehicleManager::InitPhysXVehicle(PxPhysics* Physics, PxCooking* Cooking)
     }
 
     // Init WheelQuery
-    const uint32 InitWheelCapacity = 16;
+    const uint32 InitWheelCapacity = 256;
     WheelQueryResults = (PxWheelQueryResult*)malloc(sizeof(PxWheelQueryResult) * InitWheelCapacity);
     RaycastQueryResults = (PxRaycastQueryResult*)malloc(sizeof(PxRaycastQueryResult) * InitWheelCapacity);
     RaycastHits = (PxRaycastHit*)malloc(sizeof(PxRaycastHit) * InitWheelCapacity);
@@ -276,6 +276,7 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     vehicleQueryFilterData.word3 = 0x0000ffff;
 
     // setup Actor
+    // 순서는 wheels -> chassis로.
     for (int i = 0; i < 4; ++i)
     {
         PxShape* wheelShape = PxRigidActorExt::createExclusiveShape(*vehicleActor, *wheelGeometries[i], *VehicleMaterial);
@@ -332,6 +333,13 @@ PxVehicleDrive4W* FVehicleManager::CreateVehicle(PxPhysics* Physics)
     wheelsSimData->free();
 
     return car;
+}
+
+void FVehicleManager::RemoveVehicle(physx::PxVehicleWheels* Vehicle)
+{
+    uint32 idx = Vehicles.Find(Vehicle);
+    Vehicles.Remove(Vehicle);
+    VehicleWheelsQueryResults.RemoveAt(idx);
 }
 
 void FVehicleManager::Update(const float deltaTime, PxScene* Scene)
