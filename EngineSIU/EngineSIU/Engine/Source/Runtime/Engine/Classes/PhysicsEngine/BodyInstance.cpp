@@ -59,7 +59,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FVector& InBodyWorld
     RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
 
     // @@ TODO : TEst 용 추가
-    //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
+    RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
 
     // Shape 생성
     RigidBody->setLinearVelocity(PxVec3(0, 0, 0));
