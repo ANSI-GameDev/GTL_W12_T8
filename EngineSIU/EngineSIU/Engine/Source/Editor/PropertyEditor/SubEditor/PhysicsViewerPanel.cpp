@@ -260,6 +260,7 @@ inline void PhysicsViewerPanel::RenderSkeletonUI()
                 {
                     CurrentIndex = i;
                     SkeletalMeshComponent->SetSkeletalMeshAsset(UAssetManager::Get().GetSkeletalMesh(MeshNames[i]));
+                    ToggleRagdollSimulation(bSimulateRagdoll);
                     // 초기화 등 필요한 작업
                 }
                 if (bSelected) ImGui::SetItemDefaultFocus();

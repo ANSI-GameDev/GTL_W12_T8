@@ -58,9 +58,6 @@ void FSubRenderer::PrepareRender(const std::shared_ptr<FEditorViewportClient>& V
         {
             SkeletalMeshRenderPass->AddSkeletalMeshComponent(SkeletalMeshComponent);
         }
-
-        FSkeletalMeshDebugger::DrawSkeleton(SkeletalMeshComponent, PrimitiveDrawBatch);
-        FSkeletalMeshDebugger::DrawSkeletonAABBs(SkeletalMeshComponent, PrimitiveDrawBatch);
     }
 }
 void FSubRenderer::SetEnabledPass(FString PassName, bool bEnable)

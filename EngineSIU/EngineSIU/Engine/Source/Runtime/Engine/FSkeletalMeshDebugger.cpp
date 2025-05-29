@@ -239,7 +239,7 @@ void FSkeletalMeshDebugger::DrawBodyShapes(
 
         const FMatrix& BoneMatrix = BoneWorldMatrices[BoneIndex];
         FTransform RefTransform = RefSkeleton.GetRefWorldTransform(BoneIndex);
-        FMatrix RefMatrix = RefTransform.ToMatrixWithScale(); // 또는 ToMatrixNoScale()
+        FMatrix RefMatrix = RefTransform.ToMatrixNoScale(); // 또는 ToMatrixNoScale()
         const FVector4 Color = (BoneName == SelectedBodyName) ? SelectedColor : DefaultColor;
 
         // --- Capsule (Sphyl) ---
