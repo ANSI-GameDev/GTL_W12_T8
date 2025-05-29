@@ -46,6 +46,7 @@ void FPhysScene::InitPhysX()
     SceneDesc.flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
     SceneDesc.flags |= PxSceneFlag::eENABLE_CCD;
     SceneDesc.flags |= PxSceneFlag::eENABLE_PCM;
+    SceneDesc.flags |= PxSceneFlag::eENABLE_STABILIZATION; // 안정화 기능
     gScene = gPhysics->createScene(SceneDesc);
 
     /* Visual Debugger 활성화
@@ -116,7 +117,7 @@ void FPhysScene::InitPhysX()
 
 
     // 2. 동일 위치에 두꺼운 박스 고정체 추가
-    PxVec3 BoxPosition(0.0f, 0.0f, -120.0f); // 높이 20짜리 박스가 절반 위로 튀어나오게 설정
+    PxVec3 BoxPosition(0.0f, 0.0f, -100.0f); // 높이 20짜리 박스가 절반 위로 튀어나오게 설정
     PxTransform BoxTransform(BoxPosition);
 
     PxRigidStatic* rigidStaticBox = gPhysics->createRigidStatic(BoxTransform);
@@ -126,6 +127,9 @@ void FPhysScene::InitPhysX()
 
     PxShape* BoxShape = gPhysics->createShape(ThickBox, *gMaterial);
     rigidStaticBox->attachShape(*BoxShape);
+    BoxShape->setContactOffset(0.05f);  // 최소 0.1f 이상
+    BoxShape->setRestOffset(0.02f);    // 항상 contactOffset보다 작게
+
 
     gScene->addActor(*rigidStaticBox);
 

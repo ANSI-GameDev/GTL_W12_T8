@@ -73,42 +73,42 @@ bool FConstraintInstance::IsEndEffectorJoint(const FName& BoneName)
 /*
  * 여기서 모든 PhysX 엔진의 Constraint 인스턴스 생성
  */
+
 void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, float Scale, USkeletalMeshComponent* OwningComponent)
 {
-    PX_RELEASE(PxJoint)
+    PX_RELEASE(PxJoint);
     if (!Body1 || !Body2 || !Body1->RigidBody || !Body2->RigidBody || !PhysScene)
     {
         UE_LOG(ELogLevel::Error, TEXT("InitConstraint: Invalid input bodies or scene."));
         return;
     }
-    /*if (IsEndEffectorJoint(Body1->GetBodySetup()->BoneName) || IsEndEffectorJoint(Body2->GetBodySetup()->BoneName))
-    {
-        return;
-    }*/
 
-    const PxTransform ChildWorldPose = Body1->RigidBody->getGlobalPose();
-    const PxTransform ParentWorldPose = Body2->RigidBody->getGlobalPose();
+    PxRigidActor* PActor1 = Body2->RigidBody; // 부모
+    PxRigidActor* PActor2 = Body1->RigidBody; // 자식
 
-    const PxVec3 ChildPos = ChildWorldPose.p;
-    const PxVec3 ParentPos = ParentWorldPose.p;
+    PxTransform ParentPose = PActor1->getGlobalPose();
+    PxTransform ChildPose = PActor2->getGlobalPose();
 
-    // 2. 부모 → 자식 방향을 Joint의 +X축으로 삼기 위한 회전
-    const PxVec3 JointDir = (ChildPos - ParentPos).getNormalized();
-    const PxQuat AlignToX = PxShortestRotation(PxVec3(1, 0, 0), JointDir);
+    // 자식 로컬축에서 Joint X축을 자식→부모 방향으로 회전시키기 위한 정렬 회전
+    PxQuat AxisCorrection = PxQuat(PxMat33(
+        PxVec3(0.0f, 0.0f, 1.0f), // new X-axis
+        PxVec3(1.0f, 0.0f, 0.0f), // new Y-axis
+        PxVec3(0.0f, 1.0f, 0.0f)  // new Z-axis
+    ));
+    AxisCorrection.normalize();
 
-    // 3. Anchor 위치는 자식의 현재 위치
-    const PxVec3 AnchorPos = ChildPos;
-    const PxTransform JointWorldPose(AnchorPos, AlignToX);
+    PxTransform LocalFrameChild(PxVec3(0), AxisCorrection);
 
-    // 4. 각각 로컬 프레임 계산
-    const PxTransform LocalFrameParent = ParentWorldPose.getInverse() * JointWorldPose;
-    const PxTransform LocalFrameChild = ChildWorldPose.getInverse() * JointWorldPose;
+    // 자식의 Joint 기준 프레임을 월드로 변환
+    PxTransform JointFrameWorld = ChildPose * LocalFrameChild;
 
-    // 3. Joint 생성
+    // 부모 기준에서 자식의 Joint 프레임을 Local로 변환
+    PxTransform LocalFrameParent = ParentPose.getInverse() * JointFrameWorld;
+
     PxD6Joint* Joint = PxD6JointCreate(
         *PhysScene->gPhysics,
-        Body2->RigidBody, LocalFrameParent,
-        Body1->RigidBody, LocalFrameChild
+        PActor2, LocalFrameChild,
+        PActor1, LocalFrameParent
     );
 
     if (!Joint)
@@ -118,45 +118,31 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
     }
 
     PxJoint = Joint;
-
-    // 4. 충돌 여부
     Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, !ProfileInstance.bDisableCollision);
 
-    // 5. DOF 제한 설정
-    /*Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
+    // 기본 제한 설정
+    Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
     Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
-    Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);*/
+    Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
 
-    //Joint->setMotion(PxD6Axis::eX, PxD6Motion::eFREE);
-    //Joint->setMotion(PxD6Axis::eY, PxD6Motion::eFREE);
-    //Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eFREE);
-
-    const PxTolerancesScale& ToleranceScale = PhysScene->gPhysics->getTolerancesScale();
-    PxReal LimitExtent = Scale * ProfileInstance.LinearLimit.Limit;
-    PxJointLinearLimit LinearLimit(ToleranceScale, LimitExtent); // contactDist는 기본값 -1.0 사용
-
-    //Joint->setLinearLimit(LinearLimit);
-
-
-    // Twist 제한
     if (ProfileInstance.TwistLimit.TwistMotion == ACM_Limited)
     {
-        float TwistAngle = FMath::DegreesToRadians(ProfileInstance.TwistLimit.TwistLimitDegrees);
-        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eLIMITED);
-        Joint->setTwistLimit(PxJointAngularLimitPair(-TwistAngle, TwistAngle));
+        float Twist = FMath::DegreesToRadians(ProfileInstance.TwistLimit.TwistLimitDegrees);
+        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
+        Joint->setTwistLimit(PxJointAngularLimitPair(-Twist, Twist));
     }
     else
     {
         Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
     }
 
-    // Swing 제한
-    if (ProfileInstance.ConeLimit.Swing1Motion == ACM_Limited && ProfileInstance.ConeLimit.Swing2Motion == ACM_Limited)
+    if (ProfileInstance.ConeLimit.Swing1Motion == ACM_Limited &&
+        ProfileInstance.ConeLimit.Swing2Motion == ACM_Limited)
     {
         float Swing1 = FMath::DegreesToRadians(ProfileInstance.ConeLimit.Swing1LimitDegrees);
         float Swing2 = FMath::DegreesToRadians(ProfileInstance.ConeLimit.Swing2LimitDegrees);
-        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eLIMITED);
-        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eLIMITED);
+        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
+        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
         Joint->setSwingLimit(PxJointLimitCone(Swing1, Swing2));
     }
     else
@@ -165,39 +151,10 @@ void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Bo
         Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
     }
 
-    if (IsEndEffectorJoint(ConstraintBone1)) // 말단 본일 경우
-    {
-        //PxD6JointDrive AngularDrive(1000.0f, 50.0f, PX_MAX_F32, true); // 강한 복원력과 감쇠
-        //Joint->setDrive(PxD6Drive::eSWING, AngularDrive);
-        //Joint->setDrive(PxD6Drive::eTWIST, AngularDrive);
-
-
-        //PxD6JointDrive DampedDrive(
-        //    10.0f,          // stiffness (0이면 회전 복원 없음)
-        //    30.0f,         // damping (감쇠 강도, 값 높일수록 감속 강해짐)
-        //    1000.0f,    // force limit
-        //    true           // acceleration mode
-        //);
-
-        //Joint->setDrive(PxD6Drive::eSLERP, DampedDrive);
-
-        // SLERP 드라이브를 쓰기 위해 twist/swing을 FREE로 설정
-        Joint->setConstraintFlag(PxConstraintFlag::eCOLLISION_ENABLED, false);
-        Joint->setMotion(PxD6Axis::eX, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eY, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eZ, PxD6Motion::eLOCKED);
-        Joint->setMotion(PxD6Axis::eTWIST, PxD6Motion::eFREE);
-        Joint->setMotion(PxD6Axis::eSWING1, PxD6Motion::eFREE);
-        Joint->setMotion(PxD6Axis::eSWING2, PxD6Motion::eFREE);
-
-        //Joint->setDrivePosition(PxTransform(PxIdentity));
-         //Joint->setDriveVelocity(PxVec3(0.f), PxVec3(0.f));
-    }
-
-    /* 제약(Joint)이 설정한 앵커 위치/회전에서 벗어났을 때, 일정 임계치 이상으로 틀어지면 자동으로 두 바디를 다시 끌어당겨 보정함 */
+    Joint->setDrive(PxD6Drive::eSLERP, PxD6JointDrive(50.f, 5.f, PX_MAX_F32, true));
     Joint->setProjectionLinearTolerance(0.1f);
-    Joint->setProjectionAngularTolerance(PxPi / 4.0f); // 관절이 한계를 넘었을 때 자동 보정
-    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true); 
+    Joint->setProjectionAngularTolerance(PxPi / 4.0f);
+    Joint->setConstraintFlag(PxConstraintFlag::ePROJECTION, true);
 }
 
 void FConstraintInstance::InitConstraint(FBodyInstance* Body1, FBodyInstance* Body2, const FTransform& Frame1, const FTransform& Frame2, FPhysScene* InScene)

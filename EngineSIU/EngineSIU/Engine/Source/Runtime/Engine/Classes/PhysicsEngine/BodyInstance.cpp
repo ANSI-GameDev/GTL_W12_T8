@@ -77,24 +77,24 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
     PxTransform pose = PxTransform(InBodyWorldTransform.GetLocation().ToPxVec3(), InBodyWorldTransform.GetRotation().ToPxQuat());
     RigidBody = InScene->gPhysics->createRigidDynamic(pose);
     AttachShapes(InBodySetup->AggGeom, InScene);
-    RigidBody->setSolverIterationCounts(8, 2);
+    RigidBody->setSolverIterationCounts(16, 8);
     RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
-    RigidBody->setMaxDepenetrationVelocity(5.f);
+    RigidBody->setMaxDepenetrationVelocity(1.f);
 
-    RigidBody->setAngularDamping(2.0f); // 강한 회전 감쇠
-    RigidBody->setLinearDamping(1.0f);  // 선형 감쇠도 안정성 증가
+    RigidBody->setAngularDamping(1.0f); // 강한 회전 감쇠
+    RigidBody->setLinearDamping(2.0f);  // 선형 감쇠도 안정성 증가
 
     // @@ TODO : TEst 용 추가
     //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
-
+    RigidBody->setMassSpaceInertiaTensor(PxVec3(0.01f, 0.01f, 0.01f));
     // Shape 생성
     RigidBody->setLinearVelocity(PxVec3(0, 0, 0));
     RigidBody->setAngularVelocity(PxVec3(0, 0, 0));
 
     float Volume = InBodySetup->AggGeom.TotalVolume;
     float Mass = FMath::Max(Volume * 10.f, 0.01f);  
-    PxRigidBodyExt::updateMassAndInertia(*RigidBody, Mass);
-    //PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
+    //PxRigidBodyExt::updateMassAndInertia(*RigidBody, Mass);
+    PxRigidBodyExt::updateMassAndInertia(*RigidBody, 10.0f);
 
     InScene->gScene->addActor(*RigidBody);
     UpdatePhysics();
@@ -141,8 +141,8 @@ void FBodyInstance::AttachShapes(const FKAggregateGeom& InAggregateGeom, FPhysSc
 		// 2) Shape 생성
 		PxShape* Shape = InScene->gPhysics->createShape(Geometry, *InScene->gMaterial);
 		Shape->setLocalPose(ShapePose);
-		Shape->setContactOffset(0.8f);
-		Shape->setRestOffset(0.05f);
+        Shape->setContactOffset(0.2f);
+        Shape->setRestOffset(0.05f);
 
 		// 3) 필터 설정: 같은 그룹(CAPSULE_COLLISION_GROUP)에 속한 것들끼리는 충돌하지 않도록
 		PxFilterData fd;
