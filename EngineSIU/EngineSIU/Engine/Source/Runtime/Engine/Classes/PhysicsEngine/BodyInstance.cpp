@@ -83,7 +83,7 @@ void FBodyInstance::InitBody(UBodySetup* InBodySetup, const FTransform& InBodyWo
 
     RigidBody->setAngularDamping(1.0f); // 강한 회전 감쇠
     RigidBody->setLinearDamping(2.0f);  // 선형 감쇠도 안정성 증가
-
+ 
     // @@ TODO : TEst 용 추가
     //RigidBody->setRigidBodyFlag(PxRigidBodyFlag::eKINEMATIC, true);
     RigidBody->setMassSpaceInertiaTensor(PxVec3(0.01f, 0.01f, 0.01f));
